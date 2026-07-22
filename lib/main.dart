@@ -11,15 +11,6 @@ void main() {
 class LiveLocalApp extends StatelessWidget {
   const LiveLocalApp({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'LiveLocal',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        primaryColor: const Color(0xFF2D6A4F),
-        scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSeed(
           seedColor: const Color(0xFF2D6A4F),
           primary: const Color(0xFF2D6A4F),
