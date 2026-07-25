@@ -24,7 +24,6 @@ class LiveLocalApp extends StatelessWidget {
           seedColor: const Color(0xFF2D6A4F),
           primary: const Color(0xFF2D6A4F),
           secondary: const Color(0xFF74C69D),
-          background: Colors.white,
           surface: Colors.white,
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
