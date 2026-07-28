@@ -1,0 +1,124 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:live_local/controllers/auth_controller.dart';
+import 'package:live_local/controllers/spot_controller.dart';
+import 'package:live_local/controllers/localeats_controller.dart';
+import 'package:live_local/controllers/itinerary_controller.dart';
+import 'package:live_local/controllers/guide_controller.dart';
+import 'package:live_local/controllers/review_controller.dart';
+import 'package:live_local/controllers/admin_controller.dart';
+import 'package:live_local/models/spot_model.dart';
+
+void main() {
+  group('LiveLocal System Integration Tests', () {
+    test('Module 1: Auth & Role Switching', () async {
+      final authCtrl = AuthController();
+      await authCtrl.login('tourist@livelocal.my', 'password');
+      expect(authCtrl.isAuthenticated, isTrue);
+
+      authCtrl.setRole('influencer');
+      expect(authCtrl.currentUser?.role, 'influencer');
+
+      authCtrl.setRole('admin');
+      expect(authCtrl.currentUser?.role, 'admin');
+    });
+
+    test('Module 2: Local Spots Filtering & Approval Flow', () async {
+      final spotCtrl = SpotController();
+      await spotCtrl.loadSpots();
+
+      final initialApprovedCount = spotCtrl.approvedSpots.length;
+      expect(initialApprovedCount, greaterThan(0));
+
+      spotCtrl.filter(state: 'Penang');
+      expect(spotCtrl.approvedSpots.every((s) => s.state == 'Penang'), isTrue);
+
+      spotCtrl.resetFilters();
+
+      // Submit new spot
+      final newSpot = SpotModel(
+        id: 'spot-test-1',
+        name: 'Test Kopitiam',
+        category: 'Kopitiam',
+        description: 'Test Kopitiam description',
+        state: 'Penang',
+        city: 'George Town',
+        address: '123 Test St',
+        priceRange: '\$',
+        bestTime: '8:00 AM',
+        thingsToDo: 'Drink kopi',
+        imageUrl: 'https://example.com/test.jpg',
+        submittedBy: 'usr-1',
+        status: 'pending',
+      );
+
+      await spotCtrl.submitSpot(newSpot);
+      expect(spotCtrl.pendingSpots.any((s) => s.id == 'spot-test-1'), isTrue);
+
+      // Admin approves spot
+      await spotCtrl.approveSpot('spot-test-1');
+      expect(spotCtrl.approvedSpots.any((s) => s.id == 'spot-test-1'), isTrue);
+    });
+
+    test('Module 3: LocalEats & Discount Codes', () async {
+      final foodCtrl = LocalEatsController();
+      await foodCtrl.loadData();
+
+      expect(foodCtrl.restaurants.isNotEmpty, isTrue);
+      expect(foodCtrl.discountCodes.isNotEmpty, isTrue);
+
+      final rest = foodCtrl.restaurants.first;
+      final discounts = foodCtrl.getActiveDiscountsForRestaurant(rest.id);
+      expect(discounts.every((d) => !d.isExpired), isTrue);
+    });
+
+    test('Module 4: Saved Places & Smart Itinerary Routing', () async {
+      final itineraryCtrl = ItineraryController();
+      final spotCtrl = SpotController();
+      final foodCtrl = LocalEatsController();
+
+      await spotCtrl.loadSpots();
+      await foodCtrl.loadData();
+      await itineraryCtrl.loadSavedPlaces('usr-tourist-1');
+
+      final spotId = spotCtrl.approvedSpots.first.id;
+      await itineraryCtrl.toggleSave('usr-tourist-1', spotId: spotId);
+
+      expect(itineraryCtrl.isSaved('usr-tourist-1', spotId: spotId), isTrue);
+
+      final itinerary = itineraryCtrl.generateProximityItinerary(spotCtrl.spots, foodCtrl.restaurants);
+      expect(itinerary.isNotEmpty, isTrue);
+    });
+
+    test('Module 5: Neighbourhood Explorer Guides', () async {
+      final guideCtrl = GuideController();
+      await guideCtrl.loadGuides();
+
+      expect(guideCtrl.approvedGuides.isNotEmpty, isTrue);
+      final guide = guideCtrl.approvedGuides.first;
+      expect(guide.stops.isNotEmpty, isTrue);
+      expect(guide.walkingSequence.isNotEmpty, isTrue);
+    });
+
+    test('Module 6: Community Reviews & Admin Moderation', () async {
+      final reviewCtrl = ReviewController();
+      final adminCtrl = AdminController();
+
+      await reviewCtrl.loadReviews();
+      await adminCtrl.loadUsers();
+
+      expect(adminCtrl.totalUsers, greaterThan(0));
+
+      // Add review
+      await reviewCtrl.addReview(
+        spotId: 'spot-001',
+        userId: 'usr-tourist-1',
+        userName: 'Test User',
+        rating: 5.0,
+        comment: 'Awesome place!',
+      );
+
+      final reviews = reviewCtrl.getReviewsForSpot('spot-001');
+      expect(reviews.any((r) => r.comment == 'Awesome place!'), isTrue);
+    });
+  });
+}
