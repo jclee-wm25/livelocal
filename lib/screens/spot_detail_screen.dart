@@ -277,10 +277,11 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 ],
               ),
             ),
-          ],
+          ),
         ),
-      ),
-    );
+      ],
+    ),
+  );
   }
 
   void _showWriteReviewSheet(BuildContext context, dynamic user, ReviewController reviewCtrl) {

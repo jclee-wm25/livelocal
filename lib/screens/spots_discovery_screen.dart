@@ -193,7 +193,6 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                   ),
                 ),
               ),
-            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
