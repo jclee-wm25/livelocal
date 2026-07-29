@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../controllers/auth_controller.dart';
 import 'spots_discovery_screen.dart';
 import 'localeats_screen.dart';
@@ -16,140 +17,184 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
+  late AnimationController _bellController;
+
+  @override
+  void initState() {
+    super.initState();
+    _bellController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+  }
+
+  @override
+  void dispose() {
+    _bellController.dispose();
+    super.dispose();
+  }
+
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     final authCtrl = Provider.of<AuthController>(context);
     final user = authCtrl.currentUser;
+    final isAdmin = user?.role == 'admin';
 
     final List<Widget> pages = [
       const SpotsDiscoveryScreen(),
       const LocalEatsScreen(),
       const SavedPlacesScreen(),
       const NeighbourhoodExplorerScreen(),
-      user?.role == 'admin' ? const AdminDashboardScreen() : const ProfileScreen(),
+      isAdmin ? const AdminDashboardScreen() : const ProfileScreen(),
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0.5,
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
+      extendBody: true,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(60),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1B4332),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black12,
+                blurRadius: 4,
+                offset: Offset(0, 2),
               ),
-              child: const Icon(Icons.location_on, color: Color(0xFF2D6A4F), size: 24),
-            ),
-            const SizedBox(width: 8),
-            const Text(
-              'LiveLocal',
-              style: TextStyle(
-                color: Color(0xFF2D6A4F),
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
-              ),
-            ),
-            const Spacer(),
-            // Quick Role Switcher Chip for Assessment Demo
-            PopupMenuButton<String>(
-              onSelected: (role) {
-                authCtrl.setRole(role);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Switched to ${role.toUpperCase()} role for demo'),
-                    backgroundColor: const Color(0xFF2D6A4F),
-                    duration: const Duration(seconds: 1),
+            ],
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.location_on, color: Color(0xFF74C69D), size: 20),
                   ),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF74C69D).withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF2D6A4F)),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.swap_horiz, size: 16, color: Color(0xFF2D6A4F)),
-                    const SizedBox(width: 4),
-                    Text(
-                      user?.role.toUpperCase() ?? 'TOURIST',
-                      style: const TextStyle(
-                        color: Color(0xFF2D6A4F),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
+                  const SizedBox(width: 12),
+                  const Text(
+                    'LiveLocal',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      letterSpacing: 0.3,
+                    ),
+                  ),
+                  const Spacer(),
+                  
+                  // Clean Notification Action Button
+                  InkWell(
+                    onTap: () {
+                      _bellController.forward().then((_) => _bellController.reverse());
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(24),
+                    child: Container(
+                      width: 48,
+                      height: 48,
+                      alignment: Alignment.center,
+                      child: RotationTransition(
+                        turns: Tween(begin: 0.0, end: 0.08)
+                            .chain(CurveTween(curve: Curves.elasticIn))
+                            .animate(_bellController),
+                        child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              itemBuilder: (ctx) => [
-                const PopupMenuItem(value: 'tourist', child: Text('Tourist View')),
-                const PopupMenuItem(value: 'influencer', child: Text('Influencer View')),
-                const PopupMenuItem(value: 'admin', child: Text('Admin View')),
-              ],
+            ),
+          ),
+        ),
+      ),
+      body: IndexedStack(
+        index: _currentIndex,
+        children: pages,
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+          height: 64,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
+              )
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildNavItem(0, Icons.explore_outlined, Icons.explore, 'Spots'),
+              _buildNavItem(1, Icons.restaurant_outlined, Icons.restaurant, 'Eats'),
+              _buildNavItem(2, Icons.bookmark_outline, Icons.bookmark, 'Saved'),
+              _buildNavItem(3, Icons.map_outlined, Icons.map, 'Explorer'),
+              _buildNavItem(
+                4, 
+                isAdmin ? Icons.admin_panel_settings_outlined : Icons.person_outline, 
+                isAdmin ? Icons.admin_panel_settings : Icons.person, 
+                isAdmin ? 'Admin' : 'Profile'
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+    final isSelected = _currentIndex == index;
+    return InkWell(
+      onTap: () => _onTabTapped(index),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        constraints: const BoxConstraints(minWidth: 56, minHeight: 48),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected ? const Color(0xFF1B4332) : Colors.grey.shade600,
+              size: 22,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                color: isSelected ? const Color(0xFF1B4332) : Colors.grey.shade600,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                fontSize: 11,
+              ),
             ),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Color(0xFF2D6A4F)),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: pages[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: const Color(0xFF2D6A4F),
-        unselectedItemColor: Colors.grey.shade600,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.explore_outlined),
-            activeIcon: Icon(Icons.explore),
-            label: 'Spots',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_outlined),
-            activeIcon: Icon(Icons.restaurant),
-            label: 'LocalEats',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.bookmark_outline),
-            activeIcon: Icon(Icons.bookmark),
-            label: 'Saved',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.map_outlined),
-            activeIcon: Icon(Icons.map),
-            label: 'Explorer',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(user?.role == 'admin' ? Icons.admin_panel_settings_outlined : Icons.person_outline),
-            activeIcon: Icon(user?.role == 'admin' ? Icons.admin_panel_settings : Icons.person),
-            label: user?.role == 'admin' ? 'Admin' : 'Profile',
-          ),
-        ],
       ),
     );
   }
 }
+
+

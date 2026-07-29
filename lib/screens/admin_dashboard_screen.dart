@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/admin_controller.dart';
@@ -5,228 +6,366 @@ import '../controllers/spot_controller.dart';
 import '../controllers/guide_controller.dart';
 import '../controllers/review_controller.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final adminCtrl = Provider.of<AdminController>(context);
-    final spotCtrl = Provider.of<SpotController>(context);
-    final guideCtrl = Provider.of<GuideController>(context);
-    final reviewCtrl = Provider.of<ReviewController>(context);
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
 
+class _AdminDashboardScreenState extends State<AdminDashboardScreen>
+    with TickerProviderStateMixin {
+  late AnimationController _shakeController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shakeController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 500));
+  }
+
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    super.dispose();
+  }
+
+  void _showSnackbar(String message, {bool success = false}) {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: success ? const Color(0xFF2D6A4F) : const Color(0xFFC62828),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  void _showRejectDialog() {
+    final TextEditingController reasonController = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(builder: (context, setStateDialog) {
+          return AnimatedBuilder(
+            animation: _shakeController,
+            builder: (context, child) {
+              final dx = sin(_shakeController.value * 2 * pi * 3) * 10;
+              return Transform.translate(
+                offset: Offset(dx, 0),
+                child: AlertDialog(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                  title: const Text('Reject Reason',
+                      style: TextStyle(
+                          color: Color(0xFFC62828), fontWeight: FontWeight.bold)),
+                  content: TextField(
+                    controller: reasonController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter reason for rejection',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                            color: Color(0xFFC62828), width: 2),
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('Cancel',
+                          style: TextStyle(color: Colors.grey)),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFC62828),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
+                      ),
+                      onPressed: () {
+                        if (reasonController.text.isEmpty) {
+                          _shakeController.forward(from: 0.0);
+                        } else {
+                          Navigator.pop(context);
+                          _showSnackbar('Item rejected');
+                        }
+                      },
+                      child: const Text('Reject',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        });
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spotCtrl = context.watch<SpotController>();
+    final reviewCtrl = context.watch<ReviewController>();
     final pendingSpots = spotCtrl.pendingSpots;
-    final pendingGuides = guideCtrl.pendingGuides;
     final flaggedReviews = reviewCtrl.flaggedReviews;
-    final users = adminCtrl.allUsers;
 
     return Scaffold(
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2D6A4F),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.admin_panel_settings, color: Colors.white, size: 36),
-                  SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Admin Moderation Hub', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text('System Stats & Verification Portal', style: TextStyle(color: Color(0xFF74C69D), fontSize: 12)),
-                    ],
+      backgroundColor: const Color(0xFFF5F5F5),
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            expandedHeight: 220,
+            pinned: true,
+            backgroundColor: const Color(0xFF800000),
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text('Admin Hub',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18)),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF800000), Color(0xFFC62828)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
+                ),
+                child: const Center(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: 20.0),
+                    child: Icon(Icons.admin_panel_settings,
+                        size: 80, color: Colors.white24),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.all(16.0),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                childAspectRatio: 1.3,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+              ),
+              delegate: SliverChildListDelegate([
+                _buildStatCard('Pending Spots', '${pendingSpots.length}',
+                    Icons.pending_actions, Colors.orange),
+                _buildStatCard('Flagged Reviews', '${flaggedReviews.length}',
+                    Icons.flag, const Color(0xFFC62828)),
+                _buildStatCard('Total Spots', '${spotCtrl.spots.length}',
+                    Icons.place, Colors.blue),
+                _buildStatCard('Total Reviews', '${reviewCtrl.reviews.length}',
+                    Icons.rate_review, Colors.green),
+              ]),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  _buildExpansionSection(
+                    'Pending Spot Approvals',
+                    Icons.pending_actions,
+                    pendingSpots.isEmpty
+                        ? [
+                            const ListTile(
+                              title: Text('No pending spots',
+                                  style: TextStyle(color: Colors.grey)),
+                            )
+                          ]
+                        : pendingSpots
+                            .take(5)
+                            .map((spot) => _buildApprovalTile(
+                                  spot.name,
+                                  spot.category,
+                                  onApprove: () {
+                                    context
+                                        .read<SpotController>()
+                                        .approveSpot(spot.id);
+                                    _showSnackbar('${spot.name} approved!',
+                                        success: true);
+                                  },
+                                  onReject: _showRejectDialog,
+                                ))
+                            .toList(),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildExpansionSection(
+                    'Flagged Reviews Queue',
+                    Icons.report_problem,
+                    flaggedReviews.isEmpty
+                        ? [
+                            const ListTile(
+                              title: Text('No flagged reviews',
+                                  style: TextStyle(color: Colors.grey)),
+                            )
+                          ]
+                        : flaggedReviews
+                            .take(5)
+                            .map((r) => _buildReviewTile(
+                                r.comment,
+                                onDelete: () {
+                                  context.read<ReviewController>().removeReview(r.id);
+                                  _showSnackbar('Review removed');
+                                }))
+                            .toList(),
+                  ),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
-            // Platform Statistics Grid (FR58)
-            const Text('Platform Overview Statistics', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                _buildStatCard('Total Users', adminCtrl.totalUsers.toString(), Icons.people, Colors.blue),
-                const SizedBox(width: 12),
-                _buildStatCard('Pending Spots', pendingSpots.length.toString(), Icons.place, Colors.orange),
-                const SizedBox(width: 12),
-                _buildStatCard('Flagged Reviews', flaggedReviews.length.toString(), Icons.flag, Colors.red),
-              ],
-            ),
-            const SizedBox(height: 24),
-            // Pending Spot Approvals (FR22, FR23)
-            Text('Pending Spot Approvals (${pendingSpots.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (pendingSpots.isEmpty)
-              const Text('No pending spots for approval.', style: TextStyle(color: Colors.grey))
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: pendingSpots.length,
-                itemBuilder: (context, idx) {
-                  final s = pendingSpots[idx];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      title: Text(s.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('${s.category} • ${s.city}, ${s.state}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.check_circle, color: Colors.green),
-                            onPressed: () async {
-                              await spotCtrl.approveSpot(s.id);
-                              if (context.mounted) {
-                                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Spot "${s.name}" approved!')));
-                              }
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.cancel, color: Colors.red),
-                            onPressed: () {
-                              _showRejectDialog(context, 'Spot', (reason) async {
-                                await spotCtrl.rejectSpot(s.id, reason);
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            const SizedBox(height: 24),
-            // Flagged Review Moderation Queue (FR59, FR60)
-            Text('Flagged Reviews Queue (${flaggedReviews.length})', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            if (flaggedReviews.isEmpty)
-              const Text('No flagged reviews pending moderation.', style: TextStyle(color: Colors.grey))
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: flaggedReviews.length,
-                itemBuilder: (context, idx) {
-                  final r = flaggedReviews[idx];
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    child: ListTile(
-                      title: Text('Review by ${r.userName}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Comment: "${r.comment}"'),
-                          Text('Reason Flagged: ${r.flagReason ?? 'Inappropriate'}', style: const TextStyle(color: Colors.red, fontSize: 12)),
-                        ],
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_forever, color: Colors.red),
-                        onPressed: () async {
-                          await reviewCtrl.removeReview(r.id);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inappropriate review removed.')));
-                          }
-                        },
-                      ),
-                    ),
-                  );
-                },
-              ),
-            const SizedBox(height: 24),
-            // User Suspension Management (FR11)
-            const Text('User Account Moderation & Suspension', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: users.length,
-              itemBuilder: (context, idx) {
-                final u = users[idx];
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: u.isSuspended ? Colors.red : const Color(0xFF2D6A4F),
-                      child: Icon(u.isSuspended ? Icons.block : Icons.person, color: Colors.white, size: 18),
-                    ),
-                    title: Text(u.fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Text('${u.email} • Role: ${u.role.toUpperCase()}'),
-                    trailing: Switch(
-                      value: u.isSuspended,
-                      activeColor: Colors.red,
-                      onChanged: (val) async {
-                        await adminCtrl.toggleUserSuspension(u.id);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(val ? 'User account suspended.' : 'User account restored.')),
-                          );
-                        }
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.9, end: 1.0),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutBack,
+      builder: (context, val, child) {
+        return Transform.scale(scale: val, child: child);
+      },
+      child: Card(
+        elevation: 6,
+        shadowColor: color.withOpacity(0.3),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color, size: 32),
+              const SizedBox(height: 12),
+              Text(value,
+                  style: const TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text(title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey,
+                      fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 24),
-            const SizedBox(height: 6),
-            Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color)),
-            Text(title, style: const TextStyle(fontSize: 11, color: Colors.black87), textAlign: TextAlign.center),
-          ],
-        ),
+  Widget _buildExpansionSection(
+      String title, IconData icon, List<Widget> children) {
+    return Card(
+      elevation: 2,
+      shape:
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        leading: Icon(icon, color: const Color(0xFFC62828)),
+        title: Text(title,
+            style: const TextStyle(
+                fontWeight: FontWeight.bold, fontSize: 16)),
+        backgroundColor: Colors.white,
+        collapsedBackgroundColor: Colors.white,
+        childrenPadding: const EdgeInsets.only(bottom: 8),
+        children: children,
       ),
     );
   }
 
-  void _showRejectDialog(BuildContext context, String targetType, Function(String) onReject) {
-    final reasonCtrl = TextEditingController();
+  Widget _buildApprovalTile(String title, String subtitle,
+      {required VoidCallback onApprove, required VoidCallback onReject}) {
+    return ListTile(
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text(subtitle),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
+            onPressed: onApprove,
+          ),
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            icon: const Icon(Icons.cancel,
+                color: Color(0xFFC62828), size: 28),
+            onPressed: () {
+              _confirmAction(
+                title: 'Reject Submission',
+                content: 'Are you sure you want to reject "$title"?',
+                onConfirm: onReject,
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReviewTile(String title, {required VoidCallback onDelete}) {
+    return ListTile(
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      title: Text(title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(fontWeight: FontWeight.w500)),
+      trailing: IconButton(
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        icon: const Icon(Icons.delete, color: Color(0xFFC62828)),
+        onPressed: () {
+          _confirmAction(
+            title: 'Delete Flagged Review',
+            content: 'Are you sure you want to delete this review?',
+            onConfirm: onDelete,
+          );
+        },
+      ),
+    );
+  }
+
+  void _confirmAction({
+    required String title,
+    required String content,
+    required VoidCallback onConfirm,
+  }) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Reject $targetType'),
-        content: TextField(
-          controller: reasonCtrl,
-          decoration: const InputDecoration(
-            labelText: 'Mandatory Rejection Reason *',
-            border: OutlineInputBorder(),
-          ),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content: Text(content),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
             onPressed: () {
-              if (reasonCtrl.text.trim().isNotEmpty) {
-                onReject(reasonCtrl.text.trim());
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$targetType rejected.')));
-              }
+              Navigator.pop(ctx);
+              onConfirm();
             },
-            child: const Text('Confirm Rejection', style: TextStyle(color: Colors.white)),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

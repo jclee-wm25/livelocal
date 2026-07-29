@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/localeats_controller.dart';
@@ -7,251 +8,502 @@ import 'add_restaurant_screen.dart';
 
 class LocalEatsScreen extends StatefulWidget {
   const LocalEatsScreen({super.key});
-
   @override
-  State<LocalEatsScreen> createState() => _LocalEatsScreenState();
+  _LocalEatsScreenState createState() => _LocalEatsScreenState();
 }
 
-class _LocalEatsScreenState extends State<LocalEatsScreen> {
-  final List<String> _states = ['All', 'Penang', 'Kuala Lumpur', 'Perak', 'Johor', 'Selangor'];
-  final List<String> _cuisines = ['All', 'Hawker', 'Nasi Kandar', 'Kopitiam', 'Malay', 'Chinese', 'Indian'];
-  final List<String> _budgets = ['All', '\$', '\$\$', '\$\$\$'];
+class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProviderStateMixin {
+  final PageController _pageController = PageController(viewportFraction: 0.9);
+  int _currentPage = 0;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startAutoScroll();
+  }
+
+  void _startAutoScroll() {
+    _timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
+      if (_pageController.hasClients) {
+        final localEats = context.read<LocalEatsController>();
+        final count = localEats.trendingRestaurants.length;
+        if (count > 0) {
+          _currentPage = (_currentPage + 1) % count;
+          _pageController.animateToPage(
+            _currentPage,
+            duration: const Duration(milliseconds: 600),
+            curve: Curves.easeInOutCubic,
+          );
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final foodCtrl = Provider.of<LocalEatsController>(context);
-    final authCtrl = Provider.of<AuthController>(context);
-
-    final restaurants = foodCtrl.filteredRestaurants;
-    final trending = foodCtrl.trendingRestaurants;
-    final isInfluencer = authCtrl.currentUser?.role == 'influencer';
+    final localEats = context.watch<LocalEatsController>();
+    final auth = context.watch<AuthController>();
+    final isInfluencer = auth.currentUser?.role == 'influencer';
+    final trending = localEats.trendingRestaurants;
+    final filtered = localEats.filteredRestaurants;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF3F4F6),
       body: CustomScrollView(
         slivers: [
-          // Filter Bar Section
-          SliverToBoxAdapter(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              color: const Color(0xFF2D6A4F).withOpacity(0.05),
+          SliverAppBar(
+            expandedHeight: 120,
+            floating: false,
+            pinned: true,
+            flexibleSpace: FlexibleSpaceBar(
+              title: const Text('LocalEats 🍜',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+              background: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          if (localEats.isLoading)
+            const SliverFillRemaining(
+                child: Center(child: CircularProgressIndicator(color: Color(0xFF2D6A4F))))
+          else
+            SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.star_outline, color: Color(0xFF2D6A4F)),
-                      const SizedBox(width: 6),
-                      const Text(
-                        'LocalEats by Food Influencers',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2D6A4F)),
+                  const SizedBox(height: 16),
+                  if (trending.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: const Text('Trending Now ✨',
+                          style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1B4332))),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 200,
+                      child: PageView.builder(
+                        controller: _pageController,
+                        onPageChanged: (idx) => setState(() => _currentPage = idx),
+                        itemCount: trending.length,
+                        itemBuilder: (context, index) {
+                          final restaurant = trending[index];
+                          return AnimatedBuilder(
+                            animation: _pageController,
+                            builder: (context, child) {
+                              double value = 1.0;
+                              if (_pageController.position.haveDimensions) {
+                                value = _pageController.page! - index;
+                                value = (1 - (value.abs() * 0.2)).clamp(0.8, 1.0);
+                              }
+                              return Center(
+                                child: SizedBox(
+                                  height: Curves.easeOut.transform(value) * 200,
+                                  width: Curves.easeOut.transform(value) *
+                                      MediaQuery.of(context).size.width,
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            RestaurantDetailScreen(restaurant: restaurant)));
+                              },
+                              child: Container(
+                                margin: const EdgeInsets.symmetric(horizontal: 8),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 10,
+                                        offset: Offset(0, 5))
+                                  ],
+                                  image: DecorationImage(
+                                    image: NetworkImage(restaurant.coverPhotoUrl),
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.black.withOpacity(0.1),
+                                        Colors.black.withOpacity(0.7)
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                  ),
+                                  padding: const EdgeInsets.all(16),
+                                  alignment: Alignment.bottomLeft,
+                                  child: Text(
+                                    restaurant.name,
+                                    style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      const Spacer(),
-                      if (isInfluencer)
-                        ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D6A4F)),
-                          icon: const Icon(Icons.add_a_photo, size: 16, color: Colors.white),
-                          label: const Text('Add Review', style: TextStyle(color: Colors.white, fontSize: 12)),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (_) => const AddRestaurantScreen()),
-                            );
-                          },
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        DropdownButton<String>(
-                          value: foodCtrl.selectedState,
-                          underline: const SizedBox(),
-                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2D6A4F)),
-                          items: _states.map((s) => DropdownMenuItem(value: s, child: Text('State: $s'))).toList(),
-                          onChanged: (val) {
-                            if (val != null) foodCtrl.setFilter(state: val);
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        DropdownButton<String>(
-                          value: foodCtrl.selectedCuisine,
-                          underline: const SizedBox(),
-                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2D6A4F)),
-                          items: _cuisines.map((c) => DropdownMenuItem(value: c, child: Text('Cuisine: $c'))).toList(),
-                          onChanged: (val) {
-                            if (val != null) foodCtrl.setFilter(cuisine: val);
-                          },
-                        ),
-                        const SizedBox(width: 12),
-                        DropdownButton<String>(
-                          value: foodCtrl.selectedBudget,
-                          underline: const SizedBox(),
-                          icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2D6A4F)),
-                          items: _budgets.map((b) => DropdownMenuItem(value: b, child: Text('Budget: $b'))).toList(),
-                          onChanged: (val) {
-                            if (val != null) foodCtrl.setFilter(budget: val);
-                          },
-                        ),
-                      ],
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          // Trending Section Header (FR31)
-          if (trending.isNotEmpty) ...[
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: Row(
-                  children: [
-                    Icon(Icons.local_fire_department, color: Colors.deepOrange),
-                    SizedBox(width: 6),
-                    Text(
-                      'Trending Eateries Reviewed Lately',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 160,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: trending.length,
-                  itemBuilder: (context, index) {
-                    final item = trending[index];
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (_) => RestaurantDetailScreen(restaurant: item)),
-                        );
-                      },
-                      child: Container(
-                        width: 220,
-                        margin: const EdgeInsets.only(right: 12),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                          image: DecorationImage(
-                            image: NetworkImage(item.coverPhotoUrl),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(trending.length, (index) {
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                          width: _currentPage == index ? 24 : 8,
+                          height: 8,
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-                            ),
+                            color: _currentPage == index
+                                ? const Color(0xFF2D6A4F)
+                                : Colors.grey.shade400,
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Text(
-                                'By ${item.influencerName}',
-                                style: const TextStyle(color: Color(0xFF74C69D), fontSize: 12),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-          // All Filtered Restaurant Listings
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(16, 20, 16, 8),
-              child: Text(
-                'All Influencer Recommendations',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-          SliverList(
-            delegate: SliverChildBuilderDelegate(
-              (context, index) {
-                final rest = restaurants[index];
-                final activeDiscounts = foodCtrl.getActiveDiscountsForRestaurant(rest.id);
-
-                return Card(
-                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(12),
-                    leading: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        rest.coverPhotoUrl,
-                        width: 70,
-                        height: 70,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 70,
-                          height: 70,
-                          color: Colors.grey.shade200,
-                          child: const Icon(Icons.fastfood, color: Colors.grey),
-                        ),
-                      ),
+                        );
+                      }),
                     ),
-                    title: Text(rest.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 4),
-                        Text('${rest.cuisineType} • ${rest.priceRange} • ${rest.city}'),
-                        Text('Reviewed: ${rest.reviewedDishes}', style: TextStyle(color: Colors.grey.shade700, fontSize: 12)),
-                        if (activeDiscounts.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    const SizedBox(height: 24),
+                  ],
+                  _buildFilters(localEats),
+                  const SizedBox(height: 16),
+                  ListView.builder(
+                    padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 110),
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final restaurant = filtered[index];
+                      final hasDiscount =
+                          localEats.getActiveDiscountsForRestaurant(restaurant.id).isNotEmpty;
+                      return _FadeInUpItem(
+                        delay: index * 100,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        RestaurantDetailScreen(restaurant: restaurant)));
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
-                              color: Colors.amber.shade100,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: Colors.amber.shade700),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Colors.black12,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 2))
+                              ],
                             ),
-                            child: Text(
-                              '🏷️ ${activeDiscounts.first.code} Available!',
-                              style: TextStyle(color: Colors.amber.shade900, fontSize: 11, fontWeight: FontWeight.bold),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12.0),
+                              child: Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Image.network(
+                                      restaurant.coverPhotoUrl,
+                                      width: 70,
+                                      height: 70,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.grey.shade200,
+                                          child: const Icon(Icons.restaurant,
+                                              color: Color(0xFF2D6A4F))),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(restaurant.name,
+                                            style: const TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold,
+                                                color: Color(0xFF1B4332))),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                            '${restaurant.cuisineType} • ${restaurant.city}',
+                                            style: TextStyle(
+                                                color: Colors.grey.shade600, fontSize: 13)),
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Text(restaurant.priceRange,
+                                                style: const TextStyle(
+                                                    color: Color(0xFF74C69D),
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 13)),
+                                            const SizedBox(width: 8),
+                                            Text('by ${restaurant.influencerName}',
+                                                style: TextStyle(
+                                                    color: Colors.grey.shade500,
+                                                    fontSize: 12,
+                                                    fontStyle: FontStyle.italic)),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (hasDiscount) const _PulsingDiscountBadge(),
+                                  const SizedBox(width: 8),
+                                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                                ],
+                              ),
                             ),
                           ),
-                        ],
-                      ],
-                    ),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => RestaurantDetailScreen(restaurant: rest)),
+                        ),
                       );
                     },
                   ),
-                );
-              },
-              childCount: restaurants.length,
+                  const SizedBox(height: 80),
+                ],
+              ),
+            ),
+        ],
+      ),
+      floatingActionButton: isInfluencer ? const _ExpandableFab() : null,
+    );
+  }
+
+  Widget _buildFilters(LocalEatsController localEats) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          _buildDropdownFilter(
+            icon: Icons.map,
+            value: localEats.selectedState,
+            items: ['All', 'Selangor', 'Penang', 'Perak', 'Johor', 'Sabah'],
+            onChanged: (val) => localEats.setFilter(state: val),
+          ),
+          const SizedBox(width: 8),
+          _buildDropdownFilter(
+            icon: Icons.restaurant,
+            value: localEats.selectedCuisine,
+            items: ['All', 'Malay', 'Chinese', 'Indian', 'Western', 'Fusion', 'Kopitiam'],
+            onChanged: (val) => localEats.setFilter(cuisine: val),
+          ),
+          const SizedBox(width: 8),
+          _buildDropdownFilter(
+            icon: Icons.attach_money,
+            value: localEats.selectedBudget,
+            items: ['All', '\$', '\$\$', '\$\$\$', '\$\$\$\$'],
+            onChanged: (val) => localEats.setFilter(budget: val),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDropdownFilter({
+    required IconData icon,
+    required String value,
+    required List<String> items,
+    required Function(String?) onChanged,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFB7E4C7)),
+        boxShadow: [
+          BoxShadow(
+              color: const Color(0xFFB7E4C7).withOpacity(0.3),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: const Color(0xFF2D6A4F)),
+          const SizedBox(width: 8),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isDense: true,
+              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2D6A4F)),
+              style: const TextStyle(color: Color(0xFF1B4332), fontWeight: FontWeight.w600),
+              items: items
+                  .map((i) => DropdownMenuItem(value: i, child: Text(i)))
+                  .toList(),
+              onChanged: onChanged,
             ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _PulsingDiscountBadge extends StatefulWidget {
+  const _PulsingDiscountBadge();
+  @override
+  State<_PulsingDiscountBadge> createState() => _PulsingDiscountBadgeState();
+}
+
+class _PulsingDiscountBadgeState extends State<_PulsingDiscountBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 800))
+      ..repeat(reverse: true);
+    _scale = Tween<double>(begin: 1.0, end: 1.2)
+        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ScaleTransition(
+      scale: _scale,
+      child: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(
+            color: const Color(0xFFFFD700).withOpacity(0.2),
+            shape: BoxShape.circle),
+        child: const Text('🏷️', style: TextStyle(fontSize: 16)),
+      ),
+    );
+  }
+}
+
+class _FadeInUpItem extends StatelessWidget {
+  final Widget child;
+  final int delay;
+  const _FadeInUpItem({required this.child, required this.delay});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(0, 20 * (1 - value)),
+          child: Opacity(opacity: value, child: child),
+        );
+      },
+      child: child,
+    );
+  }
+}
+
+class _ExpandableFab extends StatefulWidget {
+  const _ExpandableFab();
+  @override
+  State<_ExpandableFab> createState() => _ExpandableFabState();
+}
+
+class _ExpandableFabState extends State<_ExpandableFab>
+    with SingleTickerProviderStateMixin {
+  bool _expanded = false;
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller =
+        AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        if (_expanded)
+          FadeTransition(
+            opacity: _controller,
+            child: ScaleTransition(
+              scale: _controller,
+              child: FloatingActionButton.extended(
+                heroTag: 'add_rest',
+                backgroundColor: const Color(0xFF2D6A4F),
+                icon: const Icon(Icons.add_business),
+                label: const Text('Add Restaurant'),
+                onPressed: () {
+                  setState(() {
+                    _expanded = false;
+                    _controller.reverse();
+                  });
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const AddRestaurantScreen()));
+                },
+              ),
+            ),
+          ),
+        const SizedBox(height: 16),
+        FloatingActionButton(
+          heroTag: 'main_fab',
+          backgroundColor: const Color(0xFF2D6A4F),
+          onPressed: () {
+            setState(() {
+              _expanded = !_expanded;
+              if (_expanded) {
+                _controller.forward();
+              } else {
+                _controller.reverse();
+              }
+            });
+          },
+          child: AnimatedIcon(icon: AnimatedIcons.menu_close, progress: _controller),
+        ),
+      ],
     );
   }
 }
