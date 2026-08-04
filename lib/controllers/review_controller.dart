@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/review_model.dart';
-import '../services/supabase_service.dart';
+import '../services/review_service.dart';
 
 class ReviewController with ChangeNotifier {
-  final SupabaseService _db = SupabaseService();
+  final ReviewService _service = ReviewService();
 
   List<ReviewModel> _reviews = [];
   bool _isLoading = false;
@@ -18,9 +18,14 @@ class ReviewController with ChangeNotifier {
   Future<void> loadReviews() async {
     _isLoading = true;
     notifyListeners();
-    _reviews = await _db.fetchReviews();
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _reviews = await _service.fetchReviews();
+    } catch (e) {
+      debugPrint('ReviewController: loadReviews failed: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   List<ReviewModel> getReviewsForSpot(String spotId) {
@@ -37,7 +42,7 @@ class ReviewController with ChangeNotifier {
     final list = spotId != null
         ? getReviewsForSpot(spotId)
         : (restaurantId != null ? getReviewsForRestaurant(restaurantId) : <ReviewModel>[]);
-    if (list.isEmpty) return 4.5; // default fallback initial rating
+    if (list.isEmpty) return 0.0;
     final sum = list.fold<double>(0.0, (prev, r) => prev + r.rating);
     return sum / list.length;
   }
@@ -51,6 +56,12 @@ class ReviewController with ChangeNotifier {
     required String comment,
     String? photoUrl,
   }) async {
+    if (rating < 1 || rating > 5) {
+      throw ArgumentError('Rating must be between 1 and 5.');
+    }
+    if (comment.trim().isEmpty) {
+      throw ArgumentError('Review comment cannot be empty.');
+    }
     final newReview = ReviewModel(
       id: 'rev-${DateTime.now().millisecondsSinceEpoch}',
       spotId: spotId,
@@ -62,17 +73,32 @@ class ReviewController with ChangeNotifier {
       photoUrl: photoUrl,
       createdAt: DateTime.now(),
     );
-    await _db.addReview(newReview);
+    try {
+      await _service.addReview(newReview);
+    } catch (e) {
+      debugPrint('ReviewController: addReview failed: $e');
+      rethrow;
+    }
     await loadReviews();
   }
 
   Future<void> flagReview(String reviewId, String reason) async {
-    await _db.flagReview(reviewId, reason);
+    try {
+      await _service.flagReview(reviewId, reason);
+    } catch (e) {
+      debugPrint('ReviewController: flagReview failed: $e');
+      rethrow;
+    }
     await loadReviews();
   }
 
   Future<void> removeReview(String reviewId) async {
-    await _db.deleteReview(reviewId);
+    try {
+      await _service.removeReview(reviewId);
+    } catch (e) {
+      debugPrint('ReviewController: removeReview failed: $e');
+      rethrow;
+    }
     await loadReviews();
   }
 }

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../controllers/spot_controller.dart';
-import '../controllers/auth_controller.dart';
+import '../models/spot_model.dart';
 import 'spot_detail_screen.dart';
 import 'submit_spot_screen.dart';
+import '../constants/app_colors.dart';
 
 class SpotsDiscoveryScreen extends StatefulWidget {
   const SpotsDiscoveryScreen({super.key});
@@ -16,7 +18,6 @@ class SpotsDiscoveryScreen extends StatefulWidget {
 
 class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with TickerProviderStateMixin {
   final TextEditingController _searchCtrl = TextEditingController();
-  bool _isSearchExpanded = false;
 
   final List<String> _states = ['All', 'Penang', 'Kuala Lumpur', 'Perak', 'Johor', 'Selangor', 'Melaka', 'Sabah', 'Sarawak'];
   final List<String> _categories = ['All', 'Kopitiam', 'Pasar Malam', 'Indie Cafe', 'Park / Walkway', 'Hawker Food', 'Heritage Spot'];
@@ -49,7 +50,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
   }
 
   Future<void> _onRefresh() async {
-    await Future.delayed(const Duration(seconds: 1));
+    await Provider.of<SpotController>(context, listen: false).loadSpots();
   }
 
   @override
@@ -58,10 +59,10 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
     final approvedSpots = spotCtrl.approvedSpots;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: AppColors.backgroundAlt,
       body: RefreshIndicator(
         onRefresh: _onRefresh,
-        color: const Color(0xFF2D6A4F),
+        color: AppColors.primary,
         child: CustomScrollView(
           physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
           slivers: [
@@ -70,7 +71,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
+                    colors: [AppColors.primaryDark, AppColors.primary],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -101,7 +102,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
+                            color: Colors.black.withValues(alpha: 0.08),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           )
@@ -110,13 +111,12 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                       child: Row(
                         children: [
                           const SizedBox(width: 16),
-                          const Icon(Icons.search, color: Color(0xFF2D6A4F)),
+                          const Icon(Icons.search, color: AppColors.primary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextField(
                               controller: _searchCtrl,
                               onChanged: (val) => spotCtrl.filter(query: val),
-                              onTap: () => setState(() => _isSearchExpanded = true),
                               onEditingComplete: () => FocusScope.of(context).unfocus(),
                               decoration: InputDecoration(
                                 hintText: 'Search kopitiam, cafes, spots...',
@@ -130,7 +130,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                             IconButton(
                               icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
                               onPressed: () {
-                                _searchCtrl.clear();
+                                setState(() => _searchCtrl.clear());
                                 spotCtrl.filter(query: '');
                                 FocusScope.of(context).unfocus();
                               },
@@ -165,13 +165,13 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                                   duration: const Duration(milliseconds: 200),
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? const Color(0xFF2D6A4F) : Colors.white,
+                                    color: isSelected ? AppColors.primary : Colors.white,
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
-                                      color: isSelected ? const Color(0xFF2D6A4F) : Colors.grey.shade300,
+                                      color: isSelected ? AppColors.primary : Colors.grey.shade300,
                                     ),
                                     boxShadow: isSelected
-                                        ? [BoxShadow(color: const Color(0xFF2D6A4F).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 4))]
+                                        ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
                                         : [],
                                   ),
                                   child: Center(
@@ -210,8 +210,8 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                     DropdownButton<String>(
                       value: spotCtrl.selectedState,
                       underline: const SizedBox(),
-                      icon: const Icon(Icons.location_on, color: Color(0xFF2D6A4F), size: 18),
-                      style: const TextStyle(color: Color(0xFF2D6A4F), fontWeight: FontWeight.bold, fontSize: 14),
+                      icon: const Icon(Icons.location_on, color: AppColors.primary, size: 18),
+                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 14),
                       items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                       onChanged: (val) {
                         if (val != null) spotCtrl.filter(state: val);
@@ -223,7 +223,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
             ),
             spotCtrl.isLoading
                 ? const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator(color: Color(0xFF2D6A4F))),
+                    child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
                   )
                 : approvedSpots.isEmpty
                     ? SliverFillRemaining(
@@ -268,7 +268,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: const Color(0xFF2D6A4F),
+        backgroundColor: AppColors.primary,
         elevation: 4,
         highlightElevation: 8,
         onPressed: () {
@@ -285,7 +285,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
 }
 
 class SpotCard extends StatefulWidget {
-  final dynamic spot;
+  final SpotModel spot;
   const SpotCard({super.key, required this.spot});
 
   @override
@@ -339,7 +339,7 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 blurRadius: 15,
                 offset: const Offset(0, 8),
               )
@@ -350,10 +350,14 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: Image.network(
-                    widget.spot.imageUrl,
+                  child: CachedNetworkImage(
+                    imageUrl: widget.spot.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    placeholder: (context, url) => Container(
+                      color: Colors.grey.shade200,
+                      child: const Center(child: CircularProgressIndicator()),
+                    ),
+                    errorWidget: (context, url, error) => Container(
                       color: Colors.grey.shade300,
                       child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
                     ),
@@ -365,8 +369,8 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
-                          Colors.black.withOpacity(0.9),
+                          Colors.black.withValues(alpha: 0.7),
+                          Colors.black.withValues(alpha: 0.9),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -385,9 +389,9 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF2D6A4F).withOpacity(0.8),
+                          color: AppColors.primary.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.2)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                         ),
                         child: Text(
                           widget.spot.category,
@@ -412,14 +416,14 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withOpacity(0.1)),
+                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star_rounded, color: Color(0xFFFFD700), size: 16),
+                            const Icon(Icons.star_rounded, color: AppColors.gold, size: 16),
                             const SizedBox(width: 4),
                             Text(
                               widget.spot.rating.toStringAsFixed(1),
@@ -456,7 +460,7 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.location_on, color: Color(0xFFB7E4C7), size: 16),
+                          const Icon(Icons.location_on, color: AppColors.accentLight, size: 16),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -473,7 +477,7 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(

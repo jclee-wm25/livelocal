@@ -4,6 +4,7 @@ import '../models/restaurant_model.dart';
 import '../models/discount_code_model.dart';
 import '../controllers/localeats_controller.dart';
 import '../controllers/auth_controller.dart';
+import '../constants/app_colors.dart';
 
 class AddRestaurantScreen extends StatefulWidget {
   const AddRestaurantScreen({super.key});
@@ -30,11 +31,10 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
 
   String _selectedState = 'Penang';
   String _selectedCuisine = 'Hawker Food';
-  String _selectedPrice = '\$';
+  final String _selectedPrice = '\$';
 
   final List<String> _states = ['Penang', 'Kuala Lumpur', 'Perak', 'Johor', 'Selangor'];
   final List<String> _cuisines = ['Hawker Food', 'Nasi Kandar', 'Kopitiam', 'Malay', 'Chinese', 'Indian'];
-  final List<String> _prices = ['\$', '\$\$', '\$\$\$'];
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Influencer Food Review', style: TextStyle(color: Color(0xFF2D6A4F), fontWeight: FontWeight.bold)),
+        title: const Text('Add Influencer Food Review', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         elevation: 0.5,
       ),
@@ -70,7 +70,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                 children: [
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedCuisine,
+                      initialValue: _selectedCuisine,
                       decoration: const InputDecoration(labelText: 'Cuisine Type', border: OutlineInputBorder()),
                       items: _cuisines.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                       onChanged: (val) => setState(() => _selectedCuisine = val!),
@@ -79,7 +79,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: DropdownButtonFormField<String>(
-                      value: _selectedState,
+                      initialValue: _selectedState,
                       decoration: const InputDecoration(labelText: 'State', border: OutlineInputBorder()),
                       items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                       onChanged: (val) => setState(() => _selectedState = val!),
@@ -132,7 +132,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D6A4F),
+                  backgroundColor: AppColors.primary,
                   minimumSize: const Size(double.infinity, 50),
                 ),
                 onPressed: () async {
@@ -169,7 +169,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
 
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Food review & discount published!'), backgroundColor: Color(0xFF2D6A4F)),
+                        const SnackBar(content: Text('Food review & discount published!'), backgroundColor: AppColors.primary),
                       );
                       Navigator.pop(context);
                     }

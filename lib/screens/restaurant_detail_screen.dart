@@ -1,13 +1,14 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/restaurant_model.dart';
 import '../controllers/localeats_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
+import '../constants/app_colors.dart';
 
 class RestaurantDetailScreen extends StatefulWidget {
   final RestaurantModel restaurant;
@@ -17,27 +18,7 @@ class RestaurantDetailScreen extends StatefulWidget {
   State<RestaurantDetailScreen> createState() => _RestaurantDetailScreenState();
 }
 
-class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _animController;
-  late Animation<double> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
-    _slideAnimation = Tween<double>(begin: 100, end: 0).animate(
-        CurvedAnimation(parent: _animController, curve: Curves.easeOutQuart));
-    _animController.forward();
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
+class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   Future<void> _launchUrl(String urlStr) async {
     final uri = Uri.tryParse(urlStr);
     if (uri != null && await canLaunchUrl(uri)) {
@@ -64,7 +45,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            backgroundColor: const Color(0xFF1B4332),
+            backgroundColor: AppColors.primaryDark,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
@@ -75,7 +56,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                     shape: BoxShape.circle,
                     boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
                   ),
-                  child: const Icon(Icons.arrow_back, color: Color(0xFF1B4332), size: 20),
+                  child: const Icon(Icons.arrow_back, color: AppColors.primaryDark, size: 20),
                 ),
               ),
             ),
@@ -91,13 +72,23 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
             flexibleSpace: FlexibleSpaceBar(
               background: Hero(
                 tag: 'restaurant_${widget.restaurant.id}',
-                child: Image.network(
-                  widget.restaurant.coverPhotoUrl,
+                child: CachedNetworkImage(
+                  imageUrl: widget.restaurant.coverPhotoUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  placeholder: (context, url) => Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
+                        colors: [AppColors.primaryDark, AppColors.primary],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                      ),
+                    ),
+                    child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+                  ),
+                  errorWidget: (context, url, error) => Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primaryDark, AppColors.primary],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -132,7 +123,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                       style: const TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B4332),
+                        color: AppColors.primaryDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -140,9 +131,9 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _buildBadge(widget.restaurant.cuisineType, const Color(0xFF74C69D)),
-                        _buildBadge(widget.restaurant.priceRange, const Color(0xFFB7E4C7),
-                            textColor: const Color(0xFF1B4332)),
+                        _buildBadge(widget.restaurant.cuisineType, AppColors.accent),
+                        _buildBadge(widget.restaurant.priceRange, AppColors.accentLight,
+                            textColor: AppColors.primaryDark),
                         _buildBadge(widget.restaurant.city, Colors.grey.shade200,
                             textColor: Colors.grey.shade800),
                       ],
@@ -151,13 +142,13 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF3F4F6),
+                        color: AppColors.backgroundGrey,
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: const Color(0xFF2D6A4F),
+                            backgroundColor: AppColors.primary,
                             child: Text(
                               widget.restaurant.influencerName[0].toUpperCase(),
                               style: const TextStyle(color: Colors.white),
@@ -178,7 +169,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                                 const Text(
                                   'Verified Reviewer',
                                   style: TextStyle(
-                                    color: Color(0xFF74C69D),
+                                    color: AppColors.accent,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -192,7 +183,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1B4332),
+                        backgroundColor: AppColors.primaryDark,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
@@ -216,7 +207,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B4332),
+                        color: AppColors.primaryDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -235,7 +226,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF1B4332),
+                          color: AppColors.primaryDark,
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -243,12 +234,12 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFFFD700), Color(0xFFF5B700)],
+                            colors: [AppColors.gold, AppColors.goldDark],
                           ),
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFFFD700).withOpacity(0.4),
+                              color: AppColors.gold.withValues(alpha: 0.4),
                               blurRadius: 8,
                               offset: const Offset(0, 4),
                             )
@@ -303,7 +294,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen>
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B4332),
+                        color: AppColors.primaryDark,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -427,13 +418,13 @@ class _AnimatedBookmarkButtonState extends State<_AnimatedBookmarkButton>
         scale: _scale,
         child: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
-              boxShadow: [const BoxShadow(color: Colors.black26, blurRadius: 4)]),
+              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]),
           child: Icon(
             widget.isSaved ? Icons.favorite : Icons.favorite_border,
-            color: widget.isSaved ? Colors.red : const Color(0xFF1B4332),
+            color: widget.isSaved ? Colors.red : AppColors.primaryDark,
           ),
         ),
       ),

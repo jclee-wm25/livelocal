@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../models/restaurant_model.dart';
 import '../models/discount_code_model.dart';
-import '../services/supabase_service.dart';
+import '../services/supabase_repository.dart';
 
 class LocalEatsController with ChangeNotifier {
-  final SupabaseService _db = SupabaseService();
+  final SupabaseRepository _db = SupabaseRepository();
 
   List<RestaurantModel> _restaurants = [];
   List<DiscountCodeModel> _discountCodes = [];
@@ -27,10 +27,15 @@ class LocalEatsController with ChangeNotifier {
   Future<void> loadData() async {
     _isLoading = true;
     notifyListeners();
-    _restaurants = await _db.fetchRestaurants();
-    _discountCodes = await _db.fetchDiscountCodes();
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _restaurants = await _db.fetchRestaurants();
+      _discountCodes = await _db.fetchDiscountCodes();
+    } catch (e) {
+      debugPrint('LocalEatsController: loadData failed: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   List<RestaurantModel> get filteredRestaurants {
@@ -67,12 +72,22 @@ class LocalEatsController with ChangeNotifier {
   }
 
   Future<void> addRestaurantListing(RestaurantModel restaurant) async {
-    await _db.addRestaurant(restaurant);
+    try {
+      await _db.addRestaurant(restaurant);
+    } catch (e) {
+      debugPrint('LocalEatsController: addRestaurantListing failed: $e');
+      rethrow;
+    }
     await loadData();
   }
 
   Future<void> addDiscountCode(DiscountCodeModel discount) async {
-    await _db.addDiscountCode(discount);
+    try {
+      await _db.addDiscountCode(discount);
+    } catch (e) {
+      debugPrint('LocalEatsController: addDiscountCode failed: $e');
+      rethrow;
+    }
     await loadData();
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import 'login_screen.dart';
+import '../constants/app_colors.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -39,7 +40,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       case 'admin':
         return Colors.red;
       default:
-        return const Color(0xFF74C69D);
+        return AppColors.accent;
     }
   }
 
@@ -75,18 +76,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final role = user?.role ?? 'Tourist';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F2),
+      backgroundColor: AppColors.backgroundSoft,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 320,
             pinned: true,
-            backgroundColor: const Color(0xFF1B4332),
+            backgroundColor: AppColors.primaryDark,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
+                    colors: [AppColors.primaryDark, AppColors.primary],
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                   ),
@@ -106,7 +107,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFF74C69D).withOpacity(0.5),
+                                    color: AppColors.accent.withValues(alpha: 0.5),
                                     blurRadius: 20,
                                     spreadRadius: 5,
                                   )
@@ -114,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               child: CircleAvatar(
                                 radius: 55,
-                                backgroundColor: const Color(0xFF1B4332),
+                                backgroundColor: AppColors.primaryDark,
                                 backgroundImage: (user?.avatarUrl != null &&
                                         user!.avatarUrl!.isNotEmpty)
                                     ? NetworkImage(user.avatarUrl!)
@@ -135,13 +136,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFFFD700),
+                                color: AppColors.gold,
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                    color: const Color(0xFF1B4332), width: 3),
+                                    color: AppColors.primaryDark, width: 3),
                               ),
                               child: const Icon(Icons.camera_alt,
-                                  color: Color(0xFF1B4332), size: 18),
+                                  color: AppColors.primaryDark, size: 18),
                             )
                           ],
                         ),
@@ -165,7 +166,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 6),
                         decoration: BoxDecoration(
-                          color: _getRoleColor(role).withOpacity(0.2),
+                          color: _getRoleColor(role).withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                               color: _getRoleColor(role), width: 1.5),
@@ -214,11 +215,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   style: TextStyle(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1B4332))),
+                                      color: AppColors.primaryDark)),
                               IconButton(
                                 icon: Icon(
                                     _isEditing ? Icons.close : Icons.edit,
-                                    color: const Color(0xFF2D6A4F)),
+                                    color: AppColors.primary),
                                 onPressed: () {
                                   setState(() {
                                     _isEditing = !_isEditing;
@@ -244,7 +245,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         decoration: InputDecoration(
                                           labelText: 'Name',
                                           prefixIcon: const Icon(Icons.person,
-                                              color: Color(0xFF2D6A4F)),
+                                              color: AppColors.primary),
                                           border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(12)),
@@ -252,7 +253,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             borderRadius:
                                                 BorderRadius.circular(12),
                                             borderSide: const BorderSide(
-                                                color: Color(0xFF2D6A4F),
+                                                color: AppColors.primary,
                                                 width: 2),
                                           ),
                                         ),
@@ -264,7 +265,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                           labelText: 'Avatar URL',
                                           prefixIcon: const Icon(
                                               Icons.image_outlined,
-                                              color: Color(0xFF2D6A4F)),
+                                              color: AppColors.primary),
                                           border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(12)),
@@ -272,7 +273,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                             borderRadius:
                                                 BorderRadius.circular(12),
                                             borderSide: const BorderSide(
-                                                color: Color(0xFF2D6A4F),
+                                                color: AppColors.primary,
                                                 width: 2),
                                           ),
                                         ),
@@ -282,16 +283,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         decoration: BoxDecoration(
                                           gradient: const LinearGradient(
                                             colors: [
-                                              Color(0xFF2D6A4F),
-                                              Color(0xFF74C69D)
+                                              AppColors.primary,
+                                              AppColors.accent
                                             ],
                                           ),
                                           borderRadius:
                                               BorderRadius.circular(12),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: const Color(0xFF74C69D)
-                                                  .withOpacity(0.4),
+                                              color: AppColors.accent
+                                                  .withValues(alpha: 0.4),
                                               blurRadius: 8,
                                               offset: const Offset(0, 4),
                                             )
@@ -307,12 +308,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                 borderRadius:
                                                     BorderRadius.circular(12)),
                                           ),
-                                          onPressed: () {
-                                            setState(() => _isEditing = false);
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(const SnackBar(
-                                                    content: Text(
-                                                        'Profile updated!')));
+                                          onPressed: () async {
+                                            if (_nameController.text
+                                                .trim()
+                                                .isEmpty) {
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Name cannot be empty.')));
+                                              return;
+                                            }
+                                            final authCtrl = context
+                                                .read<AuthController>();
+                                            try {
+                                              await authCtrl.updateProfile(
+                                                fullName: _nameController.text
+                                                    .trim(),
+                                                avatarUrl: _avatarController
+                                                    .text
+                                                    .trim()
+                                                    .isEmpty
+                                                    ? null
+                                                    : _avatarController.text
+                                                        .trim(),
+                                              );
+                                              if (!context.mounted) return;
+                                              setState(() => _isEditing = false);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Profile updated!')));
+                                            } catch (_) {
+                                              if (!context.mounted) return;
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(const SnackBar(
+                                                      content: Text(
+                                                          'Failed to update profile. Please try again.')));
+                                            }
                                           },
                                           child: const Text('Save Changes',
                                               style: TextStyle(
@@ -373,17 +405,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: const Color(0xFFB7E4C7).withOpacity(0.5),
+            color: AppColors.accentLight.withValues(alpha: 0.5),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: const Color(0xFF2D6A4F), size: 28),
+          child: Icon(icon, color: AppColors.primary, size: 28),
         ),
         const SizedBox(height: 8),
         Text(value,
             style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1B4332))),
+                color: AppColors.primaryDark)),
         Text(label,
             style: const TextStyle(
                 color: Colors.grey,

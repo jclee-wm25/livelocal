@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/guide_model.dart';
-import '../services/supabase_service.dart';
+import '../services/supabase_repository.dart';
 
 class GuideController with ChangeNotifier {
-  final SupabaseService _db = SupabaseService();
+  final SupabaseRepository _db = SupabaseRepository();
 
   List<GuideModel> _guides = [];
   bool _isLoading = false;
@@ -20,9 +20,14 @@ class GuideController with ChangeNotifier {
   Future<void> loadGuides() async {
     _isLoading = true;
     notifyListeners();
-    _guides = await _db.fetchGuides();
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _guides = await _db.fetchGuides();
+    } catch (e) {
+      debugPrint('GuideController: loadGuides failed: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   List<GuideModel> get approvedGuides {
@@ -41,12 +46,22 @@ class GuideController with ChangeNotifier {
   }
 
   Future<void> approveGuide(String guideId) async {
-    await _db.updateGuideStatus(guideId, 'approved');
+    try {
+      await _db.updateGuideStatus(guideId, 'approved');
+    } catch (e) {
+      debugPrint('GuideController: approveGuide failed: $e');
+      rethrow;
+    }
     await loadGuides();
   }
 
   Future<void> rejectGuide(String guideId, String reason) async {
-    await _db.updateGuideStatus(guideId, 'rejected', rejectionReason: reason);
+    try {
+      await _db.updateGuideStatus(guideId, 'rejected', rejectionReason: reason);
+    } catch (e) {
+      debugPrint('GuideController: rejectGuide failed: $e');
+      rethrow;
+    }
     await loadGuides();
   }
 }

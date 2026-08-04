@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/spot_model.dart';
+import '../models/profile_model.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
+import '../controllers/moderation_controller.dart';
+import '../constants/app_colors.dart';
 
 class SpotDetailScreen extends StatefulWidget {
   final SpotModel spot;
@@ -36,7 +40,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           SliverAppBar(
             expandedHeight: 260,
             pinned: true,
-            backgroundColor: const Color(0xFF1B4332),
+            backgroundColor: AppColors.primaryDark,
             leading: Padding(
               padding: const EdgeInsets.all(8.0),
               child: GestureDetector(
@@ -47,7 +51,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
                   ),
-                  child: const Icon(Icons.arrow_back, color: Color(0xFF1B4332), size: 20),
+                  child: const Icon(Icons.arrow_back, color: AppColors.primaryDark, size: 20),
                 ),
               ),
             ),
@@ -62,7 +66,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(isSaved ? 'Removed from saved places' : 'Saved to your places!'),
-                            backgroundColor: const Color(0xFF2D6A4F),
+                            backgroundColor: AppColors.primary,
                           ),
                         );
                       }
@@ -76,7 +80,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       ),
                       child: Icon(
                         isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: const Color(0xFF1B4332),
+                        color: AppColors.primaryDark,
                         size: 20,
                       ),
                     ),
@@ -84,10 +88,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: Image.network(
-                widget.spot.imageUrl,
+              background: CachedNetworkImage(
+                imageUrl: widget.spot.imageUrl,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                placeholder: (context, url) => Container(
+                  color: Colors.grey.shade200,
+                  child: const Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (context, url, error) => Container(
                   color: Colors.grey.shade200,
                   child: const Icon(Icons.image, size: 64, color: Colors.grey),
                 ),
@@ -118,12 +126,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF2D6A4F).withOpacity(0.1),
+                            color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             widget.spot.category,
-                            style: const TextStyle(color: Color(0xFF2D6A4F), fontWeight: FontWeight.bold, fontSize: 12),
+                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
                           ),
                         ),
                         const Spacer(),
@@ -138,12 +146,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     const SizedBox(height: 12),
                     Text(
                       widget.spot.name,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1B4332)),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 18, color: Color(0xFF2D6A4F)),
+                        const Icon(Icons.location_on, size: 18, color: AppColors.primary),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -166,15 +174,15 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF74C69D).withOpacity(0.15),
+                      color: AppColors.accent.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF74C69D)),
+                      border: Border.all(color: AppColors.accent),
                     ),
                     child: Column(
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.access_time, color: Color(0xFF2D6A4F), size: 18),
+                            const Icon(Icons.access_time, color: AppColors.primary, size: 18),
                             const SizedBox(width: 8),
                             const Text('Best Visiting Time: ', style: TextStyle(fontWeight: FontWeight.bold)),
                             Text(widget.spot.bestTime),
@@ -183,7 +191,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            const Icon(Icons.check_circle_outline, color: Color(0xFF2D6A4F), size: 18),
+                            const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 18),
                             const SizedBox(width: 8),
                             const Text('Things to do / Order: ', style: TextStyle(fontWeight: FontWeight.bold)),
                             Expanded(child: Text(widget.spot.thingsToDo)),
@@ -225,7 +233,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         final r = spotReviews[idx];
                         return Card(
                           elevation: 0,
-                          color: const Color(0xFFF8F9FA),
+                          color: AppColors.backgroundAlt,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                             side: BorderSide(color: Colors.grey.shade200),
@@ -240,7 +248,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                   children: [
                                     const CircleAvatar(
                                       radius: 14,
-                                      backgroundColor: Color(0xFF2D6A4F),
+                                      backgroundColor: AppColors.primary,
                                       child: Icon(Icons.person, size: 16, color: Colors.white),
                                     ),
                                     const SizedBox(width: 8),
@@ -260,9 +268,19 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                       constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                       icon: const Icon(Icons.flag_outlined, size: 16, color: Colors.grey),
                                       onPressed: () {
-                                        _showFlagReviewDialog(context, r.id, reviewCtrl);
+                                        if (user != null) {
+                                          _showFlagContentDialog(context, r.id, 'review', user.id);
+                                        }
                                       },
                                     ),
+                                    if (user != null && r.userId != user.id)
+                                      IconButton(
+                                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                                        icon: const Icon(Icons.block, size: 16, color: Colors.grey),
+                                        onPressed: () {
+                                          _showBlockUserDialog(context, r.userId, r.userName, user.id);
+                                        },
+                                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 6),
@@ -284,7 +302,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   );
   }
 
-  void _showWriteReviewSheet(BuildContext context, dynamic user, ReviewController reviewCtrl) {
+  void _showWriteReviewSheet(BuildContext context, ProfileModel user, ReviewController reviewCtrl) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -344,17 +362,28 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2D6A4F)),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
                       onPressed: () async {
                         if (_commentCtrl.text.trim().isEmpty) return;
-                        await reviewCtrl.addReview(
-                          spotId: widget.spot.id,
-                          userId: user.id,
-                          userName: user.fullName,
-                          rating: _userRating,
-                          comment: _commentCtrl.text.trim(),
-                        );
+                        try {
+                          await reviewCtrl.addReview(
+                            spotId: widget.spot.id,
+                            userId: user.id,
+                            userName: user.fullName,
+                            rating: _userRating,
+                            comment: _commentCtrl.text.trim(),
+                          );
+                        } catch (_) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                  content: Text('Failed to submit review. Please try again.')),
+                            );
+                          }
+                          return;
+                        }
                         _commentCtrl.clear();
+                        _userRating = 5.0;
                         if (context.mounted) {
                           Navigator.pop(ctx);
                           setState(() {});
@@ -375,12 +404,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     );
   }
 
-  void _showFlagReviewDialog(BuildContext context, String reviewId, ReviewController reviewCtrl) {
+  void _showFlagContentDialog(BuildContext context, String targetId, String targetType, String reporterId) {
     final reasonCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Report Inappropriate Review'),
+        title: Text('Report Inappropriate \$targetType'),
         content: TextField(
           controller: reasonCtrl,
           decoration: const InputDecoration(hintText: 'Enter reason for reporting...'),
@@ -391,16 +420,53 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
               if (reasonCtrl.text.trim().isNotEmpty) {
-                await reviewCtrl.flagReview(reviewId, reasonCtrl.text.trim());
+                final modCtrl = context.read<ModerationController>();
+                await modCtrl.submitReport(
+                  reporterId: reporterId,
+                  targetId: targetId,
+                  targetType: targetType,
+                  reason: reasonCtrl.text.trim(),
+                );
+                if (targetType == 'review') {
+                  await context.read<ReviewController>().flagReview(targetId, reasonCtrl.text.trim());
+                }
                 if (context.mounted) {
                   Navigator.pop(ctx);
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Review flagged for admin moderation.')),
+                    const SnackBar(content: Text('Content reported for moderation.')),
                   );
                 }
               }
             },
             child: const Text('Report', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBlockUserDialog(BuildContext context, String blockedId, String blockedName, String blockerId) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Block \$blockedName?'),
+        content: const Text('You will no longer see content or reviews from this user.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              final modCtrl = context.read<ModerationController>();
+              await modCtrl.blockUser(blockerId: blockerId, blockedId: blockedId);
+              if (context.mounted) {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('\$blockedName has been blocked.')),
+                );
+                // Optionally: refresh reviews to hide blocked user's content
+              }
+            },
+            child: const Text('Block', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),

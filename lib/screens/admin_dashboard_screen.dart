@@ -1,10 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../controllers/admin_controller.dart';
 import '../controllers/spot_controller.dart';
-import '../controllers/guide_controller.dart';
 import '../controllers/review_controller.dart';
+import '../controllers/admin_controller.dart';
+import '../controllers/auth_controller.dart';
+import '../constants/app_colors.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -22,6 +23,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.initState();
     _shakeController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
+        
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authCtrl = context.read<AuthController>();
+      final currentUserRole = authCtrl.currentUser?.role ?? 'tourist';
+      if (currentUserRole == 'admin') {
+        context.read<AdminController>().loadPendingReports(currentUserRole);
+      }
+    });
   }
 
   @override
@@ -35,7 +44,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: success ? const Color(0xFF2D6A4F) : const Color(0xFFC62828),
+        backgroundColor: success ? AppColors.primary : AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         margin: const EdgeInsets.all(16),
@@ -43,8 +52,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  void _showRejectDialog() {
+  void _showRejectDialog(String spotId, String spotName) {
     final TextEditingController reasonController = TextEditingController();
+    final spotCtrl = context.read<SpotController>();
     showDialog(
       context: context,
       builder: (context) {
@@ -60,7 +70,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       borderRadius: BorderRadius.circular(16)),
                   title: const Text('Reject Reason',
                       style: TextStyle(
-                          color: Color(0xFFC62828), fontWeight: FontWeight.bold)),
+                          color: AppColors.error, fontWeight: FontWeight.bold)),
                   content: TextField(
                     controller: reasonController,
                     decoration: InputDecoration(
@@ -70,7 +80,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(
-                            color: Color(0xFFC62828), width: 2),
+                            color: AppColors.error, width: 2),
                       ),
                     ),
                   ),
@@ -82,7 +92,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFC62828),
+                        backgroundColor: AppColors.error,
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
@@ -90,8 +100,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         if (reasonController.text.isEmpty) {
                           _shakeController.forward(from: 0.0);
                         } else {
+                          final reason = reasonController.text.trim();
                           Navigator.pop(context);
-                          _showSnackbar('Item rejected');
+                          spotCtrl.rejectSpot(spotId, reason);
+                          _showSnackbar('$spotName rejected',
+                              success: true);
                         }
                       },
                       child: const Text('Reject',
@@ -112,18 +125,21 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   @override
   Widget build(BuildContext context) {
     final spotCtrl = context.watch<SpotController>();
-    final reviewCtrl = context.watch<ReviewController>();
+    final adminCtrl = context.watch<AdminController>();
+    final authCtrl = context.watch<AuthController>();
+    final currentUserRole = authCtrl.currentUser?.role ?? 'tourist';
+    
     final pendingSpots = spotCtrl.pendingSpots;
-    final flaggedReviews = reviewCtrl.flaggedReviews;
+    final pendingReports = adminCtrl.pendingReports;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: AppColors.backgroundGrey,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 220,
             pinned: true,
-            backgroundColor: const Color(0xFF800000),
+            backgroundColor: AppColors.errorDark,
             flexibleSpace: FlexibleSpaceBar(
               title: const Text('Admin Hub',
                   style: TextStyle(
@@ -133,7 +149,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF800000), Color(0xFFC62828)],
+                    colors: [AppColors.errorDark, AppColors.error],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -160,12 +176,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
               delegate: SliverChildListDelegate([
                 _buildStatCard('Pending Spots', '${pendingSpots.length}',
                     Icons.pending_actions, Colors.orange),
-                _buildStatCard('Flagged Reviews', '${flaggedReviews.length}',
-                    Icons.flag, const Color(0xFFC62828)),
-                _buildStatCard('Total Spots', '${spotCtrl.spots.length}',
-                    Icons.place, Colors.blue),
-                _buildStatCard('Total Reviews', '${reviewCtrl.reviews.length}',
-                    Icons.rate_review, Colors.green),
+                _buildStatCard('User Reports', '${pendingReports.length}',
+                    Icons.report_problem, AppColors.error),
+                _buildStatCard('Total Users', '${adminCtrl.totalUsers}',
+                    Icons.people, Colors.blue),
+                _buildStatCard('Suspended Users', '${adminCtrl.suspendedUsersCount}',
+                    Icons.block, Colors.deepPurple),
               ]),
             ),
           ),
@@ -196,29 +212,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                     _showSnackbar('${spot.name} approved!',
                                         success: true);
                                   },
-                                  onReject: _showRejectDialog,
+                                  onReject: () => _showRejectDialog(spot.id, spot.name),
                                 ))
                             .toList(),
                   ),
                   const SizedBox(height: 16),
                   _buildExpansionSection(
-                    'Flagged Reviews Queue',
+                    'User Reports Queue',
                     Icons.report_problem,
-                    flaggedReviews.isEmpty
+                    pendingReports.isEmpty
                         ? [
                             const ListTile(
-                              title: Text('No flagged reviews',
+                              title: Text('No pending reports',
                                   style: TextStyle(color: Colors.grey)),
                             )
                           ]
-                        : flaggedReviews
-                            .take(5)
-                            .map((r) => _buildReviewTile(
-                                r.comment,
-                                onDelete: () {
-                                  context.read<ReviewController>().removeReview(r.id);
-                                  _showSnackbar('Review removed');
-                                }))
+                        : pendingReports
+                            .map((r) => _buildReportTile(
+                                r, adminCtrl, currentUserRole))
                             .toList(),
                   ),
                   const SizedBox(height: 40),
@@ -242,7 +253,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       },
       child: Card(
         elevation: 6,
-        shadowColor: color.withOpacity(0.3),
+        shadowColor: color.withValues(alpha: 0.3),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
@@ -277,7 +288,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
-        leading: Icon(icon, color: const Color(0xFFC62828)),
+        leading: Icon(icon, color: AppColors.error),
         title: Text(title,
             style: const TextStyle(
                 fontWeight: FontWeight.bold, fontSize: 16)),
@@ -307,7 +318,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           IconButton(
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: const Icon(Icons.cancel,
-                color: Color(0xFFC62828), size: 28),
+                color: AppColors.error, size: 28),
             onPressed: () {
               _confirmAction(
                 title: 'Reject Submission',
@@ -321,24 +332,43 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildReviewTile(String title, {required VoidCallback onDelete}) {
+  Widget _buildReportTile(Map<String, dynamic> report, AdminController adminCtrl, String currentUserRole) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      title: Text(title,
-          maxLines: 2,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      title: Text('Target: \${report['target_type']} (\${report['target_id']})',
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w500)),
-      trailing: IconButton(
-        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-        icon: const Icon(Icons.delete, color: Color(0xFFC62828)),
-        onPressed: () {
-          _confirmAction(
-            title: 'Delete Flagged Review',
-            content: 'Are you sure you want to delete this review?',
-            onConfirm: onDelete,
-          );
-        },
+          style: const TextStyle(fontWeight: FontWeight.w600)),
+      subtitle: Text('Reason: \${report['reason']}'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (report['target_type'] == 'review')
+            IconButton(
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              icon: const Icon(Icons.delete, color: AppColors.error),
+              tooltip: 'Delete Review & Resolve',
+              onPressed: () {
+                _confirmAction(
+                  title: 'Delete Content',
+                  content: 'Delete this review and resolve the report?',
+                  onConfirm: () {
+                    adminCtrl.resolveReport(report['id'], 'delete_review', currentUserRole, reviewIdToDelete: report['target_id']);
+                    _showSnackbar('Review deleted and report resolved', success: true);
+                  },
+                );
+              },
+            ),
+          IconButton(
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            icon: const Icon(Icons.check_circle, color: Colors.green),
+            tooltip: 'Dismiss Report',
+            onPressed: () {
+              adminCtrl.dismissReport(report['id'], currentUserRole);
+              _showSnackbar('Report dismissed');
+            },
+          ),
+        ],
       ),
     );
   }
@@ -360,7 +390,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC62828)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
             onPressed: () {
               Navigator.pop(ctx);
               onConfirm();

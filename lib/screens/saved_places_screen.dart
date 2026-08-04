@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../models/spot_model.dart';
+import '../models/restaurant_model.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/spot_controller.dart';
 import '../controllers/localeats_controller.dart';
@@ -8,6 +10,7 @@ import '../controllers/auth_controller.dart';
 import 'itinerary_screen.dart';
 import 'spot_detail_screen.dart';
 import 'restaurant_detail_screen.dart';
+import '../constants/app_colors.dart';
 
 class SavedPlacesScreen extends StatefulWidget {
   const SavedPlacesScreen({super.key});
@@ -51,19 +54,19 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
     final eateries = savedItems.where((i) => i.restaurantId != null).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F9F8),
+      backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
             expandedHeight: 200.0,
             floating: false,
             pinned: true,
-            backgroundColor: const Color(0xFF2D6A4F),
+            backgroundColor: AppColors.primary,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
+                    colors: [AppColors.primaryDark, AppColors.primary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -89,16 +92,16 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFD700).withOpacity(0.2),
+                            color: AppColors.gold.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                                 color:
-                                    const Color(0xFFFFD700).withOpacity(0.5)),
+                                    AppColors.gold.withValues(alpha: 0.5)),
                           ),
                           child: Text(
                             '${savedItems.length} items saved',
                             style: const TextStyle(
-                              color: Color(0xFFFFD700),
+                              color: AppColors.gold,
                               fontWeight: FontWeight.w600,
                               fontSize: 12,
                             ),
@@ -112,7 +115,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
             ),
             bottom: TabBar(
               controller: _tabController,
-              indicatorColor: const Color(0xFFFFD700),
+              indicatorColor: AppColors.gold,
               indicatorWeight: 3,
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
@@ -155,12 +158,12 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                     height: 56,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF2D6A4F), Color(0xFF1B4332)],
+                        colors: [AppColors.primary, AppColors.primaryDark],
                       ),
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF2D6A4F).withOpacity(0.3),
+                          color: AppColors.primary.withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -169,7 +172,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                     child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.auto_awesome, color: Color(0xFFFFD700)),
+                        Icon(Icons.auto_awesome, color: AppColors.gold),
                         SizedBox(width: 8),
                         Text(
                           'Generate Day Plan',
@@ -211,7 +214,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFB7E4C7).withOpacity(0.3),
+                        color: AppColors.accentLight.withValues(alpha: 0.3),
                         shape: BoxShape.circle,
                       ),
                       child: Icon(
@@ -219,7 +222,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                             ? Icons.landscape_outlined
                             : Icons.restaurant_outlined,
                         size: 64,
-                        color: const Color(0xFF2D6A4F),
+                        color: AppColors.primary,
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -228,7 +231,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF1B4332),
+                        color: AppColors.primaryDark,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -251,17 +254,20 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
       itemCount: items.length,
       itemBuilder: (context, index) {
         final item = items[index];
-        dynamic data;
-        if (isSpots) {
-          final s = spotCtrl.spots.where((s) => s.id == item.spotId).toList();
-          if (s.isNotEmpty) data = s.first;
-        } else {
-          final r = foodCtrl.restaurants
-              .where((r) => r.id == item.restaurantId)
-              .toList();
-          if (r.isNotEmpty) data = r.first;
+        final spotMatches = isSpots
+            ? spotCtrl.spots.where((s) => s.id == item.spotId).toList()
+            : <SpotModel>[];
+        final restaurantMatches = !isSpots
+            ? foodCtrl.restaurants
+                .where((r) => r.id == item.restaurantId)
+                .toList()
+            : <RestaurantModel>[];
+        final spot = spotMatches.isNotEmpty ? spotMatches.first : null;
+        final restaurant =
+            restaurantMatches.isNotEmpty ? restaurantMatches.first : null;
+        if ((isSpots && spot == null) || (!isSpots && restaurant == null)) {
+          return const SizedBox();
         }
-        if (data == null) return const SizedBox();
 
         return TweenAnimationBuilder<double>(
           duration: Duration(milliseconds: 400 + (index * 100)),
@@ -289,11 +295,8 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
             ),
             onDismissed: (_) {
               if (userId != null) {
-                if (isSpots) {
-                  itineraryCtrl.toggleSave(userId, spotId: data.id);
-                } else {
-                  itineraryCtrl.toggleSave(userId, restaurantId: data.id);
-                }
+                itineraryCtrl.toggleSave(userId,
+                    spotId: spot?.id, restaurantId: restaurant?.id);
                 HapticFeedback.lightImpact();
               }
             },
@@ -304,7 +307,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: Colors.black.withValues(alpha: 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -320,13 +323,13 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => SpotDetailScreen(spot: data)));
+                              builder: (_) => SpotDetailScreen(spot: spot!)));
                     } else {
                       Navigator.push(
                           context,
                           MaterialPageRoute(
                               builder: (_) =>
-                                  RestaurantDetailScreen(restaurant: data)));
+                                  RestaurantDetailScreen(restaurant: restaurant!)));
                     }
                   },
                   child: Padding(
@@ -338,7 +341,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                           height: 60,
                           decoration: BoxDecoration(
                             gradient: const LinearGradient(
-                              colors: [Color(0xFF74C69D), Color(0xFF2D6A4F)],
+                              colors: [AppColors.accent, AppColors.primary],
                             ),
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -354,16 +357,16 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                data.name,
+                                spot?.name ?? restaurant!.name,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
-                                  color: Color(0xFF1B4332),
+                                  color: AppColors.primaryDark,
                                 ),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '${isSpots ? data.category : data.cuisineType} • ${data.city}',
+                                '${isSpots ? spot!.category : restaurant!.cuisineType} • ${spot?.city ?? restaurant!.city}',
                                 style: TextStyle(
                                   color: Colors.grey.shade600,
                                   fontSize: 13,

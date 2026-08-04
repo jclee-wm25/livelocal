@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../constants/app_colors.dart';
+import '../controllers/auth_controller.dart';
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
   @override
@@ -19,7 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     Widget? suffixIcon,
   }) {
     return InputDecoration(
-      prefixIcon: Icon(prefixIcon, color: const Color(0xFF2D6A4F)),
+      prefixIcon: Icon(prefixIcon, color: AppColors.primary),
       labelText: labelText,
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
@@ -27,7 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 2),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
     );
   }
@@ -48,10 +51,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           height: 80,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFD8F3DC) : Colors.white,
+            color: isSelected ? AppColors.selectedBg : Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF2D6A4F) : Colors.grey.shade300,
+              color: isSelected ? AppColors.primary : Colors.grey.shade300,
               width: isSelected ? 2 : 1,
             ),
           ),
@@ -61,7 +64,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Icon(
                 icon,
                 size: 28,
-                color: isSelected ? const Color(0xFF2D6A4F) : Colors.grey,
+                color: isSelected ? AppColors.primary : Colors.grey,
               ),
               const SizedBox(height: 4),
               Text(
@@ -69,7 +72,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isSelected ? const Color(0xFF2D6A4F) : Colors.grey.shade700,
+                  color: isSelected ? AppColors.primary : Colors.grey.shade700,
                 ),
               ),
             ],
@@ -86,6 +89,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _confirmPasswordController.dispose();
     super.dispose();
   }
+
+  Future<void> _handleRegister() async {
+    if (!_formKey.currentState!.validate()) return;
+    final authCtrl = Provider.of<AuthController>(context, listen: false);
+    final success = await authCtrl.register(
+      _emailController.text.trim(),
+      _passwordController.text,
+      _fullNameController.text.trim(),
+      selectedRole,
+    );
+    if (!mounted) return;
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Account created successfully!')),
+      );
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            authCtrl.errorMessage ?? 'Unable to create account. Please try again.',
+          ),
+        ),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,7 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF2D6A4F),
+        foregroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -103,7 +132,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         title: const Text(
           'LiveLocal',
           style: TextStyle(
-            color: Color(0xFF2D6A4F),
+            color: AppColors.primary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -198,7 +227,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: const Color(0xFF2D6A4F),
+                            color: AppColors.primary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -226,7 +255,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             _obscureConfirm
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: const Color(0xFF2D6A4F),
+                            color: AppColors.primary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -254,7 +283,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFF9C4),
+                    color: AppColors.warnBgLight,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -271,17 +300,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Account created successfully!'),
-                        ),
-                      );
-                    }
-                  },
+                  onPressed: () => _handleRegister(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D6A4F),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -305,7 +326,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: const Text(
                       'Log in',
                       style: TextStyle(
-                        color: Color(0xFF2D6A4F),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
