@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/notification_controller.dart';
 import 'spots_discovery_screen.dart';
 import 'localeats_screen.dart';
 import 'saved_places_screen.dart';
@@ -96,28 +97,60 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
                     ),
                   ),
                   const Spacer(),
-                  
+
                   // Clean Notification Action Button
-                  InkWell(
-                    onTap: () {
-                      _bellController.forward().then((_) => _bellController.reverse());
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                  Consumer<NotificationController>(
+                    builder: (context, notificationCtrl, child) {
+                      return InkWell(
+                        onTap: () {
+                          // 1. Trigger the animation
+                          _bellController.forward().then((_) => _bellController.reverse());
+
+                          // 2. Mark as read to remove the red dot
+                          notificationCtrl.markAsRead();
+
+                          // 3. Navigate to notification screen
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(24),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          alignment: Alignment.center,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // The Bell Icon
+                              RotationTransition(
+                                turns: Tween(begin: 0.0, end: 0.08)
+                                    .chain(CurveTween(curve: Curves.elasticIn))
+                                    .animate(_bellController),
+                                child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
+                              ),
+
+                              // The Red Dot (Only shows if hasUnread is true)
+                              if (notificationCtrl.hasUnread)
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: const Color(0xFF1B4332), width: 1.5), // Matches AppBar color
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
                       );
                     },
-                    borderRadius: BorderRadius.circular(24),
-                    child: Container(
-                      width: 48,
-                      height: 48,
-                      alignment: Alignment.center,
-                      child: RotationTransition(
-                        turns: Tween(begin: 0.0, end: 0.08)
-                            .chain(CurveTween(curve: Curves.elasticIn))
-                            .animate(_bellController),
-                        child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
-                      ),
-                    ),
                   ),
                 ],
               ),
