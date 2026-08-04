@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/spot_controller.dart';
 import 'controllers/localeats_controller.dart';
+import 'controllers/notification_controller.dart';
 import 'controllers/itinerary_controller.dart';
 import 'controllers/guide_controller.dart';
 import 'controllers/review_controller.dart';
@@ -32,6 +33,7 @@ class LiveLocalApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => GuideController()),
         ChangeNotifierProvider(create: (_) => ReviewController()),
         ChangeNotifierProvider(create: (_) => AdminController()),
+        ChangeNotifierProvider(create: (_) => NotificationController()),
       ],
       child: MaterialApp(
         title: 'LiveLocal',
