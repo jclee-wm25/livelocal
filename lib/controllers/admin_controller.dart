@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/profile_model.dart';
-import '../services/supabase_service.dart';
+import '../services/admin_service.dart';
 
 class AdminController with ChangeNotifier {
-  final SupabaseService _db = SupabaseService();
+  final AdminService _service = AdminService();
 
   List<ProfileModel> _allUsers = [];
   bool _isLoading = false;
@@ -11,33 +11,27 @@ class AdminController with ChangeNotifier {
   List<ProfileModel> get allUsers => _allUsers;
   bool get isLoading => _isLoading;
 
-  AdminController() {
-    loadUsers();
-  }
-
-  Future<void> loadUsers() async {
+  Future<void> loadUsers(String currentUserRole) async {
     _isLoading = true;
     notifyListeners();
-    _allUsers = await _db.fetchProfiles();
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _allUsers = await _service.fetchUsers(currentUserRole);
+    } catch (e) {
+      debugPrint('AdminController: loadUsers failed: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
-  Future<void> toggleUserSuspension(String userId) async {
-    final idx = _allUsers.indexWhere((u) => u.id == userId);
-    if (idx >= 0) {
-      final target = _allUsers[idx];
-      final updated = ProfileModel(
-        id: target.id,
-        email: target.email,
-        fullName: target.fullName,
-        avatarUrl: target.avatarUrl,
-        role: target.role,
-        isSuspended: !target.isSuspended,
-      );
-      await _db.saveProfile(updated);
-      await loadUsers();
+  Future<void> toggleUserSuspension(String userId, String currentUserRole) async {
+    try {
+      await _service.toggleUserSuspension(userId, currentUserRole);
+    } catch (e) {
+      debugPrint('AdminController: toggleUserSuspension failed: $e');
+      rethrow;
     }
+    await loadUsers(currentUserRole);
   }
 
   // Dashboard Stats
@@ -45,4 +39,34 @@ class AdminController with ChangeNotifier {
   int get totalTourists => _allUsers.where((u) => u.role == 'tourist').length;
   int get totalInfluencers => _allUsers.where((u) => u.role == 'influencer').length;
   int get suspendedUsersCount => _allUsers.where((u) => u.isSuspended).length;
+
+  List<Map<String, dynamic>> _pendingReports = [];
+  List<Map<String, dynamic>> get pendingReports => _pendingReports;
+
+  Future<void> loadPendingReports(String currentUserRole) async {
+    try {
+      _pendingReports = await _service.fetchPendingReports(currentUserRole);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('AdminController: loadPendingReports failed: \$e');
+    }
+  }
+
+  Future<void> resolveReport(String reportId, String action, String currentUserRole, {String? reviewIdToDelete}) async {
+    try {
+      await _service.resolveReport(reportId, action, currentUserRole, reviewIdToDelete: reviewIdToDelete);
+      await loadPendingReports(currentUserRole);
+    } catch (e) {
+      debugPrint('AdminController: resolveReport failed: \$e');
+    }
+  }
+
+  Future<void> dismissReport(String reportId, String currentUserRole) async {
+    try {
+      await _service.dismissReport(reportId, currentUserRole);
+      await loadPendingReports(currentUserRole);
+    } catch (e) {
+      debugPrint('AdminController: dismissReport failed: \$e');
+    }
+  }
 }

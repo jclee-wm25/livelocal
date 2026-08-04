@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import '../models/spot_model.dart';
-import '../services/supabase_service.dart';
+import '../services/spot_service.dart';
 
 class SpotController with ChangeNotifier {
-  final SupabaseService _db = SupabaseService();
+  final SpotService _service = SpotService();
 
   List<SpotModel> _spots = [];
   bool _isLoading = false;
@@ -24,9 +24,14 @@ class SpotController with ChangeNotifier {
   Future<void> loadSpots() async {
     _isLoading = true;
     notifyListeners();
-    _spots = await _db.fetchSpots();
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _spots = await _service.fetchSpots();
+    } catch (e) {
+      debugPrint('SpotController: loadSpots failed: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   List<SpotModel> get approvedSpots {
@@ -62,17 +67,42 @@ class SpotController with ChangeNotifier {
   }
 
   Future<void> submitSpot(SpotModel newSpot) async {
-    await _db.addSpot(newSpot);
+    try {
+      await _service.submitSpot(newSpot);
+    } catch (e) {
+      debugPrint('SpotController: submitSpot failed: $e');
+      rethrow;
+    }
     await loadSpots();
   }
 
-  Future<void> approveSpot(String spotId) async {
-    await _db.updateSpotStatus(spotId, 'approved');
+  Future<void> updateSpot(SpotModel spot) async {
+    try {
+      await _service.updateSpot(spot);
+    } catch (e) {
+      debugPrint('SpotController: updateSpot failed: $e');
+      rethrow;
+    }
     await loadSpots();
   }
 
-  Future<void> rejectSpot(String spotId, String reason) async {
-    await _db.updateSpotStatus(spotId, 'rejected', rejectionReason: reason);
+  Future<void> approveSpot(String spotId, String currentUserRole) async {
+    try {
+      await _service.approveSpot(spotId, currentUserRole);
+    } catch (e) {
+      debugPrint('SpotController: approveSpot failed: $e');
+      rethrow;
+    }
+    await loadSpots();
+  }
+
+  Future<void> rejectSpot(String spotId, String reason, String currentUserRole) async {
+    try {
+      await _service.rejectSpot(spotId, reason, currentUserRole);
+    } catch (e) {
+      debugPrint('SpotController: rejectSpot failed: $e');
+      rethrow;
+    }
     await loadSpots();
   }
 }

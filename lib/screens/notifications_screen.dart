@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../services/supabase_service.dart';
 import '../models/notification_model.dart';
+import '../constants/app_colors.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -38,7 +39,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     if (t.contains('approved')) return Colors.green;
     if (t.contains('discount')) return Colors.amber;
     if (t.contains('flag')) return Colors.red;
-    return const Color(0xFF2D6A4F);
+    return AppColors.primary;
   }
 
   IconData _getTypeIcon(String type) {
@@ -55,9 +56,9 @@ class _NotificationsScreenState extends State<NotificationsScreen>
     final userId = auth.currentUser?.id ?? 'default_user';
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF0F4F2),
+      backgroundColor: AppColors.backgroundSoft,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1B4332),
+        backgroundColor: AppColors.primaryDark,
         elevation: 0,
         title: const Text('Notifications',
             style:
@@ -72,7 +73,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: Icon(Icons.notifications_active,
-                      color: Color(0xFFFFD700)),
+                      color: AppColors.gold),
                 ),
               );
             },
@@ -85,7 +86,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
                 child:
-                    CircularProgressIndicator(color: Color(0xFF2D6A4F)));
+                    CircularProgressIndicator(color: AppColors.primary));
           }
           if (snapshot.hasError) {
             return Center(
@@ -102,7 +103,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFB7E4C7).withOpacity(0.3),
+                      color: AppColors.accentLight.withValues(alpha: 0.3),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(Icons.notifications_off,
@@ -155,7 +156,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -179,7 +180,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: color.withOpacity(0.1),
+                            color: color.withValues(alpha: 0.1),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(_getTypeIcon(notif.type),
@@ -196,7 +197,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 15,
-                                    color: Color(0xFF1B4332)),
+                                    color: AppColors.primaryDark),
                               ),
                               const SizedBox(height: 4),
                               Text(
@@ -207,7 +208,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                '${_timeAgo(notif.createdAt)}',
+                                _timeAgo(notif.createdAt),
                                 style: TextStyle(
                                     color: Colors.grey.shade500,
                                     fontSize: 11,
@@ -221,7 +222,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                             width: 10,
                             height: 10,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF74C69D),
+                              color: AppColors.accent,
                               shape: BoxShape.circle,
                             ),
                           ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../constants/app_colors.dart';
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
   @override
@@ -15,7 +16,7 @@ class WelcomeScreen extends StatelessWidget {
               const Icon(
                 Icons.location_on,
                 size: 80,
-                color: Color(0xFF2D6A4F),
+                color: AppColors.primary,
               ),
               const SizedBox(height: 16),
               const Text(
@@ -23,7 +24,7 @@ class WelcomeScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 36,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF2D6A4F),
+                  color: AppColors.primary,
                 ),
               ),
               const SizedBox(height: 8),
@@ -50,7 +51,7 @@ class WelcomeScreen extends StatelessWidget {
                   Navigator.pushNamed(context, '/register');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D6A4F),
+                  backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(
@@ -68,8 +69,8 @@ class WelcomeScreen extends StatelessWidget {
                   Navigator.pushNamed(context, '/login');
                 },
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF2D6A4F),
-                  side: const BorderSide(color: Color(0xFF2D6A4F)),
+                  foregroundColor: AppColors.primary,
+                  side: const BorderSide(color: AppColors.primary),
                   minimumSize: const Size(double.infinity, 52),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),

@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../constants/app_colors.dart';
+import '../controllers/auth_controller.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
@@ -7,6 +11,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _showError = false;
+  String _errorMessage = '';
   bool _obscurePassword = true;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -16,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
     Widget? suffixIcon,
   }) {
     return InputDecoration(
-      prefixIcon: Icon(prefixIcon, color: const Color(0xFF2D6A4F)),
+      prefixIcon: Icon(prefixIcon, color: AppColors.primary),
       labelText: labelText,
       suffixIcon: suffixIcon,
       border: OutlineInputBorder(
@@ -24,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFF2D6A4F), width: 2),
+        borderSide: const BorderSide(color: AppColors.primary, width: 2),
       ),
     );
   }
@@ -34,6 +39,25 @@ class _LoginScreenState extends State<LoginScreen> {
     _passwordController.dispose();
     super.dispose();
   }
+
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+    final authCtrl = Provider.of<AuthController>(context, listen: false);
+    final success = await authCtrl.login(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
+    if (!mounted) return;
+    if (success) {
+      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+    } else {
+      setState(() {
+        _showError = true;
+        _errorMessage = authCtrl.errorMessage ??
+            'Invalid email or password. Please try again.';
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -41,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF2D6A4F),
+        foregroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -51,7 +75,7 @@ class _LoginScreenState extends State<LoginScreen> {
         title: const Text(
           'LiveLocal',
           style: TextStyle(
-            color: Color(0xFF2D6A4F),
+            color: AppColors.primary,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -83,22 +107,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFEBEE),
+                    color: AppColors.errorBg,
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.red.shade200),
                   ),
                   child: Row(
                     children: [
-                      Icon(
+                      const Icon(
                         Icons.error_outline,
-                        color: Colors.red,
+                        color: AppColors.error,
                         size: 16,
                       ),
-                      Text(
-                        ' Invalid email or password. Please try again.',
-                        style: TextStyle(
-                          color: Colors.red.shade700,
-                          fontSize: 13,
+                      Expanded(
+                        child: Text(
+                          _errorMessage,
+                          style: TextStyle(
+                            color: Colors.red.shade700,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ],
@@ -136,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             _obscurePassword
                                 ? Icons.visibility_off
                                 : Icons.visibility,
-                            color: const Color(0xFF2D6A4F),
+                            color: AppColors.primary,
                           ),
                           onPressed: () {
                             setState(() {
@@ -169,7 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: const Text(
                     'Forgot password?',
                     style: TextStyle(
-                      color: Color(0xFF2D6A4F),
+                      color: AppColors.primary,
                       fontSize: 13,
                     ),
                   ),
@@ -180,20 +206,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      if (_emailController.text == 'tourist@test.com' &&
-                          _passwordController.text == 'password123') {
-                        Navigator.pushNamed(context, '/home');
-                      } else {
-                        setState(() {
-                          _showError = true;
-                        });
-                      }
-                    }
-                  },
+                  onPressed: () => _handleLogin(),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF2D6A4F),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -265,7 +280,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: const Text(
                       'Sign up',
                       style: TextStyle(
-                        color: Color(0xFF2D6A4F),
+                        color: AppColors.primary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

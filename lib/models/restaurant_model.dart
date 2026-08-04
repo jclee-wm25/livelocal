@@ -11,6 +11,8 @@ class RestaurantModel {
   final String influencerName;
   final String socialMediaUrl;
   final String coverPhotoUrl;
+  final double? latitude;
+  final double? longitude;
 
   RestaurantModel({
     required this.id,
@@ -25,6 +27,8 @@ class RestaurantModel {
     required this.influencerName,
     required this.socialMediaUrl,
     required this.coverPhotoUrl,
+    this.latitude,
+    this.longitude,
   });
 
   Map<String, dynamic> toMap() => {
@@ -40,6 +44,8 @@ class RestaurantModel {
     'influencer_name': influencerName,
     'social_media_url': socialMediaUrl,
     'cover_photo_url': coverPhotoUrl,
+    'latitude': latitude,
+    'longitude': longitude,
   };
 
   factory RestaurantModel.fromMap(Map<String, dynamic> map) => RestaurantModel(
@@ -55,5 +61,7 @@ class RestaurantModel {
     influencerName: map['influencer_name'] ?? '',
     socialMediaUrl: map['social_media_url'] ?? '',
     coverPhotoUrl: map['cover_photo_url'] ?? '',
+    latitude: (map['latitude'] as num?)?.toDouble(),
+    longitude: (map['longitude'] as num?)?.toDouble(),
   );
 }

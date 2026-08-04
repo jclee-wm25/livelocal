@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../controllers/localeats_controller.dart';
 import '../controllers/auth_controller.dart';
 import 'restaurant_detail_screen.dart';
 import 'add_restaurant_screen.dart';
+import '../constants/app_colors.dart';
 
 class LocalEatsScreen extends StatefulWidget {
   const LocalEatsScreen({super.key});
   @override
-  _LocalEatsScreenState createState() => _LocalEatsScreenState();
+  State<LocalEatsScreen> createState() => _LocalEatsScreenState();
 }
 
 class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProviderStateMixin {
@@ -56,7 +58,7 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
     final filtered = localEats.filteredRestaurants;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: AppColors.backgroundGrey,
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
@@ -69,7 +71,7 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [Color(0xFF1B4332), Color(0xFF2D6A4F)],
+                    colors: [AppColors.primaryDark, AppColors.primary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -79,7 +81,7 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
           ),
           if (localEats.isLoading)
             const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator(color: Color(0xFF2D6A4F))))
+                child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
           else
             SliverToBoxAdapter(
               child: Column(
@@ -87,13 +89,13 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                 children: [
                   const SizedBox(height: 16),
                   if (trending.isNotEmpty) ...[
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: const Text('Trending Now ✨',
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0),
+                      child: Text('Trending Now ✨',
                           style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF1B4332))),
+                              color: AppColors.primaryDark)),
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
@@ -140,7 +142,7 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                         offset: Offset(0, 5))
                                   ],
                                   image: DecorationImage(
-                                    image: NetworkImage(restaurant.coverPhotoUrl),
+                                    image: CachedNetworkImageProvider(restaurant.coverPhotoUrl),
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -149,8 +151,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                     borderRadius: BorderRadius.circular(20),
                                     gradient: LinearGradient(
                                       colors: [
-                                        Colors.black.withOpacity(0.1),
-                                        Colors.black.withOpacity(0.7)
+                                        Colors.black.withValues(alpha: 0.1),
+                                        Colors.black.withValues(alpha: 0.7)
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -183,7 +185,7 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                           height: 8,
                           decoration: BoxDecoration(
                             color: _currentPage == index
-                                ? const Color(0xFF2D6A4F)
+                                ? AppColors.primary
                                 : Colors.grey.shade400,
                             borderRadius: BorderRadius.circular(4),
                           ),
@@ -231,17 +233,22 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(12),
-                                    child: Image.network(
-                                      restaurant.coverPhotoUrl,
+                                    child: CachedNetworkImage(
+                                      imageUrl: restaurant.coverPhotoUrl,
                                       width: 70,
                                       height: 70,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => Container(
+                                      placeholder: (context, url) => Container(
+                                          width: 70,
+                                          height: 70,
+                                          color: Colors.grey.shade200,
+                                          child: const Center(child: CircularProgressIndicator())),
+                                      errorWidget: (context, url, error) => Container(
                                           width: 70,
                                           height: 70,
                                           color: Colors.grey.shade200,
                                           child: const Icon(Icons.restaurant,
-                                              color: Color(0xFF2D6A4F))),
+                                              color: AppColors.primary)),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -253,7 +260,7 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                             style: const TextStyle(
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.bold,
-                                                color: Color(0xFF1B4332))),
+                                                color: AppColors.primaryDark)),
                                         const SizedBox(height: 4),
                                         Text(
                                             '${restaurant.cuisineType} • ${restaurant.city}',
@@ -264,7 +271,7 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                           children: [
                                             Text(restaurant.priceRange,
                                                 style: const TextStyle(
-                                                    color: Color(0xFF74C69D),
+                                                    color: AppColors.accent,
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 13)),
                                             const SizedBox(width: 8),
@@ -341,10 +348,10 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFB7E4C7)),
+        border: Border.all(color: AppColors.accentLight),
         boxShadow: [
           BoxShadow(
-              color: const Color(0xFFB7E4C7).withOpacity(0.3),
+              color: AppColors.accentLight.withValues(alpha: 0.3),
               blurRadius: 4,
               offset: const Offset(0, 2))
         ],
@@ -352,14 +359,14 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: const Color(0xFF2D6A4F)),
+          Icon(icon, size: 16, color: AppColors.primary),
           const SizedBox(width: 8),
           DropdownButtonHideUnderline(
             child: DropdownButton<String>(
               value: value,
               isDense: true,
-              icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF2D6A4F)),
-              style: const TextStyle(color: Color(0xFF1B4332), fontWeight: FontWeight.w600),
+              icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
+              style: const TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w600),
               items: items
                   .map((i) => DropdownMenuItem(value: i, child: Text(i)))
                   .toList(),
@@ -406,7 +413,7 @@ class _PulsingDiscountBadgeState extends State<_PulsingDiscountBadge>
       child: Container(
         padding: const EdgeInsets.all(6),
         decoration: BoxDecoration(
-            color: const Color(0xFFFFD700).withOpacity(0.2),
+            color: AppColors.gold.withValues(alpha: 0.2),
             shape: BoxShape.circle),
         child: const Text('🏷️', style: TextStyle(fontSize: 16)),
       ),
@@ -473,7 +480,7 @@ class _ExpandableFabState extends State<_ExpandableFab>
               scale: _controller,
               child: FloatingActionButton.extended(
                 heroTag: 'add_rest',
-                backgroundColor: const Color(0xFF2D6A4F),
+                backgroundColor: AppColors.primary,
                 icon: const Icon(Icons.add_business),
                 label: const Text('Add Restaurant'),
                 onPressed: () {
@@ -490,7 +497,7 @@ class _ExpandableFabState extends State<_ExpandableFab>
         const SizedBox(height: 16),
         FloatingActionButton(
           heroTag: 'main_fab',
-          backgroundColor: const Color(0xFF2D6A4F),
+          backgroundColor: AppColors.primary,
           onPressed: () {
             setState(() {
               _expanded = !_expanded;

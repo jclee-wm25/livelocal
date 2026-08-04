@@ -2,7 +2,6 @@ import '../models/profile_model.dart';
 import '../models/spot_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/discount_code_model.dart';
-import '../models/saved_place_model.dart';
 import '../models/guide_model.dart';
 import '../models/review_model.dart';
 import '../models/notification_model.dart';

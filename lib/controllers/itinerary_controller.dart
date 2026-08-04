@@ -2,23 +2,34 @@ import 'package:flutter/foundation.dart';
 import '../models/saved_place_model.dart';
 import '../models/spot_model.dart';
 import '../models/restaurant_model.dart';
-import '../services/supabase_service.dart';
+import '../repositories/supabase_repository.dart';
+import '../services/location_service.dart';
 
 class ItineraryController with ChangeNotifier {
-  final SupabaseService _db = SupabaseService();
+  final SupabaseRepository _db = SupabaseRepository();
+  final LocationService _locationService = LocationService();
 
   List<SavedPlaceModel> _savedPlaces = [];
+  List<Map<String, Object>> _itinerarySteps = [];
   bool _isLoading = false;
+  bool _isGeneratingItinerary = false;
 
   List<SavedPlaceModel> get savedPlaces => _savedPlaces;
+  List<Map<String, Object>> get itinerarySteps => _itinerarySteps;
   bool get isLoading => _isLoading;
+  bool get isGeneratingItinerary => _isGeneratingItinerary;
 
   Future<void> loadSavedPlaces(String userId) async {
     _isLoading = true;
     notifyListeners();
-    _savedPlaces = await _db.fetchSavedPlaces(userId);
-    _isLoading = false;
-    notifyListeners();
+    try {
+      _savedPlaces = await _db.fetchSavedPlaces(userId);
+    } catch (e) {
+      debugPrint('ItineraryController: loadSavedPlaces failed: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   bool isSaved(String userId, {String? spotId, String? restaurantId}) {
@@ -26,57 +37,114 @@ class ItineraryController with ChangeNotifier {
   }
 
   Future<void> toggleSave(String userId, {String? spotId, String? restaurantId}) async {
-    if (isSaved(userId, spotId: spotId, restaurantId: restaurantId)) {
-      await _db.removeSavedPlace(userId, spotId: spotId, restaurantId: restaurantId);
-    } else {
-      final newItem = SavedPlaceModel(
-        id: 'save-${DateTime.now().millisecondsSinceEpoch}',
-        userId: userId,
-        spotId: spotId,
-        restaurantId: restaurantId,
-        savedAt: DateTime.now(),
-      );
-      await _db.savePlace(newItem);
+    try {
+      if (isSaved(userId, spotId: spotId, restaurantId: restaurantId)) {
+        await _db.removeSavedPlace(userId, spotId: spotId, restaurantId: restaurantId);
+      } else {
+        final newItem = SavedPlaceModel(
+          id: 'save-${DateTime.now().millisecondsSinceEpoch}',
+          userId: userId,
+          spotId: spotId,
+          restaurantId: restaurantId,
+          savedAt: DateTime.now(),
+        );
+        await _db.savePlace(newItem);
+      }
+    } catch (e) {
+      debugPrint('ItineraryController: toggleSave failed: $e');
+      rethrow;
     }
     await loadSavedPlaces(userId);
   }
 
-  // Generates proximity-grouped itinerary schedule
-  List<Map<String, String>> generateProximityItinerary(List<SpotModel> allSpots, List<RestaurantModel> allRestaurants) {
-    final List<Map<String, String>> itinerary = [];
-    int stepNumber = 1;
+  /// Generates a coordinate-based proximity itinerary using LocationService.
+  Future<void> generateProximityItinerary(
+      List<SpotModel> allSpots, List<RestaurantModel> allRestaurants) async {
+    _isGeneratingItinerary = true;
+    notifyListeners();
 
-    for (var saved in _savedPlaces) {
-      if (saved.spotId != null) {
-        final matches = allSpots.where((s) => s.id == saved.spotId).toList();
-        if (matches.isNotEmpty) {
-          final spot = matches.first;
-          itinerary.add({
-            'step': 'Stop $stepNumber',
-            'title': spot.name,
-            'location': '${spot.city}, ${spot.state}',
-            'best_time': spot.bestTime,
-            'activity': spot.thingsToDo,
-            'type': 'Spot (${spot.category})',
-          });
-          stepNumber++;
-        }
-      } else if (saved.restaurantId != null) {
-        final matches = allRestaurants.where((r) => r.id == saved.restaurantId).toList();
-        if (matches.isNotEmpty) {
-          final rest = matches.first;
-          itinerary.add({
-            'step': 'Stop $stepNumber',
-            'title': rest.name,
-            'location': '${rest.city}, ${rest.state}',
-            'best_time': 'Meal Stop',
-            'activity': 'Try: ${rest.reviewedDishes}',
-            'type': 'Restaurant (${rest.cuisineType})',
-          });
-          stepNumber++;
+    try {
+      final List<SpotModel> savedSpots = [];
+      final List<RestaurantModel> savedRestaurants = [];
+
+      for (var saved in _savedPlaces) {
+        if (saved.spotId != null) {
+          final matches = allSpots.where((s) => s.id == saved.spotId).toList();
+          if (matches.isNotEmpty) {
+            // Geocode and save if missing coordinates
+            final spot = await _locationService.ensureSpotCoordinates(matches.first);
+            savedSpots.add(spot);
+          }
+        } else if (saved.restaurantId != null) {
+          final matches = allRestaurants.where((r) => r.id == saved.restaurantId).toList();
+          if (matches.isNotEmpty) {
+             // Geocode and save if missing coordinates
+            final rest = await _locationService.ensureRestaurantCoordinates(matches.first);
+            savedRestaurants.add(rest);
+          }
         }
       }
+
+      // Attempt to get user's actual GPS location
+      final userPos = await _locationService.getCurrentLocation();
+      
+      // Fallback to KL Sentral if permissions denied or GPS unavailable
+      final startLat = userPos?.latitude ?? 3.1340;
+      final startLng = userPos?.longitude ?? 101.6861;
+
+      final sortedRoute = _locationService.sortLocationsByProximity(
+        startLat, startLng, savedSpots, savedRestaurants
+      );
+
+      final List<Map<String, Object>> itinerary = [];
+      int stepNumber = 1;
+      
+      for (int i = 0; i < sortedRoute.length; i++) {
+        final stop = sortedRoute[i];
+        final isSpot = stop['type'] == 'Spot';
+        
+        String title = '';
+        String location = '';
+        String bestTime = '';
+        String activity = '';
+        String displayType = '';
+
+        if (isSpot) {
+          final s = stop['item'] as SpotModel;
+          title = s.name;
+          location = '${s.city}, ${s.state}';
+          bestTime = s.bestTime;
+          activity = s.thingsToDo;
+          displayType = 'Spot (${s.category})';
+        } else {
+          final r = stop['item'] as RestaurantModel;
+          title = r.name;
+          location = '${r.city}, ${r.state}';
+          bestTime = 'Meal Stop';
+          activity = 'Try: ${r.reviewedDishes}';
+          displayType = 'Restaurant (${r.cuisineType})';
+        }
+
+        itinerary.add({
+          'title': title,
+          'location': location,
+          'best_time': bestTime,
+          'activity': activity,
+          'type': displayType,
+          'step': 'Stop $stepNumber',
+          'lat': stop['lat']!,
+          'lng': stop['lng']!,
+          if (i == 0) 'day_label': 'Route Overview',
+        });
+        stepNumber++;
+      }
+
+      _itinerarySteps = itinerary;
+    } catch (e) {
+      debugPrint('ItineraryController: generateProximityItinerary failed: $e');
+    } finally {
+      _isGeneratingItinerary = false;
+      notifyListeners();
     }
-    return itinerary;
   }
 }

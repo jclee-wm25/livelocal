@@ -9,6 +9,7 @@ import 'neighbourhood_explorer_screen.dart';
 import 'profile_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'notifications_screen.dart';
+import '../constants/app_colors.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -62,7 +63,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
         preferredSize: const Size.fromHeight(60),
         child: Container(
           decoration: const BoxDecoration(
-            color: Color(0xFF1B4332),
+            color: AppColors.primaryDark,
             boxShadow: [
               BoxShadow(
                 color: Colors.black12,
@@ -79,10 +80,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
+                      color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.location_on, color: Color(0xFF74C69D), size: 20),
+                    child: const Icon(Icons.location_on, color: AppColors.accent, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -138,7 +139,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
             border: Border.all(color: Colors.grey.shade200),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: Colors.black.withValues(alpha: 0.08),
                 blurRadius: 16,
                 offset: const Offset(0, 4),
               )
@@ -178,14 +179,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
           children: [
             Icon(
               isSelected ? activeIcon : icon,
-              color: isSelected ? const Color(0xFF1B4332) : Colors.grey.shade600,
+              color: isSelected ? AppColors.primaryDark : Colors.grey.shade600,
               size: 22,
             ),
             const SizedBox(height: 2),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? const Color(0xFF1B4332) : Colors.grey.shade600,
+                color: isSelected ? AppColors.primaryDark : Colors.grey.shade600,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 11,
               ),
