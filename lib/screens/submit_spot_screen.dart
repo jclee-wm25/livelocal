@@ -416,7 +416,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
   Widget _buildDropdown(String label, List<String> items, String value,
       Function(String?) onChanged) {
     return DropdownButtonFormField<String>(
-      value: value,
+      initialValue: value,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(

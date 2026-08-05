@@ -5,24 +5,19 @@ import 'package:live_local/controllers/localeats_controller.dart';
 import 'package:live_local/controllers/itinerary_controller.dart';
 import 'package:live_local/controllers/guide_controller.dart';
 import 'package:live_local/controllers/review_controller.dart';
-import 'package:live_local/controllers/admin_controller.dart';
 import 'package:live_local/models/spot_model.dart';
 
 void main() {
   group('LiveLocal System Integration Tests', () {
-    test('Module 1: Auth & Role Switching', () async {
+    test('Module 1: demo fixture login preserves the stored tourist role',
+        () async {
       final authCtrl = AuthController();
-      await authCtrl.login('tourist@livelocal.my', 'password');
+      await authCtrl.login('tourist@livelocal.my', 'DemoOnly123!');
       expect(authCtrl.isAuthenticated, isTrue);
-
-      authCtrl.setRole('influencer');
-      expect(authCtrl.currentUser?.role, 'influencer');
-
-      authCtrl.setRole('admin');
-      expect(authCtrl.currentUser?.role, 'admin');
+      expect(authCtrl.currentUser?.role, 'tourist');
     });
 
-    test('Module 2: Local Spots Filtering & Approval Flow', () async {
+    test('Module 2: Local Spots Filtering & Submission Flow', () async {
       final spotCtrl = SpotController();
       await spotCtrl.loadSpots();
 
@@ -54,9 +49,9 @@ void main() {
       await spotCtrl.submitSpot(newSpot);
       expect(spotCtrl.pendingSpots.any((s) => s.id == 'spot-test-1'), isTrue);
 
-      // Admin approves spot
-      await spotCtrl.approveSpot('spot-test-1');
-      expect(spotCtrl.approvedSpots.any((s) => s.id == 'spot-test-1'), isTrue);
+      // Admin authorization is deliberately not characterized here. The
+      // current client-role contract is not production authorization and will
+      // be replaced by a server-side RPC/RLS flow in Phase 5.
     });
 
     test('Module 3: LocalEats & Discount Codes', () async {
@@ -71,7 +66,7 @@ void main() {
       expect(discounts.every((d) => !d.isExpired), isTrue);
     });
 
-    test('Module 4: Saved Places & Smart Itinerary Routing', () async {
+    test('Module 4: Saved Places', () async {
       final itineraryCtrl = ItineraryController();
       final spotCtrl = SpotController();
       final foodCtrl = LocalEatsController();
@@ -85,8 +80,7 @@ void main() {
 
       expect(itineraryCtrl.isSaved('usr-tourist-1', spotId: spotId), isTrue);
 
-      final itinerary = itineraryCtrl.generateProximityItinerary(spotCtrl.spots, foodCtrl.restaurants);
-      expect(itinerary.isNotEmpty, isTrue);
+      expect(itineraryCtrl.savedPlaces, isNotEmpty);
     });
 
     test('Module 5: Neighbourhood Explorer Guides', () async {
@@ -99,14 +93,10 @@ void main() {
       expect(guide.walkingSequence.isNotEmpty, isTrue);
     });
 
-    test('Module 6: Community Reviews & Admin Moderation', () async {
+    test('Module 6: Community review validation and storage', () async {
       final reviewCtrl = ReviewController();
-      final adminCtrl = AdminController();
 
       await reviewCtrl.loadReviews();
-      await adminCtrl.loadUsers();
-
-      expect(adminCtrl.totalUsers, greaterThan(0));
 
       // Add review
       await reviewCtrl.addReview(

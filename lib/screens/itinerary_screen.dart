@@ -20,11 +20,13 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final itineraryCtrl = Provider.of<ItineraryController>(context, listen: false);
+      final itineraryCtrl =
+          Provider.of<ItineraryController>(context, listen: false);
       final spotCtrl = Provider.of<SpotController>(context, listen: false);
       final foodCtrl = Provider.of<LocalEatsController>(context, listen: false);
-      
-      itineraryCtrl.generateProximityItinerary(spotCtrl.spots, foodCtrl.restaurants);
+
+      itineraryCtrl.generateProximityItinerary(
+          spotCtrl.spots, foodCtrl.restaurants);
     });
   }
 
@@ -45,7 +47,8 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
         iconTheme: const IconThemeData(color: AppColors.primaryDark),
       ),
       body: itineraryCtrl.isGeneratingItinerary
-          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary))
           : itinerarySteps.isEmpty
               ? _buildEmptyState()
               : SingleChildScrollView(
@@ -95,14 +98,15 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
                           borderRadius: AppStyles.defaultRadius,
                           border: Border.all(color: AppColors.accentLight),
                         ),
-                        child: Row(
+                        child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.directions_walk, color: AppColors.primary),
-                            const SizedBox(width: AppStyles.padSm),
+                            Icon(Icons.directions_walk,
+                                color: AppColors.primary),
+                            SizedBox(width: AppStyles.padSm),
                             Text(
                               'Optimized by Nearest Neighbor Routing',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.primaryDark),
                             ),
