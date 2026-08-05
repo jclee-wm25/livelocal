@@ -15,8 +15,9 @@ This file deliberately separates the prototype from approved future behaviour.
 - Authentication, roles, suspension, deletion, notifications, moderation,
   restaurant/discount contracts, and RLS are incomplete or unsafe.
 - The database policy SQL is not a complete deployable schema/migration set.
-- The pre-Phase-1 baseline does not compile or test successfully from a clean
-  checkout.
+- The pre-Phase-1 baseline did not compile or test successfully from a clean
+  checkout. The authorized Phase 1 baseline now formats, analyzes, tests, and
+  builds an explicit-demo Android debug APK successfully.
 - There is no iOS project. Android release configuration is not production
   ready.
 
@@ -54,7 +55,10 @@ following production-ready:
 
 | Phase | Status | Meaning |
 |---|---|---|
-| 0: specification records | Authorized | Documentation only |
-| 1: compiling baseline | Authorized | Build/config/contracts/tests only |
+| 0: specification records | Complete | Approved target/current/deferred records and ADRs versioned |
+| 1: compiling baseline | Complete | Build/config/contracts/tests only; verified 2026-08-05 |
 | 2: Supabase foundation | Not authorized | No migrations or live project changes |
 | 3 and later | Not authorized | No feature/security architecture implementation |
+
+Phase 1 verification and exclusions are recorded in
+[phase0-phase1-baseline.md](phase0-phase1-baseline.md).
