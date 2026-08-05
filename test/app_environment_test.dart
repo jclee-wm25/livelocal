@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_local/core/config/app_environment.dart';
 import 'package:live_local/controllers/auth_controller.dart';
+import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 import 'package:live_local/repositories/supabase_repository.dart';
 import 'package:live_local/services/seed_data_service.dart';
 
@@ -62,7 +63,7 @@ void main() {
     });
 
     test('rejects an arbitrary password for a fixture email', () async {
-      final controller = AuthController();
+      final controller = AuthController(repository: DemoAuthRepository());
 
       final success = await controller.login(
         'tourist@livelocal.my',
@@ -74,7 +75,7 @@ void main() {
     });
 
     test('accepts only the documented fixture password', () async {
-      final controller = AuthController();
+      final controller = AuthController(repository: DemoAuthRepository());
 
       final success = await controller.login(
         'tourist@livelocal.my',
@@ -86,7 +87,7 @@ void main() {
     });
 
     test('all demo registrations create tourist profiles', () async {
-      final controller = AuthController();
+      final controller = AuthController(repository: DemoAuthRepository());
       final email =
           'new-tourist-${DateTime.now().microsecondsSinceEpoch}@example.test';
 

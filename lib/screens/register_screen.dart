@@ -55,8 +55,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
     if (!mounted) return;
     if (success) {
+      final requiresVerification =
+          authCtrl.status == AuthStatus.verificationRequired;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created successfully!')),
+        SnackBar(
+          content: Text(
+            requiresVerification
+                ? 'Account created. Check your email to verify it.'
+                : 'Account created successfully.',
+          ),
+        ),
       );
       Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
     } else {
@@ -129,13 +137,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     TextFormField(
                       controller: _fullNameController,
+                      autofillHints: const [AutofillHints.name],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.person_outline,
                         labelText: 'Full Name',
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return 'This field is required';
+                        }
+                        if (value.trim().length < 2 ||
+                            value.trim().length > 80) {
+                          return 'Use between 2 and 80 characters';
                         }
                         return null;
                       },
@@ -144,13 +157,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.email_outlined,
                         labelText: 'Email Address',
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'This field is required';
+                        final email = value?.trim() ?? '';
+                        if (!email.contains('@') || !email.contains('.')) {
+                          return 'Enter a valid email address';
                         }
                         return null;
                       },
@@ -159,6 +174,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      autofillHints: const [AutofillHints.newPassword],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.lock_outline,
                         labelText: 'Password',
@@ -180,6 +196,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         if (value == null || value.isEmpty) {
                           return 'This field is required';
                         }
+                        if (value.length < 10 ||
+                            !RegExp('[A-Za-z]').hasMatch(value) ||
+                            !RegExp('[0-9]').hasMatch(value)) {
+                          return 'Use 10+ characters with a letter and number';
+                        }
                         return null;
                       },
                     ),
@@ -187,6 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirm,
+                      autofillHints: const [AutofillHints.newPassword],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.lock_outline,
                         labelText: 'Confirm Password',

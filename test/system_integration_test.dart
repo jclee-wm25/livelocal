@@ -7,6 +7,7 @@ import 'package:live_local/controllers/guide_controller.dart';
 import 'package:live_local/controllers/review_controller.dart';
 import 'package:live_local/models/spot_model.dart';
 import 'package:live_local/repositories/supabase_repository.dart';
+import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -16,7 +17,7 @@ void main() {
   group('LiveLocal System Integration Tests', () {
     test('Module 1: demo fixture login preserves the stored tourist role',
         () async {
-      final authCtrl = AuthController();
+      final authCtrl = AuthController(repository: DemoAuthRepository());
       await authCtrl.login('tourist@livelocal.my', 'DemoOnly123!');
       expect(authCtrl.isAuthenticated, isTrue);
       expect(authCtrl.currentUser?.role, 'tourist');

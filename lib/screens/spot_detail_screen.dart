@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/spot_model.dart';
-import '../models/profile_model.dart';
+import '../features/auth/domain/account_identity.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
@@ -357,7 +357,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   }
 
   void _showWriteReviewSheet(
-      BuildContext context, ProfileModel user, ReviewController reviewCtrl) {
+      BuildContext context, AccountIdentity user, ReviewController reviewCtrl) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,

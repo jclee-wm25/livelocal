@@ -40,6 +40,13 @@ class SupabaseRepository {
     _mode = RepositoryMode.demo;
   }
 
+  /// Temporary bridge for features that have not yet moved to narrow
+  /// repositories. Authentication never uses this adapter. Remove after all
+  /// feature slices have migrated away from this class.
+  void attachToInitializedSupabase() {
+    _mode = RepositoryMode.supabase;
+  }
+
   // In-memory fixture store for explicit local/demo mode. This is not durable
   // offline persistence. Phase 2 will replace the runtime switch with separate
   // environment-specific adapters.

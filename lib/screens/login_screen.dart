@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
+import '../core/config/app_environment.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -144,13 +145,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.email_outlined,
                         labelText: 'Email Address',
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'This field is required';
+                        final email = value?.trim() ?? '';
+                        if (!email.contains('@') || !email.contains('.')) {
+                          return 'Enter a valid email address';
                         }
                         return null;
                       },
@@ -159,6 +162,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      autofillHints: const [AutofillHints.password],
+                      onFieldSubmitted: (_) =>
+                          isSubmitting ? null : _handleLogin(),
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.lock_outline,
                         labelText: 'Password',
@@ -187,14 +193,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              const Align(
+              Align(
                 alignment: Alignment.centerRight,
-                child: Text(
-                  'Password reset is unavailable in this baseline.',
-                  textAlign: TextAlign.right,
-                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                child: TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pushNamed(context, '/password-reset'),
+                  child: const Text('Forgot password?'),
                 ),
               ),
+              if (context.read<AppConfiguration>().isDemo) ...[
+                const Text(
+                  'Demo mode uses the fixed password DemoOnly123! and does not contact production services.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
