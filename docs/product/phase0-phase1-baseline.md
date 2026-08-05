@@ -33,7 +33,7 @@ store release is production-ready.
 - Staging/production remains deliberately unavailable until Phase 2 is
   authorized and implemented.
 - Demo accounts require the shared synthetic fixture password
-  `DemoOnly123!`; public registration always creates a tourist.
+  `123456`; public registration always creates a tourist.
 - Client role switching and unsafe role-escalation tests are removed.
 - Fake/incomplete actions are removed or honestly marked unavailable.
 - Suspended live-login rejection signs out the Supabase session in the
@@ -93,8 +93,8 @@ toolchain warning for the later platform phase.
 1. Run `flutter run --dart-define=APP_ENV=demo` and confirm the `DEMO` banner.
 2. Confirm a run without `APP_ENV` shows the configuration failure screen.
 3. Confirm a release build cannot select demo mode.
-4. Log in to `tourist@livelocal.my` with a wrong password and confirm failure.
-5. Log in with `DemoOnly123!` and confirm the tourist fixture account.
+4. Log in to `tourist@livelocal.com` with a wrong password and confirm failure.
+5. Log in with `123456` and confirm the tourist fixture account.
 6. Register a demo account and confirm it is a tourist with no role picker.
 7. Confirm Google login is absent and password reset is honestly unavailable.
 8. Confirm account deletion states that no data was deleted.

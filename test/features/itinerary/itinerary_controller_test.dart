@@ -12,7 +12,7 @@ void main() {
         () async {
       final auth = DemoAuthRepository();
       await auth.signIn(
-        email: 'tourist@livelocal.my',
+        email: 'tourist@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final repository = DemoSavedItineraryRepository(auth);
@@ -50,7 +50,7 @@ void main() {
 
       await auth.signOut();
       await auth.signIn(
-        email: 'admin@livelocal.my',
+        email: 'admin@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       await controller.loadSavedPlaces();
@@ -60,7 +60,7 @@ void main() {
     test('an itinerary cannot use a place the account has not saved', () async {
       final auth = DemoAuthRepository();
       await auth.signIn(
-        email: 'tourist@livelocal.my',
+        email: 'tourist@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final repository = DemoSavedItineraryRepository(auth);

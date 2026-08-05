@@ -25,7 +25,7 @@ void main() {
     expect(controller.errorMessage, contains('Sign in'));
 
     await authRepository.signIn(
-      email: 'tourist@livelocal.my',
+      email: 'tourist@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     expect(

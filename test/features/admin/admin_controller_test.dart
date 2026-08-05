@@ -8,7 +8,7 @@ void main() {
   test('admin cannot change their own account access', () async {
     final authRepository = DemoAuthRepository();
     await authRepository.signIn(
-      email: 'admin@livelocal.my',
+      email: 'admin@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     final controller = AdminController(
@@ -16,7 +16,7 @@ void main() {
     );
     await controller.loadDashboard();
     final self = controller.accounts.singleWhere(
-      (account) => account.email == 'admin@livelocal.my',
+      (account) => account.email == 'admin@livelocal.com',
     );
 
     final saved = await controller.setAccountAccess(

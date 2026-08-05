@@ -15,7 +15,7 @@ void main() {
       authController: authController,
     );
     await authController.login(
-      'tourist@livelocal.my',
+      'tourist@livelocal.com',
       SeedDataService.demoPassword,
     );
 
@@ -46,7 +46,7 @@ void main() {
       authController: authController,
     );
     await authController.login(
-      'tourist@livelocal.my',
+      'tourist@livelocal.com',
       SeedDataService.demoPassword,
     );
 

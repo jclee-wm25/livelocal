@@ -24,14 +24,14 @@ void main() {
     final controller = GuideController(repository: repository);
 
     await authRepository.signIn(
-      email: 'tourist@livelocal.my',
+      email: 'tourist@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     expect(await controller.createDraft(draftInput), isFalse);
     expect(controller.errorMessage, contains('Administrator'));
 
     await authRepository.signIn(
-      email: 'admin@livelocal.my',
+      email: 'admin@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     expect(await controller.createDraft(draftInput), isTrue);

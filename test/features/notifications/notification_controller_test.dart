@@ -12,7 +12,7 @@ void main() {
     final controller = NotificationController(repository: repository);
 
     await authRepository.signIn(
-      email: 'tourist@livelocal.my',
+      email: 'tourist@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     await controller.load();

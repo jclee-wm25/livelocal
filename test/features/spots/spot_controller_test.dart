@@ -14,7 +14,7 @@ void main() {
   setUp(() async {
     authRepository = DemoAuthRepository();
     await authRepository.signIn(
-      email: 'tourist@livelocal.my',
+      email: 'tourist@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     controller = SpotController(
@@ -118,7 +118,7 @@ void main() {
 
     await authRepository.signOut();
     await authRepository.signIn(
-      email: 'admin@livelocal.my',
+      email: 'admin@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     await controller.loadPendingSpots();
@@ -131,7 +131,7 @@ void main() {
 
     await authRepository.signOut();
     await authRepository.signIn(
-      email: 'tourist@livelocal.my',
+      email: 'tourist@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     await controller.loadOwnedSubmissions();
@@ -172,7 +172,7 @@ void main() {
 
     await authRepository.signOut();
     await authRepository.signIn(
-      email: 'admin@livelocal.my',
+      email: 'admin@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     await controller.loadPendingSpots();

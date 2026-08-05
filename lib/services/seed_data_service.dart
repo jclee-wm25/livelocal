@@ -10,12 +10,12 @@ class SeedDataService {
   /// Shared synthetic password for non-release demo fixtures only.
   ///
   /// Demo authentication is intentionally not a production security model.
-  static const demoPassword = 'DemoOnly123!';
+  static const demoPassword = '123456';
 
   static List<ProfileModel> getInitialProfiles() => [
         ProfileModel(
           id: 'usr-tourist-1',
-          email: 'tourist@livelocal.my',
+          email: 'tourist@livelocal.com',
           fullName: 'Alex Tan (Tourist)',
           avatarUrl:
               'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
@@ -23,7 +23,7 @@ class SeedDataService {
         ),
         ProfileModel(
           id: 'usr-influencer-1',
-          email: 'foodie@livelocal.my',
+          email: 'foodie@livelocal.com',
           fullName: 'KL Foodie (Influencer)',
           avatarUrl:
               'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
@@ -31,7 +31,7 @@ class SeedDataService {
         ),
         ProfileModel(
           id: 'usr-admin-1',
-          email: 'admin@livelocal.my',
+          email: 'admin@livelocal.com',
           fullName: 'Admin User',
           avatarUrl:
               'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150',

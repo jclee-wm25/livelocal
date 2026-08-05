@@ -259,45 +259,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 if (context.read<AppConfiguration>().isDemo) ...[
                   const Text(
-                    'Demo mode uses the fixed password DemoOnly123! and does not contact production services.',
+                    'Demo mode uses the fixed password 123456 and does not contact production services.',
                     style: TextStyle(color: Colors.grey, fontSize: 12),
                   ),
                   const SizedBox(height: 8),
-                ],
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: isSubmitting ? null : _handleLogin,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: isSubmitting
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Log In', style: TextStyle(fontSize: 16)),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text("Don't have an account? "),
-                    TextButton(
-                      onPressed: isSubmitting
-                          ? null
-                          : () => Navigator.pushNamed(context, '/register'),
-                      child: const Text('Sign up'),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),

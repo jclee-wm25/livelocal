@@ -42,7 +42,7 @@ void main() {
       final localEats = DemoLocalEatsRepository(auth);
 
       await auth.signIn(
-        email: 'tourist@livelocal.my',
+        email: 'tourist@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final draft = await applications.saveDraft(
@@ -62,7 +62,7 @@ void main() {
 
       await auth.signOut();
       await auth.signIn(
-        email: 'admin@livelocal.my',
+        email: 'admin@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final queue = await applications.fetchPendingForAdmin();
@@ -74,7 +74,7 @@ void main() {
 
       await auth.signOut();
       final creator = await auth.signIn(
-        email: 'tourist@livelocal.my',
+        email: 'tourist@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       expect(creator.role, 'influencer');
@@ -98,7 +98,7 @@ void main() {
 
       await auth.signOut();
       await auth.signIn(
-        email: 'admin@livelocal.my',
+        email: 'admin@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final restaurantQueue = await localEats.fetchPendingRestaurants();
@@ -113,7 +113,7 @@ void main() {
 
       await auth.signOut();
       await auth.signIn(
-        email: 'tourist@livelocal.my',
+        email: 'tourist@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final publicRestaurants = await localEats.fetchPublicRestaurants();
@@ -154,7 +154,7 @@ void main() {
 
       await auth.signOut();
       await auth.signIn(
-        email: 'admin@livelocal.my',
+        email: 'admin@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final revisedQueue = await localEats.fetchPendingRestaurants();
@@ -168,7 +168,7 @@ void main() {
 
       await auth.signOut();
       await auth.signIn(
-        email: 'tourist@livelocal.my',
+        email: 'tourist@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       expect(
@@ -217,7 +217,7 @@ void main() {
     test('demo adapter rejects invalid image content and social URL', () async {
       final auth = DemoAuthRepository();
       await auth.signIn(
-        email: 'foodie@livelocal.my',
+        email: 'foodie@livelocal.com',
         password: SeedDataService.demoPassword,
       );
       final repository = DemoLocalEatsRepository(auth);

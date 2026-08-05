@@ -121,7 +121,7 @@ void main() {
       final controller = AuthController(repository: DemoAuthRepository());
 
       final success = await controller.login(
-        'tourist@livelocal.my',
+        'tourist@livelocal.com',
         'not-the-demo-password',
       );
 
@@ -133,7 +133,7 @@ void main() {
       final controller = AuthController(repository: DemoAuthRepository());
 
       final success = await controller.login(
-        'tourist@livelocal.my',
+        'tourist@livelocal.com',
         SeedDataService.demoPassword,
       );
 

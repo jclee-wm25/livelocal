@@ -8,7 +8,7 @@ void main() {
   test('one review per target is edited with a version increment', () async {
     final authRepository = DemoAuthRepository();
     await authRepository.signIn(
-      email: 'tourist@livelocal.my',
+      email: 'tourist@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     final controller = ReviewController(
@@ -48,7 +48,7 @@ void main() {
       () async {
     final authRepository = DemoAuthRepository();
     await authRepository.signIn(
-      email: 'foodie@livelocal.my',
+      email: 'foodie@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     final controller = ReviewController(

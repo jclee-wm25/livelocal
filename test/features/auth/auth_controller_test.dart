@@ -42,7 +42,7 @@ void main() {
     test('logout clears account state', () async {
       final controller = AuthController(repository: DemoAuthRepository());
       await controller.login(
-        'tourist@livelocal.my',
+        'tourist@livelocal.com',
         SeedDataService.demoPassword,
       );
 

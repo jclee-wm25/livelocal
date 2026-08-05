@@ -75,7 +75,7 @@ class DemoAdminRepository implements AdminRepository {
             id: appeal.id,
             userId: 'usr-tourist-1',
             displayName: 'Demo tourist',
-            email: 'tourist@livelocal.my',
+            email: 'tourist@livelocal.com',
             relatedDecisionId: appeal.relatedDecisionId,
             accessStatus: 'restricted',
             reason: 'Demo appeal',

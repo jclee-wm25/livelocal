@@ -21,7 +21,7 @@ void main() {
     test('Module 1: demo fixture login preserves the stored tourist role',
         () async {
       final authCtrl = AuthController(repository: DemoAuthRepository());
-      await authCtrl.login('tourist@livelocal.my', 'DemoOnly123!');
+      await authCtrl.login('tourist@livelocal.com', '123456');
       expect(authCtrl.isAuthenticated, isTrue);
       expect(authCtrl.currentUser?.role, 'tourist');
     });
@@ -29,8 +29,8 @@ void main() {
     test('Module 2: Local Spots Filtering & Submission Flow', () async {
       final authRepository = DemoAuthRepository();
       await authRepository.signIn(
-        email: 'tourist@livelocal.my',
-        password: 'DemoOnly123!',
+        email: 'tourist@livelocal.com',
+        password: '123456',
       );
       final spotCtrl = SpotController(
         repository: DemoSpotRepository(authRepository),
@@ -113,8 +113,8 @@ void main() {
     test('Module 4: Saved Places', () async {
       final authRepository = DemoAuthRepository();
       await authRepository.signIn(
-        email: 'tourist@livelocal.my',
-        password: 'DemoOnly123!',
+        email: 'tourist@livelocal.com',
+        password: '123456',
       );
       final itineraryCtrl = ItineraryController(
         repository: DemoSavedItineraryRepository(authRepository),
@@ -153,8 +153,8 @@ void main() {
     test('Module 6: Community review validation and storage', () async {
       final authRepository = DemoAuthRepository();
       await authRepository.signIn(
-        email: 'tourist@livelocal.my',
-        password: 'DemoOnly123!',
+        email: 'tourist@livelocal.com',
+        password: '123456',
       );
       final reviewCtrl = ReviewController(
         repository: DemoReviewRepository(authRepository),
