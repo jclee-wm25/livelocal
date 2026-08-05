@@ -68,15 +68,19 @@ import 'app/theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Phase 11 will replace these development handlers with a reviewed,
-  // privacy-aware production telemetry implementation.
+  // Raw exception details are development-only. Production telemetry remains
+  // deliberately unconfigured until a privacy-reviewed provider is approved.
   FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    debugPrint('FlutterError caught: ${details.exception}');
+    if (kDebugMode) {
+      FlutterError.presentError(details);
+    }
   };
 
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
-    debugPrint('PlatformDispatcher Error caught: $error');
+    if (kDebugMode) {
+      debugPrint('Unhandled platform error: $error');
+    }
+    // Do not convert an unhandled failure into a false successful state.
     return false;
   };
 

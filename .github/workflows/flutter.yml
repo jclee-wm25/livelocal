@@ -1,52 +1,87 @@
-name: Flutter CI/CD
+name: LiveLocal verification
 
 on:
   push:
-    branches:
-      - master
-      - develop
+    branches: [master]
   pull_request:
-    branches:
-      - master
-      - develop
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: livelocal-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.44.8
 
 jobs:
-  test_and_build:
-    name: Flutter Analyze, Test & Build
+  flutter-android:
+    name: Flutter quality and Android debug
     runs-on: ubuntu-latest
-
+    timeout-minutes: 30
     steps:
-      - name: Checkout Repository
+      - name: Check out repository
         uses: actions/checkout@v4
-
-      - name: Setup Java
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: zulu
           java-version: '17'
-
-      - name: Setup Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
           cache: true
-
-      - name: Install Dependencies
+      - name: Resolve dependencies
         run: flutter pub get
-
-      - name: Check Formatting
+      - name: Check formatting
         run: dart format --output=none --set-exit-if-changed lib test
-
-      - name: Analyze Code
+      - name: Analyze
         run: flutter analyze
-
-      - name: Run Tests
+      - name: Run Flutter tests
         run: flutter test --dart-define=APP_ENV=demo
-
-      - name: Build Android Debug APK
+      - name: Build Android debug APK
         run: flutter build apk --debug --dart-define=APP_ENV=demo
 
-      # For iOS, we would need a macOS runner:
-      # runs-on: macos-latest
-      # - name: Build iOS
-      #   run: flutter build ios --release --no-codesign
+  flutter-ios:
+    name: iOS debug compile
+    runs-on: macos-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Build iOS without signing
+        run: flutter build ios --debug --no-codesign --dart-define=APP_ENV=demo
+
+  supabase-database:
+    name: Migration replay and RLS tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        run: supabase start
+      - name: Replay migrations from empty database
+        run: supabase db reset
+      - name: Run database and RLS tests
+        run: supabase test db
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop --no-backup

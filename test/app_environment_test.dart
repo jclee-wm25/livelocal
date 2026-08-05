@@ -55,6 +55,73 @@ void main() {
       expect(configuration.environment, AppEnvironment.production);
       expect(configuration.isDemo, isFalse);
     });
+
+    test('rejects cleartext remote backends', () {
+      expect(
+        () => AppConfiguration.fromValues(
+          environment: 'staging',
+          supabaseUrl: 'http://staging.example.test',
+          supabasePublishableKey: 'public-test-key',
+          isRelease: false,
+        ),
+        throwsA(isA<AppConfigurationException>()),
+      );
+    });
+
+    test('allows loopback HTTP only outside release builds', () {
+      final development = AppConfiguration.fromValues(
+        environment: 'staging',
+        supabaseUrl: 'http://127.0.0.1:54321',
+        supabasePublishableKey: 'public-test-key',
+        isRelease: false,
+      );
+      expect(development.environment, AppEnvironment.staging);
+      expect(
+        () => AppConfiguration.fromValues(
+          environment: 'staging',
+          supabaseUrl: 'http://127.0.0.1:54321',
+          supabasePublishableKey: 'public-test-key',
+          isRelease: true,
+        ),
+        throwsA(isA<AppConfigurationException>()),
+      );
+    });
+
+    test('rejects Supabase service-role and secret keys', () {
+      for (final key in [
+        'sb_secret_should-never-be-mobile',
+        'e30.eyJyb2xlIjoic2VydmljZV9yb2xlIn0.signature',
+      ]) {
+        expect(
+          () => AppConfiguration.fromValues(
+            environment: 'production',
+            supabaseUrl: 'https://example.supabase.co',
+            supabasePublishableKey: key,
+            isRelease: true,
+          ),
+          throwsA(isA<AppConfigurationException>()),
+        );
+      }
+    });
+
+    test('requires the registered authentication callback', () {
+      for (final redirect in [
+        'https://example.test/callback',
+        'io.livelocal.app://attacker/callback',
+        'io.livelocal.app://auth/other',
+      ]) {
+        expect(
+          () => AppConfiguration.fromValues(
+            environment: 'production',
+            supabaseUrl: 'https://example.supabase.co',
+            supabasePublishableKey: 'public-test-key',
+            authRedirectUrl: redirect,
+            isRelease: true,
+          ),
+          throwsA(isA<AppConfigurationException>()),
+        );
+      }
+    });
   });
 
   group('explicit demo authentication', () {

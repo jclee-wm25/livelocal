@@ -2,5 +2,6 @@
   "APP_ENV": "staging",
   "SUPABASE_URL": "https://YOUR_PROJECT_ID.supabase.co",
   "SUPABASE_PUBLISHABLE_KEY": "YOUR_SUPABASE_PUBLISHABLE_KEY",
-  "GOOGLE_MAPS_API_KEY": ""
+  "AUTH_REDIRECT_URL": "io.livelocal.app://auth/callback",
+  "SUPPORT_EMAIL": "support@livelocal.app"
 }
