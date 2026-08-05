@@ -53,6 +53,13 @@ values
     '70000000-0000-0000-0000-000000000001'
   );
 
+insert into storage.objects (bucket_id, name, owner)
+values (
+  'restaurant-images',
+  '70000000-0000-0000-0000-000000000002/closure-kitchen.jpg',
+  '70000000-0000-0000-0000-000000000002'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"70000000-0000-0000-0000-000000000003","role":"authenticated"}',
@@ -143,7 +150,9 @@ select lives_ok(
   $$select public.create_restaurant_draft(
     'Closure Test Kitchen', '12 Test Street', 'Penang', 'George Town',
     'Malaysian', '$$', 'Noodles and coffee',
-    'https://www.instagram.com/closuretest', null, 5.4141, 100.3288
+    'https://www.instagram.com/closuretest',
+    '70000000-0000-0000-0000-000000000002/closure-kitchen.jpg',
+    5.4141, 100.3288
   )$$,
   'creator creates a restaurant draft'
 );

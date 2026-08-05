@@ -54,6 +54,13 @@ values
     '40000000-0000-0000-0000-000000000001'
   );
 
+insert into storage.objects (bucket_id, name, owner)
+values (
+  'restaurant-images',
+  '40000000-0000-0000-0000-000000000002/secure-kitchen.jpg',
+  '40000000-0000-0000-0000-000000000002'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"40000000-0000-0000-0000-000000000002","role":"authenticated"}',
@@ -139,7 +146,9 @@ select lives_ok(
   $$select public.create_restaurant_draft(
     'Secure Kitchen', '1 Restaurant Test Road', 'Penang', 'George Town',
     'Malay', '$$', 'Nasi lemak',
-    'https://www.tiktok.com/@secure/video/123', null, null, null
+    'https://www.tiktok.com/@secure/video/123',
+    '40000000-0000-0000-0000-000000000002/secure-kitchen.jpg',
+    null, null
   )$$,
   'approved creator creates a restaurant draft'
 );
