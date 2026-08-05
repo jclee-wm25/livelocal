@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/restaurant_model.dart';
 import '../models/discount_code_model.dart';
-import '../services/supabase_repository.dart';
+import '../repositories/supabase_repository.dart';
 
 class LocalEatsController with ChangeNotifier {
   final SupabaseRepository _db = SupabaseRepository();
@@ -40,9 +40,13 @@ class LocalEatsController with ChangeNotifier {
 
   List<RestaurantModel> get filteredRestaurants {
     return _restaurants.where((r) {
-      if (_selectedState != 'All' && r.state.toLowerCase() != _selectedState.toLowerCase()) return false;
-      if (_selectedCuisine != 'All' && !r.cuisineType.toLowerCase().contains(_selectedCuisine.toLowerCase())) return false;
-      if (_selectedBudget != 'All' && r.priceRange != _selectedBudget) return false;
+      if (_selectedState != 'All' &&
+          r.state.toLowerCase() != _selectedState.toLowerCase()) return false;
+      if (_selectedCuisine != 'All' &&
+          !r.cuisineType.toLowerCase().contains(_selectedCuisine.toLowerCase()))
+        return false;
+      if (_selectedBudget != 'All' && r.priceRange != _selectedBudget)
+        return false;
       return true;
     }).toList();
   }
@@ -54,7 +58,9 @@ class LocalEatsController with ChangeNotifier {
   }
 
   List<DiscountCodeModel> getActiveDiscountsForRestaurant(String restaurantId) {
-    return _discountCodes.where((d) => d.restaurantId == restaurantId && !d.isExpired).toList();
+    return _discountCodes
+        .where((d) => d.restaurantId == restaurantId && !d.isExpired)
+        .toList();
   }
 
   void setFilter({String? state, String? cuisine, String? budget}) {

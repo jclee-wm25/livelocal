@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
+
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
   String selectedRole = 'tourist';
@@ -34,6 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
   Widget _buildRoleCard({
     required String role,
     required IconData icon,
@@ -81,6 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -109,12 +113,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            authCtrl.errorMessage ?? 'Unable to create account. Please try again.',
+            authCtrl.errorMessage ??
+                'Unable to create account. Please try again.',
           ),
         ),
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
