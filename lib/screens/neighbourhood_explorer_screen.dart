@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../controllers/guide_controller.dart';
 import '../models/guide_model.dart';
 import 'guide_detail_screen.dart';
+import '../shared/presentation/app_state_view.dart';
 
 class NeighbourhoodExplorerScreen extends StatelessWidget {
   const NeighbourhoodExplorerScreen({super.key});
@@ -81,7 +82,7 @@ class NeighbourhoodExplorerScreen extends StatelessWidget {
                 controller.guides.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: _GuideState(
+                child: AppStateView(
                   icon: Icons.wifi_off_outlined,
                   title: 'Guides could not be loaded',
                   message: controller.errorMessage!,
@@ -92,7 +93,7 @@ class NeighbourhoodExplorerScreen extends StatelessWidget {
             else if (guides.isEmpty)
               SliverFillRemaining(
                 hasScrollBody: false,
-                child: _GuideState(
+                child: AppStateView(
                   icon: Icons.explore_off_outlined,
                   title: 'No guides for ${controller.selectedState}',
                   message: 'Choose another state to see available routes.',
@@ -200,49 +201,6 @@ class _Meta extends StatelessWidget {
         const SizedBox(width: 4),
         Text(text),
       ],
-    );
-  }
-}
-
-class _GuideState extends StatelessWidget {
-  const _GuideState({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 56),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleLarge,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(message, textAlign: TextAlign.center),
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 16),
-              OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
-            ],
-          ],
-        ),
-      ),
     );
   }
 }

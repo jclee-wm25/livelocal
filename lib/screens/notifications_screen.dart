@@ -5,6 +5,7 @@ import '../controllers/auth_controller.dart';
 import '../core/routing/protected_navigation.dart';
 import '../features/notifications/presentation/notification_controller.dart';
 import '../models/notification_model.dart';
+import '../shared/presentation/app_state_view.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -83,28 +84,24 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       body: RefreshIndicator(
         onRefresh: controller.load,
         child: controller.isLoading && controller.notifications.isEmpty
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 240),
-                  Center(child: CircularProgressIndicator()),
-                ],
-              )
+            ? const AppLoadingList()
             : controller.errorMessage != null &&
                     controller.notifications.isEmpty
-                ? _NotificationState(
+                ? AppStateView(
                     icon: Icons.wifi_off_outlined,
                     title: 'Notifications could not be loaded',
                     message: controller.errorMessage!,
                     actionLabel: 'Try again',
                     onAction: controller.load,
+                    scrollable: true,
                   )
                 : controller.notifications.isEmpty
-                    ? const _NotificationState(
+                    ? const AppStateView(
                         icon: Icons.notifications_none,
                         title: 'No notifications yet',
                         message:
                             'Account and moderation updates will appear here.',
+                        scrollable: true,
                       )
                     : ListView.separated(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -193,45 +190,5 @@ class _NotificationCard extends StatelessWidget {
     if (difference.inHours > 0) return '${difference.inHours}h ago';
     if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
     return 'Just now';
-  }
-}
-
-class _NotificationState extends StatelessWidget {
-  const _NotificationState({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(24),
-      children: [
-        const SizedBox(height: 144),
-        Icon(icon, size: 56),
-        const SizedBox(height: 16),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 8),
-        Text(message, textAlign: TextAlign.center),
-        if (actionLabel != null && onAction != null) ...[
-          const SizedBox(height: 20),
-          OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
-        ],
-      ],
-    );
   }
 }

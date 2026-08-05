@@ -12,6 +12,7 @@ import '../models/spot_model.dart';
 import 'itinerary_screen.dart';
 import 'restaurant_detail_screen.dart';
 import 'spot_detail_screen.dart';
+import '../shared/presentation/app_state_view.dart';
 
 class SavedPlacesScreen extends StatefulWidget {
   const SavedPlacesScreen({super.key});
@@ -64,27 +65,23 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: controller.isLoading && controller.savedPlaces.isEmpty
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                children: const [
-                  SizedBox(height: 240),
-                  Center(child: CircularProgressIndicator()),
-                ],
-              )
+            ? const AppLoadingList()
             : controller.errorMessage != null && controller.savedPlaces.isEmpty
-                ? _ScrollableState(
+                ? AppStateView(
                     icon: Icons.wifi_off_outlined,
                     title: 'Saved places could not be loaded',
                     message: controller.errorMessage!,
                     actionLabel: 'Try again',
                     onAction: _load,
+                    scrollable: true,
                   )
                 : resolved.isEmpty
-                    ? const _ScrollableState(
+                    ? const AppStateView(
                         icon: Icons.bookmark_border,
                         title: 'Nothing saved yet',
                         message:
                             'Save approved spots and restaurants to plan a day out.',
+                        scrollable: true,
                       )
                     : ListView.separated(
                         physics: const AlwaysScrollableScrollPhysics(),
@@ -246,46 +243,6 @@ class _GuestState extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _ScrollableState extends StatelessWidget {
-  const _ScrollableState({
-    required this.icon,
-    required this.title,
-    required this.message,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final IconData icon;
-  final String title;
-  final String message;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.all(24),
-      children: [
-        const SizedBox(height: 128),
-        Icon(icon, size: 56),
-        const SizedBox(height: 16),
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineSmall,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-        Text(message, textAlign: TextAlign.center),
-        if (actionLabel != null && onAction != null) ...[
-          const SizedBox(height: 20),
-          OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
-        ],
-      ],
     );
   }
 }

@@ -63,6 +63,7 @@ import 'features/notifications/presentation/notification_controller.dart';
 import 'features/moderation/data/demo_moderation_repository.dart';
 import 'features/moderation/data/supabase_moderation_repository.dart';
 import 'features/moderation/domain/moderation_repository.dart';
+import 'app/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -259,37 +260,7 @@ class LiveLocalApp extends StatelessWidget {
       child: MaterialApp(
         title: 'LiveLocal',
         debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          useMaterial3: true,
-          primaryColor: AppColors.primary,
-          scaffoldBackgroundColor: Colors.white,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primary,
-            primary: AppColors.primary,
-            secondary: AppColors.accent,
-            surface: Colors.white,
-          ),
-          elevatedButtonTheme: ElevatedButtonThemeData(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(double.infinity, 52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          outlinedButtonTheme: OutlinedButtonThemeData(
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primary,
-              side: const BorderSide(color: AppColors.primary),
-              minimumSize: const Size(double.infinity, 52),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-        ),
+        theme: AppTheme.light,
         initialRoute: '/home',
         builder: (context, child) {
           final content = child ?? const SizedBox.shrink();
