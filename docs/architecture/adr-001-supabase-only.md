@@ -25,7 +25,7 @@ a specific future service is separately approved.
 
 ## Consequences
 
-- Eleven reproducible migrations and direct RLS tests now define the backend;
+- Twelve reproducible migrations and direct RLS tests now define the backend;
   they must be replayed on an approved local/staging project before live data.
 - Backend authorization derives actor and role from the authenticated context.
 - Complex moderation/account/content operations use transactional RPCs.

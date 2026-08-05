@@ -1,26 +1,40 @@
 # Scheduled account and evidence jobs
 
-Status: **implemented as SQL functions; scheduler not configured**
+Status: **SQL queue and Edge worker implemented; deployment/scheduler not configured**
 
 These jobs are privileged operations. Run them from Supabase Cron, a secured
 Edge Function scheduler, or another approved backend worker. Never embed or
 use the service-role key in Flutter.
 
-## Account deletion finalizer
+## Storage cleanup and account deletion finalizer
 
-Call `public.finalize_due_account_deletions()` at least daily after staging
-replay and destructive-data review.
+Deploy and invoke `supabase/functions/storage-cleanup` at least daily after
+staging replay and destructive-data review. A shorter interval is recommended
+so replaced/discarded draft media does not remain longer than necessary.
+Require a valid function invocation JWT and set a high-entropy
+`STORAGE_CLEANUP_CRON_SECRET`; pass it only as the `x-cleanup-secret` header
+from the approved scheduler. Rotate and store it as a server secret.
 
-The function selects due 14-day deletion requests, removes private account
-data and unpublished content, anonymizes retained approved public content by
-content type, detaches retained valid restaurant information, removes the auth
-identity, and writes restricted audit evidence. It is designed to be
-repeat-safe for completed requests.
+The worker first calls `public.finalize_due_account_deletions()` to queue known
+user-owned objects, claims cleanup jobs, performs copy/delete through the
+Supabase Storage API, acknowledges verified outcomes, then calls the finalizer
+again. Approved public spot/restaurant media is copied to a random
+`retained/` path with platform ownership before database references change and
+the user-owned source is deleted. Private and unpublished media is deleted.
+
+The finalizer refuses to delete the auth identity while any Storage object is
+still owned by the user or any per-user cleanup job is incomplete. Objects in
+an unknown bucket deliberately block finalization for operator review. SQL
+never deletes rows from `storage.objects`; direct metadata deletion would
+orphan the underlying file.
 
 Before enabling:
 
 - test with representative copies of every owned content state;
 - verify storage object cleanup and no identity reconstruction;
+- alert on failed jobs, stale processing locks, unknown owned buckets, and due
+  deletion requests that remain pending across multiple runs;
+- verify retained copies have no `owner_id` and no user identifier in paths;
 - confirm the approved deletion/retention policy with legal review;
 - export and reconcile due-request counts;
 - define operator alerting for partial or failed runs;
@@ -41,7 +55,9 @@ Before enabling:
 
 ## Deployment rule
 
-Scheduler creation is an external state change and must be performed only on
-the explicitly approved staging/production project. Record project ID,
-schedule, runner identity, timeout, retry behavior, alert destination, and the
-first successful run in the deployment log.
+Scheduler/function deployment is an external state change and must be
+performed only on the explicitly approved staging/production project. Record
+project ID, function version, secret rotation owner, schedule, runner identity,
+timeout, retry behavior, alert destination, and the first successful run in
+the deployment log. Never place `SUPABASE_SERVICE_ROLE_KEY` or the cron secret
+in Flutter, source control, logs, or client-visible configuration.

@@ -53,8 +53,9 @@ rechecked at submission time: [Google Play target API policy](https://support.go
 9. Create an approved staging Supabase project; replay migrations and pgTAP,
    configure storage, auth redirects, email verification/reset templates and
    SMTP, then complete device integration tests before production.
-10. Configure and monitor account-deletion/evidence-purge jobs. No scheduler
-    was created by this work.
+10. Deploy/configure the storage-cleanup Edge Function and monitor its retry
+    queue, account finalizer, unknown-bucket blocks, and evidence purge. No
+    remote function, secret, or scheduler was created by this work.
 11. Decide on a privacy-reviewed production crash/error reporting provider or
     an explicit no-telemetry launch plan. Raw caught exceptions are not printed
     in release.

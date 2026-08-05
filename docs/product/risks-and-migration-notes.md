@@ -14,8 +14,9 @@ Status: **versioned implementation; no remote migration applied**
    store/legal review, especially for Apple UGC deletion guidance.
 6. Reports, personal hide, user blocking, and moderation exist, but an approved
    pre-publication objectionable-content filter does not.
-7. Scheduled deletion and evidence-retention functions have no external runner,
-   monitoring, or alert destination.
+7. The storage-cleanup Edge Function, scheduled deletion, and evidence purge
+   have no approved remote deployment, secrets, runner, monitoring, or alert
+   destination. Account finalization intentionally remains blocked without it.
 8. Production email verification/reset depends on SMTP/templates and redirect
    configuration that cannot be validated without an approved project.
 9. iOS has not compiled on this Linux environment; macOS CI/on-device QA is
@@ -47,6 +48,9 @@ Status: **versioned implementation; no remote migration applied**
 - Preserve immutable moderation history and expected-version counters.
 - Test account deletion/anonymization on representative owned content before
   scheduling it against real users.
+- Never delete or update `storage.objects` metadata directly. Import/cutover
+  tooling must use the Storage API, preserve or deliberately replace ownership,
+  and reconcile physical objects against references before auth-user deletion.
 
 ## Deletion and retention risks
 
@@ -58,8 +62,11 @@ Status: **versioned implementation; no remote migration applied**
   evidence.
 - Evidence retention defaults to configurable 180 days; legal holds require
   documented actor, reason, lifecycle, and release.
-- Finalizer/purge jobs must be repeat-safe, observable, bounded, and recoverable
-  from partial infrastructure failure.
+- The cleanup queue/finalizer/purge jobs must be repeat-safe, observable,
+  bounded, and recoverable from copy, delete, network, and scheduler failures.
+- Retained public media must move to non-user-identifying platform-owned paths
+  before the source user is deleted; unknown buckets block rather than trigger
+  an unreviewed destructive cleanup.
 
 ## Compatibility removal
 

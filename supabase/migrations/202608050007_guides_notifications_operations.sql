@@ -618,30 +618,11 @@ begin
     where public_review.id = review.id and review.user_id is null
       and public_review.author_display_name <> 'Deleted user';
 
-    delete from storage.objects where bucket_id = 'avatars'
-      and name like due.user_id::text || '/%';
-    delete from storage.objects where bucket_id = 'spot-images'
-      and name in (
-        select revision.image_path from public.spot_revisions revision
-        join public.spots entity on entity.id = revision.spot_id
-        where entity.owner_id = due.user_id
-          and entity.approved_revision_id is null
-          and revision.image_path is not null
-      );
     delete from public.spots where owner_id = due.user_id
       and approved_revision_id is null;
     update public.spots set owner_id = null where owner_id = due.user_id;
     update public.spot_revisions set author_id = null
       where author_id = due.user_id;
-    delete from storage.objects where bucket_id = 'restaurant-images'
-      and name in (
-        select revision.cover_image_path
-        from public.restaurant_revisions revision
-        join public.restaurants entity on entity.id = revision.restaurant_id
-        where entity.owner_id = due.user_id
-          and entity.approved_revision_id is null
-          and revision.cover_image_path is not null
-      );
     delete from public.restaurants where owner_id = due.user_id
       and approved_revision_id is null;
     update public.restaurants set owner_id = null, ownership_status = 'unclaimed'

@@ -176,17 +176,6 @@ begin
     where id = entity.id;
   end if;
 
-  if source.status = 'draft'
-      and source.image_path is distinct from saved.image_path
-      and source.image_path is not null
-      and not exists (
-        select 1 from public.spot_revisions remaining
-        where remaining.image_path = source.image_path
-      ) then
-    delete from storage.objects
-    where bucket_id = 'spot-images' and name = source.image_path;
-  end if;
-
   insert into public.audit_events (
     actor_id, action, target_type, target_id, metadata
   ) values (
@@ -263,7 +252,6 @@ as $$
 declare
   entity public.spots;
   revision public.spot_revisions;
-  removed_image_path text;
 begin
   if not private.can_use_protected_features() then
     raise exception using errcode = '42501', message = 'Account cannot discard spot drafts';
@@ -285,8 +273,6 @@ begin
   if not found then
     raise exception using errcode = 'P0002', message = 'Draft not found';
   end if;
-  removed_image_path := revision.image_path;
-
   if entity.approved_revision_id is null then
     delete from public.spots where id = entity.id;
   else
@@ -296,14 +282,6 @@ begin
     delete from public.spot_revisions where id = revision.id;
   end if;
 
-  if removed_image_path is not null
-      and not exists (
-        select 1 from public.spot_revisions remaining
-        where remaining.image_path = removed_image_path
-      ) then
-    delete from storage.objects
-    where bucket_id = 'spot-images' and name = removed_image_path;
-  end if;
 end;
 $$;
 
@@ -483,17 +461,6 @@ begin
     where id = entity.id;
   end if;
 
-  if source.status = 'draft'
-      and source.cover_image_path is distinct from saved.cover_image_path
-      and source.cover_image_path is not null
-      and not exists (
-        select 1 from public.restaurant_revisions remaining
-        where remaining.cover_image_path = source.cover_image_path
-      ) then
-    delete from storage.objects
-    where bucket_id = 'restaurant-images' and name = source.cover_image_path;
-  end if;
-
   insert into public.audit_events (
     actor_id, action, target_type, target_id, metadata
   ) values (
@@ -633,7 +600,6 @@ as $$
 declare
   entity public.restaurants;
   revision public.restaurant_revisions;
-  removed_image_path text;
 begin
   if not private.can_use_protected_features()
       or private.current_role(auth.uid()) <> 'influencer' then
@@ -657,8 +623,6 @@ begin
   if not found then
     raise exception using errcode = 'P0002', message = 'Draft not found';
   end if;
-  removed_image_path := revision.cover_image_path;
-
   if entity.approved_revision_id is null then
     delete from public.restaurants where id = entity.id;
   else
@@ -668,14 +632,6 @@ begin
     delete from public.restaurant_revisions where id = revision.id;
   end if;
 
-  if removed_image_path is not null
-      and not exists (
-        select 1 from public.restaurant_revisions remaining
-        where remaining.cover_image_path = removed_image_path
-      ) then
-    delete from storage.objects
-    where bucket_id = 'restaurant-images' and name = removed_image_path;
-  end if;
 end;
 $$;
 

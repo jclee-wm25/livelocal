@@ -26,16 +26,20 @@ deployed or that store/legal obligations are complete.
 
 ### Versioned, not executed in this environment
 
-- Eleven ordered Supabase migrations covering identity, roles, account access,
+- Twelve ordered Supabase migrations covering identity, roles, account access,
   deletion/appeal policy, spots, reviews, moderation, creators, restaurants,
   discounts, saves, itineraries, guides, notifications, audit, operations, and
-  private user blocking, plus owner content revisions and withdrawal.
+  private user blocking, owner content revisions and withdrawal, and a
+  Storage-API-backed cleanup/re-homing lifecycle.
 - Every exposed application table enables RLS. Sensitive multi-record changes
   use identity-derived RPCs and expected-state/version checks.
-- Nine pgTAP suites cover RLS permission matrices, role escalation denial,
+- Ten pgTAP suites cover RLS permission matrices, role escalation denial,
   object ownership, moderation concurrency, account lifecycle, aggregate
   behavior, operational closures, private user blocking, and owner revision
-  continuity.
+  continuity, cleanup privilege boundaries, and account-finalization blocking.
+- A fail-closed server-only Edge Function claims object-cleanup jobs, uses the
+  supported Storage API, and acknowledges physical deletion before auth-user
+  removal. It is versioned and Deno-checked in CI but not deployed here.
 
 The current machine has no Supabase CLI or Docker runtime, so migration replay
 and pgTAP execution are pending CI or an approved local/staging environment.
@@ -64,8 +68,9 @@ below.
   project by this work.
 - No production domain, Supabase project, SMTP sender, Apple/Google developer
   account, app identifier, signing key, or branded store asset is configured.
-- Automated deletion and 180-day evidence purge functions exist, but no
-  external scheduler/monitor is configured.
+- Automated deletion/retained-media cleanup and the 180-day evidence purge
+  exist, but the Edge Function, secrets, external scheduler, and monitoring
+  are not configured on any project.
 - Legal Terms, Community Rules, Privacy Policy, consent/version records, and a
   Google-compatible web deletion request page are not supplied.
 - Pre-publication objectionable-content filtering is not implemented. Reports,

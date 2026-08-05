@@ -40,6 +40,9 @@ workspace to production for local replay.
 11. `202608050011_owner_content_revisions.sql` — current owner submission read
     models, immutable revisions, withdrawal, draft discard, and restaurant
     image-object enforcement.
+12. `202608050012_storage_cleanup_lifecycle.sql` — private object-cleanup queue,
+    service-only claim/acknowledgement RPCs, retained-media anonymization,
+    stricter delete policies, and two-stage account finalization.
 
 Every application table exposed through the data API has RLS enabled. Flutter
 uses only the publishable/anonymous key. Service-role execution belongs only
@@ -47,19 +50,27 @@ in a trusted server or scheduled job.
 
 ## Tests
 
-`tests/database/` contains nine pgTAP suites. Tests create isolated identities
+`tests/database/` contains ten pgTAP suites. Tests create isolated identities
 inside transactions and roll back. They verify guests, tourists, creators,
 admins, RLS ownership, direct-write denial, role escalation denial, version
 conflicts, report/appeal behavior, and user-block privacy.
+
+The `storage-cleanup` Edge Function is the only production path for queued
+physical object deletion/re-homing. It requires both a valid function
+invocation JWT and the separately configured `STORAGE_CLEANUP_CRON_SECRET`.
+It uses the platform-provided service-role key only inside the server runtime;
+that key is never embedded in Flutter. CI type-checks the function with Deno.
 
 CI starts a fresh local Supabase stack, replays every migration, then runs
 `supabase test db`. A green Flutter test run does not substitute for this job.
 
 ## Required operations
 
-Two service-only functions must be scheduled and monitored after an approved
-deployment:
+The secured `storage-cleanup` Edge Function and evidence purge must be
+scheduled and monitored after an approved deployment. The worker invokes:
 
+- `public.claim_storage_cleanup_jobs(integer)` plus its service-only
+  activation/completion/failure handshake;
 - `public.finalize_due_account_deletions()`;
 - `public.purge_expired_moderation_evidence()`.
 
