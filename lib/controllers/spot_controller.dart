@@ -38,10 +38,13 @@ class SpotController with ChangeNotifier {
     return _spots.where((s) {
       if (s.status != 'approved') return false;
       if (_selectedState != 'All' &&
-          s.state.toLowerCase() != _selectedState.toLowerCase()) return false;
-      if (_selectedCategory != 'All' &&
-          s.category.toLowerCase() != _selectedCategory.toLowerCase())
+          s.state.toLowerCase() != _selectedState.toLowerCase()) {
         return false;
+      }
+      if (_selectedCategory != 'All' &&
+          s.category.toLowerCase() != _selectedCategory.toLowerCase()) {
+        return false;
+      }
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchName = s.name.toLowerCase().contains(q);
