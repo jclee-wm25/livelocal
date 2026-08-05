@@ -4,47 +4,93 @@ import '../repositories/supabase_repository.dart';
 class AuthService {
   final SupabaseRepository _repo = SupabaseRepository();
 
-  Future<ProfileModel> login(String email, String password) async {
-    if (email.isEmpty || password.isEmpty) {
+  // Local development mode only.
+  // Seed accounts use "password" as the demo password.
+  // Newly registered local accounts are stored here during the current run.
+  static final Map<String, String> _localPasswords = {};
+
+  bool _isValidEmail(String email) {
+    final emailPattern = RegExp(
+      r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
+    );
+
+    return emailPattern.hasMatch(email);
+  }
+
+  Future<ProfileModel> login(
+    String email,
+    String password,
+  ) async {
+    final normalizedEmail = email.trim().toLowerCase();
+
+    if (normalizedEmail.isEmpty || password.isEmpty) {
       throw Exception('Email and password cannot be empty.');
     }
 
+    if (!_isValidEmail(normalizedEmail)) {
+      throw Exception('Please enter a valid email address.');
+    }
+
     if (_repo.isLiveSupabase) {
-      final res = await _repo.signIn(email, password);
-      if (res == null || res.user == null) {
-        throw Exception('Invalid login credentials.');
+      final response = await _repo.signIn(
+        normalizedEmail,
+        password,
+      );
+
+      if (response == null || response.user == null) {
+        throw Exception('Invalid email or password.');
       }
 
-      // Fetch the user's profile associated with this Auth user
       final profiles = await _repo.fetchProfiles();
+
       final userProfile = profiles.firstWhere(
-        (p) => p.email.toLowerCase() == email.toLowerCase(),
-        orElse: () => throw Exception('Profile not found for this user.'),
+        (profile) => profile.email.trim().toLowerCase() == normalizedEmail,
+        orElse: () {
+          throw Exception('Profile not found for this account.');
+        },
       );
 
       if (userProfile.isSuspended) {
-        // Technically we should sign out immediately if suspended, but
-        // for simplicity we just throw.
-        throw Exception('Your account has been suspended by an administrator.');
+        throw Exception(
+          'Your account has been suspended by an administrator.',
+        );
       }
 
       return userProfile;
-    } else {
-      // Local fallback
-      final profiles = await _repo.fetchProfiles();
-      final match = profiles
-          .where((p) => p.email.toLowerCase() == email.toLowerCase())
-          .toList();
-
-      if (match.isEmpty) {
-        throw Exception('Invalid email or password.');
-      }
-      if (match.first.isSuspended) {
-        throw Exception('Your account has been suspended by an administrator.');
-      }
-      // Simulate successful local login
-      return match.first;
     }
+
+    // Local fallback mode
+    final profiles = await _repo.fetchProfiles();
+
+    final matchingProfiles = profiles.where(
+      (profile) => profile.email.trim().toLowerCase() == normalizedEmail,
+    );
+
+    if (matchingProfiles.isEmpty) {
+      throw Exception('Invalid email or password.');
+    }
+
+    final profile = matchingProfiles.first;
+
+    // Registered local accounts use their entered password.
+    // Seed accounts use "password" for development testing.
+    final savedPassword = _localPasswords[normalizedEmail];
+
+    final passwordIsValid = savedPassword != null
+        ? savedPassword == password
+        : password == 'password';
+
+    if (!passwordIsValid) {
+      throw Exception('Invalid email or password.');
+    }
+
+    if (profile.isSuspended) {
+      throw Exception(
+        'Your account has been suspended by an administrator.',
+      );
+    }
+
+    return profile;
   }
 
   Future<ProfileModel> register(
@@ -61,16 +107,14 @@ class AuthService {
       throw Exception('All registration fields are required.');
     }
 
-    final emailPattern = RegExp(
-      r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
-    );
-
-    if (!emailPattern.hasMatch(normalizedEmail)) {
+    if (!_isValidEmail(normalizedEmail)) {
       throw Exception('Please enter a valid email address.');
     }
 
     if (password.length < 6) {
-      throw Exception('Password must contain at least 6 characters.');
+      throw Exception(
+        'Password must contain at least 6 characters.',
+      );
     }
 
     const allowedRoles = {
@@ -89,7 +133,9 @@ class AuthService {
     );
 
     if (emailAlreadyExists) {
-      throw Exception('An account with this email already exists.');
+      throw Exception(
+        'An account with this email already exists.',
+      );
     }
 
     if (_repo.isLiveSupabase) {
@@ -99,7 +145,9 @@ class AuthService {
       );
 
       if (response == null || response.user == null) {
-        throw Exception('Registration failed. Please try again.');
+        throw Exception(
+          'Registration failed. Please try again.',
+        );
       }
 
       final newProfile = ProfileModel(
@@ -123,10 +171,15 @@ class AuthService {
 
     await _repo.saveProfile(newProfile);
 
+    // Save the local development password for this app session.
+    _localPasswords[normalizedEmail] = password;
+
     return newProfile;
   }
 
-  Future<void> updateProfile(ProfileModel updatedProfile) async {
+  Future<void> updateProfile(
+    ProfileModel updatedProfile,
+  ) async {
     await _repo.saveProfile(updatedProfile);
   }
 }
