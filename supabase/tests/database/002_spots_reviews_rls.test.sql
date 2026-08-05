@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(16);
+select plan(18);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -47,6 +47,13 @@ values (
   '30000000-0000-0000-0000-000000000001'
 );
 
+insert into storage.objects (bucket_id, name, owner)
+values (
+  'spot-images',
+  '30000000-0000-0000-0000-000000000002/rls-test.jpg',
+  '30000000-0000-0000-0000-000000000002'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"30000000-0000-0000-0000-000000000002","role":"authenticated"}',
@@ -64,7 +71,8 @@ select lives_ok(
     'RLS Test Garden', 'Park / Walkway',
     'A detailed local garden description for database testing.',
     'Penang', 'George Town', '1 Secure Test Road', '$',
-    'Morning', 'Walk around the garden', null, null, null
+    'Morning', 'Walk around the garden',
+    '30000000-0000-0000-0000-000000000002/rls-test.jpg', null, null
   )$$,
   'authenticated user creates a draft through RPC'
 );
@@ -72,6 +80,20 @@ select is(
   (select count(*) from public.spots where owner_id = auth.uid()),
   1::bigint,
   'owner can read own private spot entity'
+);
+select throws_ok(
+  $$select public.submit_spot_revision(
+    (select current_revision_id from public.spots where owner_id = auth.uid()),
+    null
+  )$$,
+  '22023', 'Spot image and rights confirmation are required',
+  'owner cannot submit without image rights confirmation'
+);
+select lives_ok(
+  $$select public.confirm_spot_image_rights(
+    (select current_revision_id from public.spots where owner_id = auth.uid())
+  )$$,
+  'owner confirms rights for the current draft image'
 );
 select lives_ok(
   $$select public.submit_spot_revision(

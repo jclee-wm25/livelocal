@@ -31,6 +31,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
   String? _imageMimeType;
   SpotDraftResult? _createdDraft;
   bool _submitting = false;
+  bool _imageRightsConfirmed = false;
 
   static const _states = [
     'Penang',
@@ -198,6 +199,19 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
                       ),
               ),
             ),
+            CheckboxListTile(
+              contentPadding: EdgeInsets.zero,
+              value: _imageRightsConfirmed,
+              title: const Text('I have permission to share this photo'),
+              subtitle: const Text(
+                'I took it or have the owner’s permission, and it does not expose private personal information.',
+              ),
+              onChanged: _submitting
+                  ? null
+                  : (value) => setState(
+                        () => _imageRightsConfirmed = value ?? false,
+                      ),
+            ),
             if (spotController.errorMessage != null) ...[
               const SizedBox(height: 12),
               Text(
@@ -281,6 +295,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     setState(() {
       _imageBytes = bytes;
       _imageMimeType = selected.mimeType ?? _mimeFromName(selected.name);
+      _imageRightsConfirmed = false;
       _createdDraft = null;
     });
   }
@@ -302,6 +317,10 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
       _message('Choose a clear photo of the place.');
       return;
     }
+    if (!_imageRightsConfirmed) {
+      _message('Confirm that you have permission to share the photo.');
+      return;
+    }
     setState(() => _submitting = true);
     final result = await context.read<SpotController>().submitDraft(
           input: SpotDraftInput(
@@ -317,6 +336,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
           ),
           imageBytes: _imageBytes,
           imageMimeType: _imageMimeType,
+          imageRightsConfirmed: _imageRightsConfirmed,
         );
     if (!mounted) return;
     setState(() => _submitting = false);

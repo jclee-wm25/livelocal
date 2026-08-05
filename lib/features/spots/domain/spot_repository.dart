@@ -82,6 +82,8 @@ abstract interface class SpotRepository {
     String? duplicateOverrideReason,
   });
 
+  Future<void> confirmImageRights(String revisionId);
+
   Future<void> deleteDraft({
     required String revisionId,
     String? imagePath,

@@ -115,16 +115,23 @@ class SpotController with ChangeNotifier {
     required SpotDraftInput input,
     Uint8List? imageBytes,
     String? imageMimeType,
+    required bool imageRightsConfirmed,
     String? duplicateOverrideReason,
   }) async {
     _errorMessage = null;
     notifyListeners();
+    if (imageBytes == null || !imageRightsConfirmed) {
+      _errorMessage = 'Choose a photo and confirm that you may share it.';
+      notifyListeners();
+      return null;
+    }
     try {
       final draft = await _repository.createDraft(
         input: input,
         imageBytes: imageBytes,
         imageMimeType: imageMimeType,
       );
+      await _repository.confirmImageRights(draft.revisionId);
       if (draft.probableDuplicates.isEmpty || duplicateOverrideReason != null) {
         await _repository.submitRevision(
           revisionId: draft.revisionId,
@@ -170,27 +177,6 @@ class SpotController with ChangeNotifier {
       notifyListeners();
       return false;
     }
-  }
-
-  /// Compatibility entry point for legacy characterization tests. New UI uses
-  /// [submitDraft] so actor identity and file content never come from this DTO.
-  Future<void> submitSpot(SpotModel spot) async {
-    final draft = await submitDraft(
-      input: SpotDraftInput(
-        name: spot.name,
-        category: spot.category,
-        description: spot.description,
-        state: spot.state,
-        city: spot.city,
-        address: spot.address,
-        priceRange: spot.priceRange,
-        bestTime: spot.bestTime,
-        thingsToDo: spot.thingsToDo,
-        latitude: spot.latitude,
-        longitude: spot.longitude,
-      ),
-    );
-    if (draft == null) throw StateError(_errorMessage ?? 'Submission failed');
   }
 
   Future<void> approveSpot(SpotModel spot) async {

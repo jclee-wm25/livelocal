@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(21);
+select plan(22);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -45,6 +45,13 @@ insert into public.user_roles (user_id, role, granted_by)
 values (
   '60000000-0000-0000-0000-000000000001', 'admin',
   '60000000-0000-0000-0000-000000000001'
+);
+
+insert into storage.objects (bucket_id, name, owner)
+values (
+  'spot-images',
+  '60000000-0000-0000-0000-000000000002/notification-test.jpg',
+  '60000000-0000-0000-0000-000000000002'
 );
 
 set local role anon;
@@ -117,9 +124,17 @@ select lives_ok(
     'Notification Test Garden', 'Park',
     'A detailed public garden description for notification testing.',
     'Penang', 'George Town', '2 Notification Test Road', '$',
-    'Morning', 'Walk through the garden', null, 5.4141, 100.3288
+    'Morning', 'Walk through the garden',
+    '60000000-0000-0000-0000-000000000002/notification-test.jpg',
+    5.4141, 100.3288
   )$$,
   'content owner creates a spot draft'
+);
+select lives_ok(
+  $$select public.confirm_spot_image_rights(
+    (select current_revision_id from public.spots where owner_id = auth.uid())
+  )$$,
+  'content owner confirms image rights before submission'
 );
 select lives_ok(
   $$select public.submit_spot_revision(

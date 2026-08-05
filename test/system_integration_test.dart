@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_local/controllers/auth_controller.dart';
 import 'package:live_local/controllers/spot_controller.dart';
@@ -9,6 +11,7 @@ import 'package:live_local/models/spot_model.dart';
 import 'package:live_local/repositories/supabase_repository.dart';
 import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 import 'package:live_local/features/spots/data/demo_spot_repository.dart';
+import 'package:live_local/features/spots/domain/spot_repository.dart';
 import 'package:live_local/features/reviews/data/demo_review_repository.dart';
 import 'package:live_local/features/restaurants/data/demo_local_eats_repository.dart';
 import 'package:live_local/features/itinerary/data/demo_saved_itinerary_repository.dart';
@@ -64,7 +67,25 @@ void main() {
         status: 'pending',
       );
 
-      await spotCtrl.submitSpot(newSpot);
+      final submitted = await spotCtrl.submitDraft(
+        input: SpotDraftInput(
+          name: newSpot.name,
+          category: newSpot.category,
+          description: newSpot.description,
+          state: newSpot.state,
+          city: newSpot.city,
+          address: newSpot.address,
+          priceRange: newSpot.priceRange,
+          bestTime: newSpot.bestTime,
+          thingsToDo: newSpot.thingsToDo,
+          latitude: newSpot.latitude,
+          longitude: newSpot.longitude,
+        ),
+        imageBytes: Uint8List.fromList([0xff, 0xd8, 0xff]),
+        imageMimeType: 'image/jpeg',
+        imageRightsConfirmed: true,
+      );
+      expect(submitted, isNotNull);
       expect(
         spotCtrl.pendingSpots.any((s) => s.name == 'Test Kopitiam'),
         isTrue,

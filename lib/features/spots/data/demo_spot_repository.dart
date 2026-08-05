@@ -13,6 +13,7 @@ class DemoSpotRepository implements SpotRepository {
 
   final DemoAuthRepository _authRepository;
   final List<SpotModel> _spots;
+  final Set<String> _rightsConfirmedRevisions = {};
 
   @override
   Future<List<SpotModel>> fetchPublicSpots({
@@ -109,6 +110,26 @@ class DemoSpotRepository implements SpotRepository {
     _spots.removeWhere(
       (spot) => spot.revisionId == revisionId && spot.status == 'draft',
     );
+    _rightsConfirmedRevisions.remove(revisionId);
+  }
+
+  @override
+  Future<void> confirmImageRights(String revisionId) async {
+    _requireActiveAccount();
+    SpotModel? draft;
+    for (final spot in _spots) {
+      if (spot.revisionId == revisionId) {
+        draft = spot;
+        break;
+      }
+    }
+    if (draft == null || draft.status != 'draft' || draft.imageUrl.isEmpty) {
+      throw const AppException(
+        code: AppErrorCode.notFound,
+        userMessage: 'Choose a photo before confirming image rights.',
+      );
+    }
+    _rightsConfirmedRevisions.add(revisionId);
   }
 
   @override
@@ -122,6 +143,13 @@ class DemoSpotRepository implements SpotRepository {
       throw const AppException(
         code: AppErrorCode.notFound,
         userMessage: 'The spot draft is no longer available.',
+      );
+    }
+    if (_spots[index].imageUrl.isEmpty ||
+        !_rightsConfirmedRevisions.contains(revisionId)) {
+      throw const AppException(
+        code: AppErrorCode.validation,
+        userMessage: 'A photo and rights confirmation are required.',
       );
     }
     final existing = _spots[index];

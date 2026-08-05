@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 import 'package:live_local/features/spots/data/demo_spot_repository.dart';
@@ -34,6 +36,9 @@ void main() {
         bestTime: 'Morning',
         thingsToDo: 'Try local coffee',
       ),
+      imageBytes: Uint8List.fromList([0xff, 0xd8, 0xff]),
+      imageMimeType: 'image/jpeg',
+      imageRightsConfirmed: true,
     );
 
     expect(result, isNotNull);
@@ -41,6 +46,29 @@ void main() {
     expect(controller.pendingSpots, isEmpty);
 
     expect(await controller.discardDraft(result), isTrue);
+  });
+
+  test('photo rights are required before a draft is created', () async {
+    final result = await controller.submitDraft(
+      input: const SpotDraftInput(
+        name: 'Consent Test Garden',
+        category: 'Park / Walkway',
+        description: 'A sufficiently detailed place description for testing.',
+        state: 'Penang',
+        city: 'George Town',
+        address: '8 Consent Test Road, George Town',
+        priceRange: r'$',
+        bestTime: 'Morning',
+        thingsToDo: 'Walk through the garden',
+      ),
+      imageBytes: Uint8List.fromList([0xff, 0xd8, 0xff]),
+      imageMimeType: 'image/jpeg',
+      imageRightsConfirmed: false,
+    );
+
+    expect(result, isNull);
+    expect(controller.errorMessage, contains('confirm'));
+    expect(controller.pendingSpots, isEmpty);
   });
 
   test('new spot is submitted without trusting a client actor id', () async {
@@ -56,6 +84,9 @@ void main() {
         bestTime: 'Early morning',
         thingsToDo: 'Walk and enjoy the garden',
       ),
+      imageBytes: Uint8List.fromList([0xff, 0xd8, 0xff]),
+      imageMimeType: 'image/jpeg',
+      imageRightsConfirmed: true,
     );
 
     expect(result, isNotNull);

@@ -217,6 +217,21 @@ class SupabaseSpotRepository implements SpotRepository {
   }
 
   @override
+  Future<void> confirmImageRights(String revisionId) async {
+    try {
+      await _client.rpc(
+        'confirm_spot_image_rights',
+        params: {'p_revision_id': revisionId},
+      );
+    } on PostgrestException catch (error) {
+      throw _dataError(
+        error,
+        'Photo rights could not be confirmed for this draft.',
+      );
+    }
+  }
+
+  @override
   Future<void> moderateRevision({
     required String revisionId,
     required String decision,
