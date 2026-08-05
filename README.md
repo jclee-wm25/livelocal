@@ -202,3 +202,19 @@ LiveLocal adheres to modern SaaS design principles (inspired by Stripe, Linear, 
 ## 📄 License
 
 This project is created for educational and development purposes. All rights reserved.
+
+---
+
+## 🎨 Saved Places & Itinerary UI Module
+
+> **Note:** The `SavedPlacesScreen` and `ItineraryScreen` have been converted to **pure UI demonstration modules**. These screens now use hardcoded mock data without any business logic, state management, or backend integration.
+
+### Key Changes
+- ✅ Removed all Provider/Controller dependencies
+- ✅ Hardcoded mock data for visual demonstration
+- ✅ Preserved all animations, layouts, and styling
+- ✅ Disabled functional interactions (swipe-to-delete, navigation, API calls)
+
+See the respective screen files for details:
+- [`lib/screens/saved_places_screen.dart`](lib/screens/saved_places_screen.dart)
+- [`lib/screens/itinerary_screen.dart`](lib/screens/itinerary_screen.dart)
