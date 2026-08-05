@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(23);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -68,6 +68,13 @@ select lives_ok(
     where bucket_id = 'avatars'
       and name = 'a0000000-0000-4000-8000-000000000001/avatar.jpg'$$,
   'a stale restricted session cannot bypass the Storage delete policy'
+);
+select is(
+  (select count(*) from storage.objects
+    where bucket_id = 'spot-images'
+      and name = 'a0000000-0000-4000-8000-000000000001/draft.jpg'),
+  0::bigint,
+  'a restricted session cannot read an unpublished owner object'
 );
 
 reset role;

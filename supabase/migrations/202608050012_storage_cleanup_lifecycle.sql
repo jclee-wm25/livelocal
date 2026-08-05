@@ -894,6 +894,21 @@ create policy spot_image_delete_owner
     and private.can_use_protected_features()
   );
 
+drop policy spot_image_select_owner_admin on storage.objects;
+create policy spot_image_select_owner_admin
+  on storage.objects for select to authenticated
+  using (
+    bucket_id = 'spot-images'
+    and (
+      (
+        owner_id = auth.uid()::text
+        and (storage.foldername(name))[1] = auth.uid()::text
+        and private.can_use_protected_features()
+      )
+      or private.is_admin()
+    )
+  );
+
 drop policy restaurant_image_delete_owner on storage.objects;
 create policy restaurant_image_delete_owner
   on storage.objects for delete to authenticated
@@ -903,6 +918,22 @@ create policy restaurant_image_delete_owner
     and (storage.foldername(name))[1] = auth.uid()::text
     and private.can_use_protected_features()
     and private.current_role(auth.uid()) = 'influencer'
+  );
+
+drop policy restaurant_image_select_owner_admin on storage.objects;
+create policy restaurant_image_select_owner_admin
+  on storage.objects for select to authenticated
+  using (
+    bucket_id = 'restaurant-images'
+    and (
+      (
+        owner_id = auth.uid()::text
+        and (storage.foldername(name))[1] = auth.uid()::text
+        and private.can_use_protected_features()
+        and private.current_role(auth.uid()) = 'influencer'
+      )
+      or private.is_admin()
+    )
   );
 
 create or replace function public.update_my_avatar(new_avatar_path text)
