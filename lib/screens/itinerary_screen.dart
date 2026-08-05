@@ -192,6 +192,10 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
                 const Text(
                   'LiveLocal will ask for foreground location only after you continue. Denying permission will not block discovery; you can return and choose a city.',
                 ),
+              const SizedBox(height: 8),
+              const Text(
+                'If you save the itinerary, its starting coordinates are stored privately with your account so the saved route keeps its origin.',
+              ),
               const SizedBox(height: 20),
               FilledButton(
                 onPressed: () {
