@@ -10,6 +10,7 @@ import 'package:live_local/repositories/supabase_repository.dart';
 import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 import 'package:live_local/features/spots/data/demo_spot_repository.dart';
 import 'package:live_local/features/reviews/data/demo_review_repository.dart';
+import 'package:live_local/features/restaurants/data/demo_local_eats_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -78,7 +79,10 @@ void main() {
     });
 
     test('Module 3: LocalEats & Discount Codes', () async {
-      final foodCtrl = LocalEatsController();
+      final authRepository = DemoAuthRepository();
+      final foodCtrl = LocalEatsController(
+        repository: DemoLocalEatsRepository(authRepository),
+      );
       await foodCtrl.loadData();
 
       expect(foodCtrl.restaurants.isNotEmpty, isTrue);
@@ -95,7 +99,9 @@ void main() {
       final spotCtrl = SpotController(
         repository: DemoSpotRepository(authRepository),
       );
-      final foodCtrl = LocalEatsController();
+      final foodCtrl = LocalEatsController(
+        repository: DemoLocalEatsRepository(authRepository),
+      );
 
       await spotCtrl.loadSpots();
       await foodCtrl.loadData();

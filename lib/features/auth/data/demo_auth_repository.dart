@@ -15,6 +15,7 @@ class DemoAuthRepository implements AuthRepository {
   final List<ProfileModel> _profiles;
   final StreamController<void> _sessionController =
       StreamController<void>.broadcast();
+  final Map<String, AppRole> _roleOverrides = {};
   AccountIdentity? _currentAccount;
 
   AccountIdentity? get currentAccountForDemo => _currentAccount;
@@ -131,7 +132,7 @@ class DemoAuthRepository implements AuthRepository {
       email: profile.email,
       fullName: profile.fullName,
       avatarUrl: profile.avatarUrl,
-      role: AppRole.fromDatabase(profile.role),
+      role: _roleOverrides[profile.id] ?? AppRole.fromDatabase(profile.role),
       accessStatus: profile.isSuspended
           ? AccountAccessStatus.restricted
           : AccountAccessStatus.active,
@@ -146,5 +147,15 @@ class DemoAuthRepository implements AuthRepository {
     _currentAccount = account;
     _sessionController.add(null);
     return account;
+  }
+
+  /// Demo-only server adapter behavior. Production role grants occur only in
+  /// the audited `admin_decide_influencer_application` database function.
+  void grantRoleForDemo(String userId, AppRole role) {
+    _roleOverrides[userId] = role;
+    if (_currentAccount?.id == userId) {
+      _currentAccount = _currentAccount!.copyWith(role: role);
+      _sessionController.add(null);
+    }
   }
 }

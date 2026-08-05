@@ -1,451 +1,707 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../models/restaurant_model.dart';
-import '../controllers/localeats_controller.dart';
-import '../controllers/auth_controller.dart';
-import '../controllers/itinerary_controller.dart';
-import '../controllers/review_controller.dart';
+
 import '../constants/app_colors.dart';
+import '../controllers/auth_controller.dart';
+import '../controllers/localeats_controller.dart';
+import '../controllers/review_controller.dart';
+import '../core/routing/protected_navigation.dart';
+import '../core/validation/social_url_validator.dart';
+import '../models/discount_code_model.dart';
+import '../models/restaurant_model.dart';
+import '../models/review_model.dart';
+
+class RestaurantDetailArguments {
+  const RestaurantDetailArguments({
+    required this.restaurant,
+    this.pendingAction,
+  });
+
+  final RestaurantModel restaurant;
+  final RestaurantPendingAction? pendingAction;
+}
+
+class RestaurantPendingAction {
+  const RestaurantPendingAction.review()
+      : kind = 'review',
+        reviewId = null;
+
+  const RestaurantPendingAction.report(this.reviewId) : kind = 'report';
+
+  final String kind;
+  final String? reviewId;
+}
 
 class RestaurantDetailScreen extends StatefulWidget {
+  const RestaurantDetailScreen({
+    super.key,
+    required this.restaurant,
+    this.pendingAction,
+  });
+
   final RestaurantModel restaurant;
-  const RestaurantDetailScreen({super.key, required this.restaurant});
+  final RestaurantPendingAction? pendingAction;
 
   @override
   State<RestaurantDetailScreen> createState() => _RestaurantDetailScreenState();
 }
 
 class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
-  Future<void> _launchUrl(String urlStr) async {
-    final uri = Uri.tryParse(urlStr);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri);
-    }
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      await context.read<ReviewController>().loadReviews(
+            restaurantId: widget.restaurant.id,
+          );
+      if (!mounted || widget.pendingAction == null) return;
+      if (widget.pendingAction!.kind == 'review') {
+        await _requestReview();
+      } else if (widget.pendingAction!.reviewId != null) {
+        await _requestReport(widget.pendingAction!.reviewId!);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthController>();
-    final itinerary = context.watch<ItineraryController>();
     final localEats = context.watch<LocalEatsController>();
-    final reviewCtrl = context.watch<ReviewController>();
-
-    final userId = auth.currentUser?.id ?? 'guest';
-    final isSaved =
-        itinerary.isSaved(userId, restaurantId: widget.restaurant.id);
-    final discounts =
-        localEats.getActiveDiscountsForRestaurant(widget.restaurant.id);
+    final reviewController = context.watch<ReviewController>();
+    final discounts = localEats.getActiveDiscountsForRestaurant(
+      widget.restaurant.id,
+    );
+    final reviews = reviewController.getReviewsForRestaurant(
+      widget.restaurant.id,
+    );
+    final creatorName = widget.restaurant.influencerName.trim().isEmpty
+        ? 'LiveLocal'
+        : widget.restaurant.influencerName.trim();
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          SliverAppBar(
-            expandedHeight: 280,
-            pinned: true,
-            backgroundColor: AppColors.primaryDark,
-            leading: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(color: Colors.black26, blurRadius: 4)
+      backgroundColor: const Color(0xFFF7F5F0),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF7F5F0),
+        title: const Text('Restaurant'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await Future.wait([
+            localEats.loadData(),
+            reviewController.loadReviews(restaurantId: widget.restaurant.id),
+          ]);
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(bottom: 48),
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: CachedNetworkImage(
+                imageUrl: widget.restaurant.coverPhotoUrl,
+                fit: BoxFit.cover,
+                placeholder: (_, __) => const ColoredBox(
+                  color: Color(0xFFE5E1D8),
+                  child: Center(child: CircularProgressIndicator()),
+                ),
+                errorWidget: (_, __, ___) => const ColoredBox(
+                  color: Color(0xFFE5E1D8),
+                  child: Icon(Icons.restaurant_outlined, size: 64),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.restaurant.name,
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${widget.restaurant.cuisineType} · ${widget.restaurant.priceRange} · ${widget.restaurant.city}',
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.star, color: Colors.amber, size: 20),
+                      const SizedBox(width: 6),
+                      Text(
+                        widget.restaurant.reviewCount == 0
+                            ? 'No community ratings yet'
+                            : '${widget.restaurant.rating.toStringAsFixed(1)} from ${widget.restaurant.reviewCount} reviews',
+                      ),
                     ],
                   ),
-                  child: const Icon(Icons.arrow_back,
-                      color: AppColors.primaryDark, size: 20),
-                ),
-              ),
-            ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 16.0),
-                child: _AnimatedBookmarkButton(
-                  isSaved: isSaved,
-                  onTap: () => itinerary.toggleSave(userId,
-                      restaurantId: widget.restaurant.id),
-                ),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(
-              background: Hero(
-                tag: 'restaurant_${widget.restaurant.id}',
-                child: CachedNetworkImage(
-                  imageUrl: widget.restaurant.coverPhotoUrl,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primaryDark, AppColors.primary],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
+                  const SizedBox(height: 20),
+                  _InfoCard(
+                    icon: Icons.location_on_outlined,
+                    title: 'Address',
+                    body: widget.restaurant.address,
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoCard(
+                    icon: Icons.person_outline,
+                    title: widget.restaurant.ownershipStatus == 'unclaimed'
+                        ? 'Unclaimed public listing'
+                        : 'Recommended by $creatorName',
+                    body: widget.restaurant.ownershipStatus == 'unclaimed'
+                        ? 'LiveLocal maintains the public business information without creator ownership.'
+                        : 'The linked creator post supports this recommendation.',
+                  ),
+                  const SizedBox(height: 12),
+                  OutlinedButton.icon(
+                    onPressed: _openSocialPost,
+                    icon: const Icon(Icons.open_in_new),
+                    label: const Text('Open creator post'),
+                  ),
+                  const SizedBox(height: 28),
+                  Text(
+                    'Recommended dishes',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(widget.restaurant.reviewedDishes),
+                  if (discounts.isNotEmpty) ...[
+                    const SizedBox(height: 28),
+                    Text(
+                      'Active offers',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    ...discounts.map(
+                      (discount) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _DiscountCard(
+                          discount: discount,
+                          onCopy: () => _copyDiscount(discount),
+                        ),
                       ),
                     ),
-                    child: const Center(
-                        child: CircularProgressIndicator(color: Colors.white)),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [AppColors.primaryDark, AppColors.primary],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ),
-                    ),
-                    child: const Icon(Icons.restaurant,
-                        size: 80, color: Colors.white54),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Transform.translate(
-              offset: const Offset(0, -24),
-              child: Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black12,
-                      blurRadius: 10,
-                      offset: Offset(0, -4),
+                    const Text(
+                      'Offers are promotional information. Redemption is subject to the participating business. LiveLocal does not process payment or guarantee acceptance.',
+                      style: TextStyle(fontSize: 12),
                     ),
                   ],
-                ),
-                padding: const EdgeInsets.fromLTRB(24, 28, 24, 60),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.restaurant.name,
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _buildBadge(
-                            widget.restaurant.cuisineType, AppColors.accent),
-                        _buildBadge(
-                            widget.restaurant.priceRange, AppColors.accentLight,
-                            textColor: AppColors.primaryDark),
-                        _buildBadge(
-                            widget.restaurant.city, Colors.grey.shade200,
-                            textColor: Colors.grey.shade800),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.backgroundGrey,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Row(
-                        children: [
-                          CircleAvatar(
-                            backgroundColor: AppColors.primary,
-                            child: Text(
-                              widget.restaurant.influencerName[0].toUpperCase(),
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.restaurant.influencerName,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                const Text(
-                                  'Verified Reviewer',
-                                  style: TextStyle(
-                                    color: AppColors.accent,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primaryDark,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 0,
-                      ),
-                      onPressed: () =>
-                          _launchUrl(widget.restaurant.socialMediaUrl),
-                      icon: const Icon(Icons.play_circle_fill,
-                          color: Colors.white),
-                      label: const Text(
-                        'Watch Review Video',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Community reviews',
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Must Try Dishes',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryDark,
+                      TextButton.icon(
+                        onPressed: _requestReview,
+                        icon: const Icon(Icons.rate_review_outlined),
+                        label: const Text('Write or edit'),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      widget.restaurant.reviewedDishes,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey.shade700,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    if (discounts.isNotEmpty) ...[
-                      const Text(
-                        'Active Discount',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primaryDark,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [AppColors.gold, AppColors.goldDark],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.gold.withValues(alpha: 0.4),
-                              blurRadius: 8,
-                              offset: const Offset(0, 4),
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    discounts.first.description,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    discounts.first.code,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                      fontFamily: 'monospace',
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.copy, color: Colors.white),
-                              onPressed: () {
-                                Clipboard.setData(
-                                  ClipboardData(text: discounts.first.code),
-                                );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Code copied!')),
-                                );
-                              },
-                            )
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
                     ],
-                    const Text(
-                      'Community Reviews',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryDark,
+                  ),
+                  if (reviewController.isLoading && reviews.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 32),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (reviewController.errorMessage != null &&
+                      reviews.isEmpty)
+                    _InlineError(
+                      message: reviewController.errorMessage!,
+                      onRetry: () => reviewController.loadReviews(
+                        restaurantId: widget.restaurant.id,
+                      ),
+                    )
+                  else if (reviews.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Text('No reviews yet. Share the first review.'),
+                    )
+                  else
+                    ...reviews.map(
+                      (review) => _ReviewCard(
+                        review: review,
+                        onEdit:
+                            review.isOwnedByCurrentUser ? _requestReview : null,
+                        onDelete: review.isOwnedByCurrentUser
+                            ? () => _confirmDelete(review)
+                            : null,
+                        onReport: review.isOwnedByCurrentUser
+                            ? null
+                            : () => _requestReport(review.id),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Builder(builder: (ctx) {
-                      final reviews = reviewCtrl
-                          .getReviewsForRestaurant(widget.restaurant.id);
-                      if (reviews.isEmpty) {
-                        return Text(
-                          'No reviews yet. Be the first!',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        );
-                      }
-                      return Column(
-                        children: reviews
-                            .map((r) => Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border:
-                                        Border.all(color: Colors.grey.shade200),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            r.userName,
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          Row(
-                                            children: List.generate(
-                                              5,
-                                              (i) => Icon(
-                                                i < r.rating.round()
-                                                    ? Icons.star
-                                                    : Icons.star_border,
-                                                color: Colors.amber,
-                                                size: 14,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        r.comment,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ))
-                            .toList(),
-                      );
-                    }),
-                  ],
-                ),
+                ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildBadge(String text, Color color,
-      {Color textColor = Colors.white}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration:
-          BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-      child: Text(text,
-          style: TextStyle(
-              color: textColor, fontWeight: FontWeight.w600, fontSize: 12)),
+  Future<void> _openSocialPost() async {
+    final value = widget.restaurant.socialMediaUrl;
+    if (!SocialUrlValidator.isSupported(value)) {
+      _message('This creator link is invalid and cannot be opened.');
+      return;
+    }
+    final opened = await launchUrl(
+      Uri.parse(value),
+      mode: LaunchMode.externalApplication,
+    );
+    if (!mounted || opened) return;
+    _message('The creator link could not be opened on this device.');
+  }
+
+  Future<void> _copyDiscount(DiscountCodeModel discount) async {
+    if (!discount.isCurrentlyActive) {
+      _message('This offer is no longer active. Refreshing offers…');
+      await context.read<LocalEatsController>().loadData();
+      return;
+    }
+    await Clipboard.setData(ClipboardData(text: discount.code));
+    if (mounted) _message('Discount code copied.');
+  }
+
+  Future<void> _requestReview() async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/restaurant-detail',
+            arguments: RestaurantDetailArguments(
+              restaurant: widget.restaurant,
+              pendingAction: const RestaurantPendingAction.review(),
+            ),
+          );
+      return;
+    }
+    final controller = context.read<ReviewController>();
+    final matches = controller
+        .getReviewsForRestaurant(widget.restaurant.id)
+        .where((review) => review.isOwnedByCurrentUser);
+    final existing = matches.isEmpty ? null : matches.single;
+    var rating = existing?.rating ?? 5;
+    final body = TextEditingController(text: existing?.comment);
+    final save = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            0,
+            16,
+            MediaQuery.viewInsetsOf(context).bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                existing == null ? 'Write a review' : 'Edit your review',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 12),
+              Semantics(
+                label: 'Rating ${rating.round()} out of 5',
+                child: Row(
+                  children: List.generate(
+                    5,
+                    (index) => IconButton(
+                      tooltip: '${index + 1} stars',
+                      onPressed: () => setSheetState(() => rating = index + 1),
+                      icon: Icon(
+                        index < rating ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: body,
+                minLines: 3,
+                maxLines: 6,
+                maxLength: 2000,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: const InputDecoration(
+                  labelText: 'Your experience',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: () {
+                  if (body.text.trim().length < 3) return;
+                  Navigator.pop(sheetContext, true);
+                },
+                child: const Text('Save review'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final comment = body.text.trim();
+    body.dispose();
+    if (save != true || !mounted) return;
+    final saved = await controller.addReview(
+      restaurantId: widget.restaurant.id,
+      rating: rating,
+      comment: comment,
+    );
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Review saved.'
+          : controller.errorMessage ?? 'The review could not be saved.',
+    );
+  }
+
+  Future<void> _requestReport(String reviewId) async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/restaurant-detail',
+            arguments: RestaurantDetailArguments(
+              restaurant: widget.restaurant,
+              pendingAction: RestaurantPendingAction.report(reviewId),
+            ),
+          );
+      return;
+    }
+    var reason = 'spam';
+    var hideForMe = true;
+    final explanation = TextEditingController();
+    final submit = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Report this review'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: reason,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'spam', child: Text('Spam')),
+                    DropdownMenuItem(
+                      value: 'harassment',
+                      child: Text('Harassment'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'hate',
+                      child: Text('Hateful content'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'dangerous',
+                      child: Text('Dangerous content'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'misleading',
+                      child: Text('Misleading'),
+                    ),
+                    DropdownMenuItem(
+                      value: 'privacy',
+                      child: Text('Privacy concern'),
+                    ),
+                    DropdownMenuItem(value: 'other', child: Text('Other')),
+                  ],
+                  onChanged: (value) =>
+                      setDialogState(() => reason = value ?? reason),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: explanation,
+                  maxLength: 2000,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: 'Optional details',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: hideForMe,
+                  title: const Text('Hide this review for me'),
+                  subtitle: const Text(
+                    'One report does not hide it from everyone.',
+                  ),
+                  onChanged: (value) =>
+                      setDialogState(() => hideForMe = value ?? true),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Submit report'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final details = explanation.text.trim();
+    explanation.dispose();
+    if (submit != true || !mounted) return;
+    final controller = context.read<ReviewController>();
+    final saved = await controller.reportReview(
+      reviewId: reviewId,
+      reason: reason,
+      explanation: details.isEmpty ? null : details,
+      hideForReporter: hideForMe,
+    );
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Report submitted for moderation.'
+          : controller.errorMessage ?? 'The report could not be submitted.',
+    );
+  }
+
+  Future<void> _confirmDelete(ReviewModel review) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete your review?'),
+        content: const Text(
+          'This cannot be undone. The public rating will be recalculated.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    final controller = context.read<ReviewController>();
+    final removed = await controller.removeReview(review.id);
+    if (!mounted) return;
+    _message(
+      removed
+          ? 'Review deleted.'
+          : controller.errorMessage ?? 'The review could not be deleted.',
+    );
+  }
+
+  void _message(String value) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: AppColors.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: Theme.of(context).textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(body),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _AnimatedBookmarkButton extends StatefulWidget {
-  final bool isSaved;
-  final VoidCallback onTap;
-  const _AnimatedBookmarkButton({required this.isSaved, required this.onTap});
+class _DiscountCard extends StatelessWidget {
+  const _DiscountCard({required this.discount, required this.onCopy});
 
-  @override
-  State<_AnimatedBookmarkButton> createState() =>
-      _AnimatedBookmarkButtonState();
-}
-
-class _AnimatedBookmarkButtonState extends State<_AnimatedBookmarkButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 200));
-    _scale = Tween<double>(begin: 1.0, end: 1.3)
-        .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final DiscountCodeModel discount;
+  final VoidCallback onCopy;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () {
-        widget.onTap();
-        _controller.forward().then((_) => _controller.reverse());
-      },
-      child: ScaleTransition(
-        scale: _scale,
-        child: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)]),
-          child: Icon(
-            widget.isSaved ? Icons.favorite : Icons.favorite_border,
-            color: widget.isSaved ? Colors.red : AppColors.primaryDark,
-          ),
+    final localizations = MaterialLocalizations.of(context);
+    return Card(
+      margin: EdgeInsets.zero,
+      color: const Color(0xFFE8F1EC),
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(discount.description,
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: SelectableText(
+                    discount.code,
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Copy ${discount.code}',
+                  onPressed: onCopy,
+                  icon: const Icon(Icons.copy_outlined),
+                ),
+              ],
+            ),
+            if (discount.redemptionTerms.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('Terms: ${discount.redemptionTerms}'),
+            ],
+            const SizedBox(height: 8),
+            Text(
+              'Expires ${localizations.formatMediumDate(discount.expiryDate.toLocal())}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
         ),
+      ),
+    );
+  }
+}
+
+class _ReviewCard extends StatelessWidget {
+  const _ReviewCard({
+    required this.review,
+    this.onEdit,
+    this.onDelete,
+    this.onReport,
+  });
+
+  final ReviewModel review;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final VoidCallback? onReport;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      margin: const EdgeInsets.only(top: 8),
+      elevation: 0,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    review.userName,
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                Semantics(
+                  label: '${review.rating.round()} out of 5 stars',
+                  child: Row(
+                    children: List.generate(
+                      5,
+                      (index) => Icon(
+                        index < review.rating ? Icons.star : Icons.star_border,
+                        color: Colors.amber,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: 'Review actions',
+                  onSelected: (value) {
+                    if (value == 'edit') onEdit?.call();
+                    if (value == 'delete') onDelete?.call();
+                    if (value == 'report') onReport?.call();
+                  },
+                  itemBuilder: (_) => [
+                    if (onEdit != null)
+                      const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                    if (onDelete != null)
+                      const PopupMenuItem(
+                          value: 'delete', child: Text('Delete')),
+                    if (onReport != null)
+                      const PopupMenuItem(
+                          value: 'report', child: Text('Report')),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(review.comment),
+            if (review.updatedAt != null) ...[
+              const SizedBox(height: 8),
+              Text('Edited', style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.errorContainer,
+      child: ListTile(
+        leading: const Icon(Icons.error_outline),
+        title: Text(message),
+        trailing: TextButton(onPressed: onRetry, child: const Text('Retry')),
       ),
     );
   }

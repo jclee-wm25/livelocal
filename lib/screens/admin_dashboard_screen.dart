@@ -5,8 +5,12 @@ import '../constants/app_colors.dart';
 import '../controllers/admin_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/spot_controller.dart';
+import '../controllers/localeats_controller.dart';
 import '../features/admin/domain/admin_repository.dart';
+import '../features/influencer_applications/domain/influencer_application_repository.dart';
+import '../features/influencer_applications/presentation/influencer_application_controller.dart';
 import '../models/spot_model.dart';
+import '../models/restaurant_model.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -29,6 +33,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     await Future.wait([
       context.read<AdminController>().loadDashboard(),
       context.read<SpotController>().loadPendingSpots(),
+      context.read<InfluencerApplicationController>().loadPending(),
+      context.read<LocalEatsController>().loadPendingRestaurants(),
     ]);
   }
 
@@ -42,6 +48,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
     final admin = context.watch<AdminController>();
     final spots = context.watch<SpotController>();
+    final applications = context.watch<InfluencerApplicationController>();
+    final localEats = context.watch<LocalEatsController>();
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
       appBar: AppBar(
@@ -87,6 +95,26 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               children: [
                 Expanded(
                   child: _MetricCard(
+                    label: 'Creator queue',
+                    value: applications.pending.length,
+                    icon: Icons.verified_user_outlined,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _MetricCard(
+                    label: 'Restaurant queue',
+                    value: localEats.pendingRestaurants.length,
+                    icon: Icons.restaurant_outlined,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _MetricCard(
                     label: 'Accounts',
                     value: admin.totalUsers,
                     icon: Icons.people_outline,
@@ -102,10 +130,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ],
             ),
-            if (admin.errorMessage != null || spots.errorMessage != null) ...[
+            if (admin.errorMessage != null ||
+                spots.errorMessage != null ||
+                applications.errorMessage != null ||
+                localEats.errorMessage != null) ...[
               const SizedBox(height: 16),
               _ErrorPanel(
-                message: admin.errorMessage ?? spots.errorMessage!,
+                message: admin.errorMessage ??
+                    spots.errorMessage ??
+                    applications.errorMessage ??
+                    localEats.errorMessage!,
                 onRetry: _load,
               ),
             ],
@@ -126,6 +160,82 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         tooltip: 'Moderate ${spot.name}',
                         onSelected: (decision) =>
                             _showSpotDecision(spot, decision),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'approved',
+                            child: Text('Approve'),
+                          ),
+                          PopupMenuItem(
+                            value: 'rejected',
+                            child: Text('Reject'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            _Section(
+              title: 'Creator applications',
+              count: applications.pending.length,
+              emptyText: 'No creator applications are awaiting review.',
+              children: applications.pending
+                  .map(
+                    (application) => ListTile(
+                      minTileHeight: 72,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.person_search_outlined),
+                      title:
+                          Text(application.displayName ?? 'Unnamed applicant'),
+                      subtitle: Text(
+                        '${application.socialPlatform ?? 'No platform'} · ${application.followerCount ?? 0} followers\n${application.contentCategory ?? 'No category'}',
+                      ),
+                      isThreeLine: true,
+                      trailing: PopupMenuButton<String>(
+                        tooltip: 'Decide creator application',
+                        onSelected: (decision) =>
+                            _showCreatorDecision(application, decision),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'approved',
+                            child: Text('Approve creator'),
+                          ),
+                          PopupMenuItem(
+                            value: 'needs_information',
+                            child: Text('Request information'),
+                          ),
+                          PopupMenuItem(
+                            value: 'rejected',
+                            child: Text('Reject application'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            _Section(
+              title: 'Restaurant submissions',
+              count: localEats.pendingRestaurants.length,
+              emptyText: 'No restaurant submissions are awaiting review.',
+              children: localEats.pendingRestaurants
+                  .map(
+                    (restaurant) => ListTile(
+                      minTileHeight: 72,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.add_business_outlined),
+                      title: Text(restaurant.name),
+                      subtitle: Text(
+                        '${restaurant.cuisineType} · ${restaurant.city}, ${restaurant.state}\n${restaurant.address}',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        tooltip: 'Moderate restaurant',
+                        onSelected: (decision) =>
+                            _showRestaurantDecision(restaurant, decision),
                         itemBuilder: (_) => const [
                           PopupMenuItem(
                             value: 'approved',
@@ -244,7 +354,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   )
                   .toList(),
             ),
-            if (admin.isLoading || spots.isLoading) ...[
+            if (admin.isLoading ||
+                spots.isLoading ||
+                applications.isLoading ||
+                localEats.isLoading) ...[
               const SizedBox(height: 24),
               const Center(child: CircularProgressIndicator()),
             ],
@@ -278,6 +391,60 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             'The spot decision could not be saved.');
       }
     }
+  }
+
+  Future<void> _showCreatorDecision(
+    InfluencerApplication application,
+    String decision,
+  ) async {
+    final reason = await _reasonDialog(
+      title: switch (decision) {
+        'approved' => 'Approve creator application?',
+        'needs_information' => 'Request more information?',
+        _ => 'Reject creator application?',
+      },
+      prompt: decision == 'approved'
+          ? 'Record why the creator account meets the current rules.'
+          : 'Explain the decision clearly enough for the applicant to act on it.',
+      destructive: decision == 'rejected',
+    );
+    if (reason == null || !mounted) return;
+    final saved = await context
+        .read<InfluencerApplicationController>()
+        .decide(application, decision, reason);
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Creator application decision recorded.'
+          : context.read<InfluencerApplicationController>().errorMessage ??
+              'The application decision could not be saved.',
+    );
+  }
+
+  Future<void> _showRestaurantDecision(
+    RestaurantModel restaurant,
+    String decision,
+  ) async {
+    final reason = await _reasonDialog(
+      title: decision == 'approved'
+          ? 'Approve restaurant listing?'
+          : 'Reject restaurant listing?',
+      prompt: decision == 'approved'
+          ? 'Record why the business details and supporting post are suitable.'
+          : 'Explain what must be corrected before resubmission.',
+      destructive: decision == 'rejected',
+    );
+    if (reason == null || !mounted) return;
+    final saved = await context
+        .read<LocalEatsController>()
+        .moderateRestaurant(restaurant, decision, reason);
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Restaurant moderation decision recorded.'
+          : context.read<LocalEatsController>().errorMessage ??
+              'The restaurant decision could not be saved.',
+    );
   }
 
   Future<void> _showReportDecision(

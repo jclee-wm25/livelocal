@@ -38,6 +38,15 @@ import 'features/reviews/domain/review_repository.dart';
 import 'features/admin/data/demo_admin_repository.dart';
 import 'features/admin/data/supabase_admin_repository.dart';
 import 'features/admin/domain/admin_repository.dart';
+import 'features/influencer_applications/data/demo_influencer_application_repository.dart';
+import 'features/influencer_applications/data/supabase_influencer_application_repository.dart';
+import 'features/influencer_applications/domain/influencer_application_repository.dart';
+import 'features/influencer_applications/presentation/creator_application_screen.dart';
+import 'features/influencer_applications/presentation/influencer_application_controller.dart';
+import 'features/restaurants/data/demo_local_eats_repository.dart';
+import 'features/restaurants/data/supabase_local_eats_repository.dart';
+import 'features/restaurants/domain/local_eats_repository.dart';
+import 'screens/restaurant_detail_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,6 +76,8 @@ Future<void> main() async {
   late final SpotRepository spotRepository;
   late final ReviewRepository reviewRepository;
   late final AdminRepository adminRepository;
+  late final InfluencerApplicationRepository influencerApplicationRepository;
+  late final LocalEatsRepository localEatsRepository;
   try {
     if (configuration.isDemo) {
       SupabaseRepository().configureForDemo();
@@ -76,6 +87,9 @@ Future<void> main() async {
       spotRepository = DemoSpotRepository(demoAuthRepository);
       reviewRepository = DemoReviewRepository(demoAuthRepository);
       adminRepository = DemoAdminRepository(demoAuthRepository);
+      influencerApplicationRepository =
+          DemoInfluencerApplicationRepository(demoAuthRepository);
+      localEatsRepository = DemoLocalEatsRepository(demoAuthRepository);
     } else {
       await Supabase.initialize(
         url: configuration.supabaseUrl!,
@@ -94,6 +108,10 @@ Future<void> main() async {
       spotRepository = SupabaseSpotRepository(Supabase.instance.client);
       reviewRepository = SupabaseReviewRepository(Supabase.instance.client);
       adminRepository = SupabaseAdminRepository(Supabase.instance.client);
+      influencerApplicationRepository =
+          SupabaseInfluencerApplicationRepository(Supabase.instance.client);
+      localEatsRepository =
+          SupabaseLocalEatsRepository(Supabase.instance.client);
     }
   } catch (error) {
     if (kDebugMode) {
@@ -116,6 +134,8 @@ Future<void> main() async {
       spotRepository: spotRepository,
       reviewRepository: reviewRepository,
       adminRepository: adminRepository,
+      influencerApplicationRepository: influencerApplicationRepository,
+      localEatsRepository: localEatsRepository,
     ),
   );
 }
@@ -129,6 +149,8 @@ class LiveLocalApp extends StatelessWidget {
     required this.spotRepository,
     required this.reviewRepository,
     required this.adminRepository,
+    required this.influencerApplicationRepository,
+    required this.localEatsRepository,
   });
 
   final AppConfiguration configuration;
@@ -137,6 +159,8 @@ class LiveLocalApp extends StatelessWidget {
   final SpotRepository spotRepository;
   final ReviewRepository reviewRepository;
   final AdminRepository adminRepository;
+  final InfluencerApplicationRepository influencerApplicationRepository;
+  final LocalEatsRepository localEatsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +181,9 @@ class LiveLocalApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => SpotController(repository: spotRepository),
         ),
-        ChangeNotifierProvider(create: (_) => LocalEatsController()),
+        ChangeNotifierProvider(
+          create: (_) => LocalEatsController(repository: localEatsRepository),
+        ),
         ChangeNotifierProvider(create: (_) => ItineraryController()),
         ChangeNotifierProvider(create: (_) => GuideController()),
         ChangeNotifierProvider(
@@ -165,6 +191,11 @@ class LiveLocalApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (_) => AdminController(repository: adminRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => InfluencerApplicationController(
+            repository: influencerApplicationRepository,
+          ),
         ),
         ChangeNotifierProvider(create: (_) => ModerationController()),
       ],
@@ -220,6 +251,19 @@ class LiveLocalApp extends StatelessWidget {
           '/password-reset': (context) => const PasswordResetScreen(),
           '/notifications': (context) => const NotificationsScreen(),
           '/submit-spot': (context) => const SubmitSpotScreen(),
+          '/creator-application': (context) => const CreatorApplicationScreen(),
+          '/restaurant-detail': (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
+            if (arguments is! RestaurantDetailArguments) {
+              return const ConfigurationFailureApp(
+                message: 'The requested restaurant is unavailable.',
+              );
+            }
+            return RestaurantDetailScreen(
+              restaurant: arguments.restaurant,
+              pendingAction: arguments.pendingAction,
+            );
+          },
           '/home': (context) => const SessionGate(),
         },
       ),

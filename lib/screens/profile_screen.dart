@@ -102,6 +102,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            if (user.role == 'tourist') ...[
+              Card(
+                elevation: 0,
+                child: ListTile(
+                  minTileHeight: 64,
+                  leading: const Icon(Icons.campaign_outlined),
+                  title: const Text('Become a local creator'),
+                  subtitle: const Text(
+                    'Apply to submit creator-led restaurant recommendations.',
+                  ),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () =>
+                      Navigator.pushNamed(context, '/creator-application'),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Card(
               elevation: 0,
               child: Padding(

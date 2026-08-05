@@ -54,11 +54,14 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     if (success) {
       final navigator = Navigator.of(context);
-      final pending = context.read<ProtectedNavigation>().consumePendingRoute();
+      final pending = context.read<ProtectedNavigation>().consumePending();
       navigator.pushNamedAndRemoveUntil('/home', (route) => false);
       if (pending != null && authCtrl.canWrite) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          navigator.pushNamed(pending);
+          navigator.pushNamed(
+            pending.routeName,
+            arguments: pending.arguments,
+          );
         });
       }
     } else {

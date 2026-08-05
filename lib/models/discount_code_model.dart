@@ -6,6 +6,10 @@ class DiscountCodeModel {
   final DateTime expiryDate;
   final String createdBy;
   final bool isActive;
+  final DateTime? startDate;
+  final String redemptionTerms;
+  final String status;
+  final int version;
 
   DiscountCodeModel({
     required this.id,
@@ -15,9 +19,19 @@ class DiscountCodeModel {
     required this.expiryDate,
     required this.createdBy,
     this.isActive = true,
+    this.startDate,
+    this.redemptionTerms = '',
+    this.status = 'active',
+    this.version = 1,
   });
 
-  bool get isExpired => DateTime.now().isAfter(expiryDate);
+  bool get isExpired =>
+      status == 'expired' || DateTime.now().isAfter(expiryDate);
+  bool get isCurrentlyActive =>
+      isActive &&
+      status == 'active' &&
+      (startDate == null || !DateTime.now().isBefore(startDate!)) &&
+      !isExpired;
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -29,6 +43,10 @@ class DiscountCodeModel {
         // Phase 7 replaces this compatibility flag with the approved discount
         // lifecycle: draft, scheduled, active, paused, expired, or revoked.
         'is_active': isActive,
+        'starts_at': startDate?.toIso8601String(),
+        'redemption_terms': redemptionTerms,
+        'status': status,
+        'version': version,
       };
 
   factory DiscountCodeModel.fromMap(Map<String, dynamic> map) =>
@@ -41,5 +59,11 @@ class DiscountCodeModel {
             map['expiry_date'] ?? DateTime.now().toIso8601String()),
         createdBy: map['created_by'] ?? '',
         isActive: map['is_active'] ?? true,
+        startDate: map['starts_at'] == null
+            ? null
+            : DateTime.parse(map['starts_at'] as String),
+        redemptionTerms: map['redemption_terms'] ?? '',
+        status: map['status'] ?? map['effective_status'] ?? 'active',
+        version: (map['version'] as num?)?.toInt() ?? 1,
       );
 }

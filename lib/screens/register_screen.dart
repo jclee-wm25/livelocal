@@ -68,11 +68,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
       final navigator = Navigator.of(context);
-      final pending = context.read<ProtectedNavigation>().consumePendingRoute();
+      final pending = context.read<ProtectedNavigation>().consumePending();
       navigator.pushNamedAndRemoveUntil('/home', (route) => false);
       if (pending != null && authCtrl.canWrite) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          navigator.pushNamed(pending);
+          navigator.pushNamed(
+            pending.routeName,
+            arguments: pending.arguments,
+          );
         });
       }
     } else {

@@ -15,6 +15,11 @@ class RestaurantModel {
   final int reviewCount;
   final double? latitude;
   final double? longitude;
+  final String? revisionId;
+  final int moderationVersion;
+  final String status;
+  final String ownershipStatus;
+  final bool isOwnedByCurrentUser;
 
   RestaurantModel({
     required this.id,
@@ -33,6 +38,11 @@ class RestaurantModel {
     this.reviewCount = 0,
     this.latitude,
     this.longitude,
+    this.revisionId,
+    this.moderationVersion = 1,
+    this.status = 'approved',
+    this.ownershipStatus = 'creator_owned',
+    this.isOwnedByCurrentUser = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -52,6 +62,10 @@ class RestaurantModel {
         'review_count': reviewCount,
         'latitude': latitude,
         'longitude': longitude,
+        'revision_id': revisionId,
+        'moderation_version': moderationVersion,
+        'status': status,
+        'ownership_status': ownershipStatus,
       };
 
   factory RestaurantModel.fromMap(Map<String, dynamic> map) => RestaurantModel(
@@ -71,5 +85,10 @@ class RestaurantModel {
         reviewCount: (map['review_count'] as num?)?.toInt() ?? 0,
         latitude: (map['latitude'] as num?)?.toDouble(),
         longitude: (map['longitude'] as num?)?.toDouble(),
+        revisionId: map['revision_id'],
+        moderationVersion: (map['moderation_version'] as num?)?.toInt() ?? 1,
+        status: map['status'] ?? 'approved',
+        ownershipStatus: map['ownership_status'] ?? 'creator_owned',
+        isOwnedByCurrentUser: map['is_owned_by_current_user'] ?? false,
       );
 }
