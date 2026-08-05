@@ -15,6 +15,8 @@ import '../models/discount_code_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/review_model.dart';
 import '../features/moderation/presentation/content_report_dialog.dart';
+import '../features/moderation/presentation/block_content_author_dialog.dart';
+import '../features/moderation/presentation/moderation_controller.dart';
 
 class RestaurantDetailArguments {
   const RestaurantDetailArguments({
@@ -40,6 +42,11 @@ class RestaurantPendingAction {
         reviewId = null;
   const RestaurantPendingAction.reportLink()
       : kind = 'report_link',
+        reviewId = null;
+  const RestaurantPendingAction.blockReview(this.reviewId)
+      : kind = 'block_review';
+  const RestaurantPendingAction.blockListingAuthor()
+      : kind = 'block_listing_author',
         reviewId = null;
 
   final String kind;
@@ -78,7 +85,16 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
         await _requestContentReport();
       } else if (widget.pendingAction!.kind == 'report_link') {
         await _requestContentReport(brokenLink: true);
-      } else if (widget.pendingAction!.reviewId != null) {
+      } else if (widget.pendingAction!.kind == 'block_listing_author') {
+        await _requestBlockAuthor('restaurant', widget.restaurant.id);
+      } else if (widget.pendingAction!.kind == 'block_review' &&
+          widget.pendingAction!.reviewId != null) {
+        await _requestBlockAuthor(
+          'review',
+          widget.pendingAction!.reviewId!,
+        );
+      } else if (widget.pendingAction!.kind == 'report' &&
+          widget.pendingAction!.reviewId != null) {
         await _requestReport(widget.pendingAction!.reviewId!);
       }
     });
@@ -89,6 +105,8 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     final localEats = context.watch<LocalEatsController>();
     final reviewController = context.watch<ReviewController>();
     final itineraryController = context.watch<ItineraryController>();
+    final supportsUserBlocking =
+        context.watch<ModerationController>().supportsUserBlocking;
     final isSaved = itineraryController.isSaved(
       restaurantId: widget.restaurant.id,
     );
@@ -119,12 +137,21 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
             tooltip: 'Restaurant options',
             onSelected: (value) {
               if (value == 'report') _requestContentReport();
+              if (value == 'block') {
+                _requestBlockAuthor('restaurant', widget.restaurant.id);
+              }
             },
-            itemBuilder: (_) => const [
-              PopupMenuItem(
+            itemBuilder: (_) => [
+              const PopupMenuItem(
                 value: 'report',
                 child: Text('Report this listing'),
               ),
+              if (supportsUserBlocking &&
+                  !widget.restaurant.isOwnedByCurrentUser)
+                const PopupMenuItem(
+                  value: 'block',
+                  child: Text('Block creator'),
+                ),
             ],
           ),
           const SizedBox(width: 8),
@@ -294,6 +321,10 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                         onReport: review.isOwnedByCurrentUser
                             ? null
                             : () => _requestReport(review.id),
+                        onBlock: review.isOwnedByCurrentUser ||
+                                !supportsUserBlocking
+                            ? null
+                            : () => _requestBlockAuthor('review', review.id),
                       ),
                     ),
                 ],
@@ -589,6 +620,41 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     );
   }
 
+  Future<void> _requestBlockAuthor(
+    String targetType,
+    String targetId,
+  ) async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/restaurant-detail',
+            arguments: RestaurantDetailArguments(
+              restaurant: widget.restaurant,
+              pendingAction: targetType == 'review'
+                  ? RestaurantPendingAction.blockReview(targetId)
+                  : const RestaurantPendingAction.blockListingAuthor(),
+            ),
+          );
+      return;
+    }
+    final blocked = await showBlockContentAuthorDialog(
+      context,
+      targetType: targetType,
+      targetId: targetId,
+    );
+    if (!mounted || !blocked) return;
+    if (targetType == 'review') {
+      await context.read<ReviewController>().loadReviews(
+            restaurantId: widget.restaurant.id,
+          );
+    } else {
+      await context.read<LocalEatsController>().loadData();
+      if (!mounted) return;
+      Navigator.pop(context);
+    }
+  }
+
   Future<void> _confirmDelete(ReviewModel review) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -726,12 +792,14 @@ class _ReviewCard extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.onReport,
+    this.onBlock,
   });
 
   final ReviewModel review;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final VoidCallback? onReport;
+  final VoidCallback? onBlock;
 
   @override
   Widget build(BuildContext context) {
@@ -770,6 +838,7 @@ class _ReviewCard extends StatelessWidget {
                     if (value == 'edit') onEdit?.call();
                     if (value == 'delete') onDelete?.call();
                     if (value == 'report') onReport?.call();
+                    if (value == 'block') onBlock?.call();
                   },
                   itemBuilder: (_) => [
                     if (onEdit != null)
@@ -780,6 +849,11 @@ class _ReviewCard extends StatelessWidget {
                     if (onReport != null)
                       const PopupMenuItem(
                           value: 'report', child: Text('Report')),
+                    if (onBlock != null)
+                      const PopupMenuItem(
+                        value: 'block',
+                        child: Text('Block reviewer'),
+                      ),
                   ],
                 ),
               ],

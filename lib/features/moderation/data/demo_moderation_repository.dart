@@ -10,6 +10,9 @@ class DemoModerationRepository implements ModerationRepository {
   final Set<String> _activeReports = {};
 
   @override
+  bool get supportsUserBlocking => false;
+
+  @override
   Future<ModerationReceipt> reportContent({
     required String targetType,
     required String targetId,
@@ -42,6 +45,28 @@ class DemoModerationRepository implements ModerationRepository {
       id: 'demo-moderation-${DateTime.now().microsecondsSinceEpoch}',
       status: 'pending',
       version: 1,
+    );
+  }
+
+  @override
+  Future<UserBlockReceipt> blockContentAuthor({
+    required String targetType,
+    required String targetId,
+  }) {
+    throw const AppException(
+      code: AppErrorCode.unavailable,
+      userMessage: 'Account blocking is unavailable in the local demo.',
+    );
+  }
+
+  @override
+  Future<List<BlockedUser>> listBlockedUsers() async => const [];
+
+  @override
+  Future<void> unblockUser(String userId) {
+    throw const AppException(
+      code: AppErrorCode.unavailable,
+      userMessage: 'Account blocking is unavailable in the local demo.',
     );
   }
 }

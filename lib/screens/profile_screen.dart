@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
 import '../features/profile/presentation/account_controller.dart';
+import '../features/moderation/presentation/moderation_controller.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -27,6 +28,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
     final account = context.watch<AccountController>();
+    final moderation = context.watch<ModerationController>();
     final user = auth.currentUser;
     if (user == null) return const _GuestAccountPrompt();
 
@@ -197,6 +199,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () => Navigator.pushNamed(context, '/notifications'),
                   ),
+                  if (moderation.supportsUserBlocking) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      minTileHeight: 56,
+                      leading: const Icon(Icons.person_off_outlined),
+                      title: const Text('Blocked accounts'),
+                      subtitle: const Text('Review or undo hidden accounts'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () =>
+                          Navigator.pushNamed(context, '/blocked-users'),
+                    ),
+                  ],
                   const Divider(height: 1),
                   ListTile(
                     minTileHeight: 56,

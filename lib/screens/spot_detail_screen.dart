@@ -5,9 +5,12 @@ import '../models/spot_model.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
+import '../controllers/spot_controller.dart';
 import '../constants/app_colors.dart';
 import '../core/routing/protected_navigation.dart';
 import '../features/moderation/presentation/content_report_dialog.dart';
+import '../features/moderation/presentation/block_content_author_dialog.dart';
+import '../features/moderation/presentation/moderation_controller.dart';
 
 class SpotDetailArguments {
   const SpotDetailArguments({required this.spot, this.pendingAction});
@@ -26,6 +29,10 @@ class SpotPendingAction {
   const SpotPendingAction.report(this.reviewId) : kind = 'report';
   const SpotPendingAction.reportSpot()
       : kind = 'report_spot',
+        reviewId = null;
+  const SpotPendingAction.blockReview(this.reviewId) : kind = 'block_review';
+  const SpotPendingAction.blockSpotAuthor()
+      : kind = 'block_spot_author',
         reviewId = null;
 
   final String kind;
@@ -76,6 +83,15 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         case 'report_spot':
           await _requestSpotReport();
           break;
+        case 'block_review':
+          final reviewId = widget.pendingAction!.reviewId;
+          if (reviewId != null) {
+            await _requestBlockAuthor('review', reviewId);
+          }
+          break;
+        case 'block_spot_author':
+          await _requestBlockAuthor('spot', widget.spot.id);
+          break;
       }
     });
   }
@@ -90,6 +106,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   Widget build(BuildContext context) {
     final itineraryCtrl = Provider.of<ItineraryController>(context);
     final reviewCtrl = Provider.of<ReviewController>(context);
+    final supportsUserBlocking =
+        context.watch<ModerationController>().supportsUserBlocking;
 
     final isSaved = itineraryCtrl.isSaved(spotId: widget.spot.id);
     final spotReviews = reviewCtrl.getReviewsForSpot(widget.spot.id);
@@ -121,10 +139,26 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               ),
             ),
             actions: [
-              IconButton(
-                tooltip: 'Report this spot',
-                onPressed: _requestSpotReport,
-                icon: const Icon(Icons.flag_outlined, color: Colors.white),
+              PopupMenuButton<String>(
+                tooltip: 'Spot safety options',
+                iconColor: Colors.white,
+                onSelected: (value) {
+                  if (value == 'report') _requestSpotReport();
+                  if (value == 'block') {
+                    _requestBlockAuthor('spot', widget.spot.id);
+                  }
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'report',
+                    child: Text('Report this spot'),
+                  ),
+                  if (supportsUserBlocking)
+                    const PopupMenuItem(
+                      value: 'block',
+                      child: Text('Block contributor'),
+                    ),
+                ],
               ),
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
@@ -359,13 +393,34 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                         ),
                                       ),
                                       if (!r.isOwnedByCurrentUser)
-                                        IconButton(
+                                        PopupMenuButton<String>(
                                           constraints: const BoxConstraints(
-                                              minWidth: 48, minHeight: 48),
-                                          tooltip: 'Report review',
-                                          icon: const Icon(Icons.flag_outlined,
-                                              size: 16, color: Colors.grey),
-                                          onPressed: () => _requestReport(r.id),
+                                            minWidth: 48,
+                                            minHeight: 48,
+                                          ),
+                                          tooltip: 'Review safety options',
+                                          onSelected: (value) {
+                                            if (value == 'report') {
+                                              _requestReport(r.id);
+                                            }
+                                            if (value == 'block') {
+                                              _requestBlockAuthor(
+                                                'review',
+                                                r.id,
+                                              );
+                                            }
+                                          },
+                                          itemBuilder: (_) => [
+                                            const PopupMenuItem(
+                                              value: 'report',
+                                              child: Text('Report review'),
+                                            ),
+                                            if (supportsUserBlocking)
+                                              const PopupMenuItem(
+                                                value: 'block',
+                                                child: Text('Block reviewer'),
+                                              ),
+                                          ],
                                         ),
                                       if (r.isOwnedByCurrentUser)
                                         IconButton(
@@ -421,6 +476,41 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
       targetType: 'spot',
       targetId: widget.spot.id,
     );
+  }
+
+  Future<void> _requestBlockAuthor(
+    String targetType,
+    String targetId,
+  ) async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: targetType == 'review'
+                  ? SpotPendingAction.blockReview(targetId)
+                  : const SpotPendingAction.blockSpotAuthor(),
+            ),
+          );
+      return;
+    }
+    final blocked = await showBlockContentAuthorDialog(
+      context,
+      targetType: targetType,
+      targetId: targetId,
+    );
+    if (!mounted || !blocked) return;
+    if (targetType == 'review') {
+      await context.read<ReviewController>().loadReviews(
+            spotId: widget.spot.id,
+          );
+    } else {
+      await context.read<SpotController>().loadSpots();
+      if (!mounted) return;
+      Navigator.pop(context);
+    }
   }
 
   Future<void> _requestSave() async {

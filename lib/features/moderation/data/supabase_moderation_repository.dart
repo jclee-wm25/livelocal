@@ -9,6 +9,9 @@ class SupabaseModerationRepository implements ModerationRepository {
   final SupabaseClient _client;
 
   @override
+  bool get supportsUserBlocking => true;
+
+  @override
   Future<ModerationReceipt> reportContent({
     required String targetType,
     required String targetId,
@@ -47,5 +50,71 @@ class SupabaseModerationRepository implements ModerationRepository {
         cause: error,
       );
     }
+  }
+
+  @override
+  Future<UserBlockReceipt> blockContentAuthor({
+    required String targetType,
+    required String targetId,
+  }) async {
+    try {
+      final response = await _client.rpc('block_content_author', params: {
+        'p_target_type': targetType,
+        'p_target_id': targetId,
+      });
+      final row = Map<String, dynamic>.from(response as Map);
+      return UserBlockReceipt(
+        userId: row['blocked_user_id'] as String,
+        displayName: row['display_name'] as String,
+      );
+    } on PostgrestException catch (error) {
+      throw _blockError(error, 'The account could not be blocked.');
+    }
+  }
+
+  @override
+  Future<List<BlockedUser>> listBlockedUsers() async {
+    try {
+      final response = await _client.rpc('list_my_blocked_users');
+      return (response as List<dynamic>).map((raw) {
+        final row = Map<String, dynamic>.from(raw as Map);
+        return BlockedUser(
+          userId: row['user_id'] as String,
+          displayName: row['display_name'] as String,
+          blockedAt: DateTime.parse(row['blocked_at'] as String).toLocal(),
+        );
+      }).toList();
+    } on PostgrestException catch (error) {
+      throw _blockError(error, 'Blocked accounts could not be loaded.');
+    }
+  }
+
+  @override
+  Future<void> unblockUser(String userId) async {
+    try {
+      await _client.rpc('unblock_user', params: {
+        'p_blocked_user_id': userId,
+      });
+    } on PostgrestException catch (error) {
+      throw _blockError(error, 'The account could not be unblocked.');
+    }
+  }
+
+  AppException _blockError(PostgrestException error, String fallback) {
+    return AppException(
+      code: switch (error.code) {
+        '22023' => AppErrorCode.validation,
+        '42501' => AppErrorCode.forbidden,
+        'P0002' => AppErrorCode.unavailable,
+        _ => AppErrorCode.unexpected,
+      },
+      userMessage: switch (error.code) {
+        '22023' => 'You cannot block the account for this content.',
+        'P0002' => 'This content is no longer linked to an account.',
+        _ => fallback,
+      },
+      technicalMessage: error.message,
+      cause: error,
+    );
   }
 }

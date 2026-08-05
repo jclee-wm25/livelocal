@@ -64,6 +64,7 @@ import 'features/moderation/data/demo_moderation_repository.dart';
 import 'features/moderation/data/supabase_moderation_repository.dart';
 import 'features/moderation/domain/moderation_repository.dart';
 import 'app/theme/app_theme.dart';
+import 'features/moderation/presentation/blocked_users_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -282,6 +283,7 @@ class LiveLocalApp extends StatelessWidget {
           '/register': (context) => const RegisterScreen(),
           '/password-reset': (context) => const PasswordResetScreen(),
           '/notifications': (context) => const NotificationsScreen(),
+          '/blocked-users': (context) => const BlockedUsersScreen(),
           '/submit-spot': (context) => const SubmitSpotScreen(),
           '/creator-application': (context) => const CreatorApplicationScreen(),
           '/restaurant-detail': (context) {
