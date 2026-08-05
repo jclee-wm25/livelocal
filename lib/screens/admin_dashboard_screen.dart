@@ -23,7 +23,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.initState();
     _shakeController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
-        
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authCtrl = context.read<AuthController>();
       final currentUserRole = authCtrl.currentUser?.role ?? 'tourist';
@@ -43,7 +43,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content:
+            Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: success ? AppColors.primary : AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -52,7 +53,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  void _showRejectDialog(String spotId, String spotName) {
+  void _showRejectDialog(
+      String spotId, String spotName, String currentUserRole) {
     final TextEditingController reasonController = TextEditingController();
     final spotCtrl = context.read<SpotController>();
     showDialog(
@@ -79,8 +81,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           borderRadius: BorderRadius.circular(10)),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColors.error, width: 2),
+                        borderSide:
+                            const BorderSide(color: AppColors.error, width: 2),
                       ),
                     ),
                   ),
@@ -102,9 +104,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         } else {
                           final reason = reasonController.text.trim();
                           Navigator.pop(context);
-                          spotCtrl.rejectSpot(spotId, reason);
-                          _showSnackbar('$spotName rejected',
-                              success: true);
+                          spotCtrl.rejectSpot(spotId, reason, currentUserRole);
+                          _showSnackbar('$spotName rejected', success: true);
                         }
                       },
                       child: const Text('Reject',
@@ -128,7 +129,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final adminCtrl = context.watch<AdminController>();
     final authCtrl = context.watch<AuthController>();
     final currentUserRole = authCtrl.currentUser?.role ?? 'tourist';
-    
+
     final pendingSpots = spotCtrl.pendingSpots;
     final pendingReports = adminCtrl.pendingReports;
 
@@ -180,8 +181,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     Icons.report_problem, AppColors.error),
                 _buildStatCard('Total Users', '${adminCtrl.totalUsers}',
                     Icons.people, Colors.blue),
-                _buildStatCard('Suspended Users', '${adminCtrl.suspendedUsersCount}',
-                    Icons.block, Colors.deepPurple),
+                _buildStatCard(
+                    'Suspended Users',
+                    '${adminCtrl.suspendedUsersCount}',
+                    Icons.block,
+                    Colors.deepPurple),
               ]),
             ),
           ),
@@ -208,11 +212,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                                   onApprove: () {
                                     context
                                         .read<SpotController>()
-                                        .approveSpot(spot.id);
+                                        .approveSpot(spot.id, currentUserRole);
                                     _showSnackbar('${spot.name} approved!',
                                         success: true);
                                   },
-                                  onReject: () => _showRejectDialog(spot.id, spot.name),
+                                  onReject: () => _showRejectDialog(
+                                      spot.id, spot.name, currentUserRole),
                                 ))
                             .toList(),
                   ),
@@ -228,8 +233,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             )
                           ]
                         : pendingReports
-                            .map((r) => _buildReportTile(
-                                r, adminCtrl, currentUserRole))
+                            .map((r) =>
+                                _buildReportTile(r, adminCtrl, currentUserRole))
                             .toList(),
                   ),
                   const SizedBox(height: 40),
@@ -254,8 +259,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       child: Card(
         elevation: 6,
         shadowColor: color.withValues(alpha: 0.3),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -284,14 +288,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       String title, IconData icon, List<Widget> children) {
     return Card(
       elevation: 2,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         leading: Icon(icon, color: AppColors.error),
         title: Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 16)),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: Colors.white,
         collapsedBackgroundColor: Colors.white,
         childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -303,8 +305,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   Widget _buildApprovalTile(String title, String subtitle,
       {required VoidCallback onApprove, required VoidCallback onReject}) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle),
       trailing: Row(
@@ -317,8 +318,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           ),
           IconButton(
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            icon: const Icon(Icons.cancel,
-                color: AppColors.error, size: 28),
+            icon: const Icon(Icons.cancel, color: AppColors.error, size: 28),
             onPressed: () {
               _confirmAction(
                 title: 'Reject Submission',
@@ -332,40 +332,81 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildReportTile(Map<String, dynamic> report, AdminController adminCtrl, String currentUserRole) {
+  Widget _buildReportTile(
+    Map<String, dynamic> report,
+    AdminController adminCtrl,
+    String currentUserRole,
+  ) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      title: Text('Target: \${report['target_type']} (\${report['target_id']})',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text('Reason: \${report['reason']}'),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 20,
+        vertical: 4,
+      ),
+      title: Text(
+        "Target: ${report['target_type']} (${report['target_id']})",
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: const TextStyle(
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      subtitle: Text(
+        "Reason: ${report['reason']}",
+      ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (report['target_type'] == 'review')
             IconButton(
-              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-              icon: const Icon(Icons.delete, color: AppColors.error),
+              constraints: const BoxConstraints(
+                minWidth: 48,
+                minHeight: 48,
+              ),
+              icon: const Icon(
+                Icons.delete,
+                color: AppColors.error,
+              ),
               tooltip: 'Delete Review & Resolve',
               onPressed: () {
                 _confirmAction(
                   title: 'Delete Content',
                   content: 'Delete this review and resolve the report?',
                   onConfirm: () {
-                    adminCtrl.resolveReport(report['id'], 'delete_review', currentUserRole, reviewIdToDelete: report['target_id']);
-                    _showSnackbar('Review deleted and report resolved', success: true);
+                    adminCtrl.resolveReport(
+                      report['id'],
+                      'delete_review',
+                      currentUserRole,
+                      reviewIdToDelete: report['target_id'],
+                    );
+
+                    _showSnackbar(
+                      'Review deleted and report resolved',
+                      success: true,
+                    );
                   },
                 );
               },
             ),
           IconButton(
-            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            icon: const Icon(Icons.check_circle, color: Colors.green),
+            constraints: const BoxConstraints(
+              minWidth: 48,
+              minHeight: 48,
+            ),
+            icon: const Icon(
+              Icons.check_circle,
+              color: Colors.green,
+            ),
             tooltip: 'Dismiss Report',
             onPressed: () {
-              adminCtrl.dismissReport(report['id'], currentUserRole);
-              _showSnackbar('Report dismissed');
+              adminCtrl.dismissReport(
+                report['id'],
+                currentUserRole,
+              );
+
+              _showSnackbar(
+                'Report dismissed',
+                success: true,
+              );
             },
           ),
         ],
