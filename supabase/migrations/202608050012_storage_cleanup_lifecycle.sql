@@ -251,6 +251,358 @@ revoke all on function private.queue_removed_profile_avatar() from public;
 revoke all on function private.queue_removed_spot_image() from public;
 revoke all on function private.queue_removed_restaurant_image() from public;
 
+-- Replace migration-011 function bodies as part of the forward migration too.
+-- This is required for databases that applied 011 before the cleanup queue
+-- existed; editing the historical source file alone would not update them.
+create or replace function public.save_spot_revision_draft(
+  p_source_revision_id uuid,
+  p_name text,
+  p_category text,
+  p_description text,
+  p_state text,
+  p_city text,
+  p_address text,
+  p_price_range text,
+  p_best_time text,
+  p_things_to_do text,
+  p_image_path text,
+  p_latitude double precision,
+  p_longitude double precision
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, storage
+as $$
+declare
+  entity public.spots;
+  source public.spot_revisions;
+  saved public.spot_revisions;
+  next_number integer;
+  selected_image_path text;
+begin
+  if not private.can_use_protected_features() then
+    raise exception using errcode = '42501', message = 'Account cannot revise spots';
+  end if;
+
+  select * into entity
+  from public.spots
+  where owner_id = auth.uid()
+    and current_revision_id = p_source_revision_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'Current owned spot revision not found';
+  end if;
+
+  select * into source
+  from public.spot_revisions
+  where id = p_source_revision_id
+  for update;
+
+  if source.status not in (
+    'draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'
+  ) then
+    raise exception using errcode = '22023', message = 'Spot revision cannot be edited';
+  end if;
+
+  selected_image_path := coalesce(p_image_path, source.image_path);
+  if selected_image_path is null
+      or selected_image_path !~ ('^' || auth.uid()::text || '/[A-Za-z0-9_-]+\.(jpg|png|webp)$')
+      or not exists (
+        select 1 from storage.objects object
+        where object.bucket_id = 'spot-images'
+          and object.name = selected_image_path
+      ) then
+    raise exception using errcode = '22023', message = 'An uploaded owned spot image is required';
+  end if;
+
+  if source.status = 'draft' then
+    update public.spot_revisions set
+      name = btrim(p_name),
+      category = btrim(p_category),
+      description = btrim(p_description),
+      state = btrim(p_state),
+      city = btrim(p_city),
+      address = btrim(p_address),
+      price_range = p_price_range,
+      best_time = btrim(p_best_time),
+      things_to_do = btrim(p_things_to_do),
+      image_path = selected_image_path,
+      image_rights_confirmed_at = null,
+      latitude = p_latitude,
+      longitude = p_longitude,
+      duplicate_override_reason = null,
+      updated_at = clock_timestamp()
+    where id = source.id
+    returning * into saved;
+  else
+    if source.status in ('submitted', 'under_review') then
+      update public.spot_revisions
+      set status = 'withdrawn', updated_at = clock_timestamp()
+      where id = source.id;
+    end if;
+
+    select coalesce(max(revision_number), 0) + 1 into next_number
+    from public.spot_revisions
+    where spot_id = entity.id;
+
+    insert into public.spot_revisions (
+      spot_id, revision_number, author_id, name, category, description,
+      state, city, address, price_range, best_time, things_to_do,
+      image_path, latitude, longitude
+    ) values (
+      entity.id, next_number, auth.uid(), btrim(p_name), btrim(p_category),
+      btrim(p_description), btrim(p_state), btrim(p_city), btrim(p_address),
+      p_price_range, btrim(p_best_time), btrim(p_things_to_do),
+      selected_image_path, p_latitude, p_longitude
+    ) returning * into saved;
+
+    update public.spots
+    set current_revision_id = saved.id
+    where id = entity.id;
+  end if;
+
+  insert into public.audit_events (
+    actor_id, action, target_type, target_id, metadata
+  ) values (
+    auth.uid(), 'spot.revision_draft_saved', 'spot', entity.id,
+    jsonb_build_object(
+      'source_revision_id', source.id,
+      'revision_id', saved.id,
+      'revision_number', saved.revision_number
+    )
+  );
+
+  return jsonb_build_object(
+    'spot_id', entity.id,
+    'revision_id', saved.id,
+    'image_path', saved.image_path,
+    'status', 'draft',
+    'probable_duplicates', private.probable_spot_duplicates(
+      saved.name, saved.address, saved.latitude, saved.longitude, entity.id
+    )
+  );
+end;
+$$;
+
+create or replace function public.delete_spot_draft(p_revision_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, storage
+as $$
+declare
+  entity public.spots;
+  revision public.spot_revisions;
+begin
+  if not private.can_use_protected_features() then
+    raise exception using errcode = '42501', message = 'Account cannot discard spot drafts';
+  end if;
+
+  select * into entity
+  from public.spots
+  where owner_id = auth.uid()
+    and current_revision_id = p_revision_id
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'Draft not found';
+  end if;
+
+  select * into revision
+  from public.spot_revisions
+  where id = p_revision_id and status = 'draft'
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'Draft not found';
+  end if;
+
+  if entity.approved_revision_id is null then
+    delete from public.spots where id = entity.id;
+  else
+    update public.spots
+    set current_revision_id = approved_revision_id
+    where id = entity.id;
+    delete from public.spot_revisions where id = revision.id;
+  end if;
+end;
+$$;
+
+create or replace function public.save_restaurant_revision_draft(
+  p_source_revision_id uuid,
+  p_name text,
+  p_address text,
+  p_state text,
+  p_city text,
+  p_cuisine_type text,
+  p_price_range text,
+  p_reviewed_dishes text,
+  p_social_media_url text,
+  p_cover_image_path text,
+  p_latitude double precision,
+  p_longitude double precision
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, storage
+as $$
+declare
+  entity public.restaurants;
+  source public.restaurant_revisions;
+  saved public.restaurant_revisions;
+  next_number integer;
+  selected_image_path text;
+begin
+  if not private.can_use_protected_features()
+      or private.current_role(auth.uid()) <> 'influencer' then
+    raise exception using errcode = '42501', message = 'Approved creator role required';
+  end if;
+  if not private.is_supported_social_url(p_social_media_url, null) then
+    raise exception using errcode = '22023', message = 'Unsupported social URL';
+  end if;
+
+  select * into entity
+  from public.restaurants
+  where owner_id = auth.uid()
+    and current_revision_id = p_source_revision_id
+    and ownership_status = 'creator_owned'
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'Current owned restaurant revision not found';
+  end if;
+
+  select * into source
+  from public.restaurant_revisions
+  where id = p_source_revision_id
+  for update;
+  if source.status not in (
+    'draft', 'submitted', 'under_review', 'approved', 'rejected', 'withdrawn'
+  ) then
+    raise exception using errcode = '22023', message = 'Restaurant revision cannot be edited';
+  end if;
+
+  selected_image_path := coalesce(p_cover_image_path, source.cover_image_path);
+  if selected_image_path is null
+      or selected_image_path !~ ('^' || auth.uid()::text || '/[A-Za-z0-9_-]+\.(jpg|png|webp)$')
+      or not exists (
+        select 1 from storage.objects object
+        where object.bucket_id = 'restaurant-images'
+          and object.name = selected_image_path
+      ) then
+    raise exception using errcode = '22023', message = 'An uploaded owned restaurant image is required';
+  end if;
+
+  if source.status = 'draft' then
+    update public.restaurant_revisions set
+      name = btrim(p_name),
+      address = btrim(p_address),
+      state = btrim(p_state),
+      city = btrim(p_city),
+      cuisine_type = btrim(p_cuisine_type),
+      price_range = p_price_range,
+      reviewed_dishes = btrim(p_reviewed_dishes),
+      social_media_url = btrim(p_social_media_url),
+      cover_image_path = selected_image_path,
+      latitude = p_latitude,
+      longitude = p_longitude,
+      duplicate_override_reason = null,
+      updated_at = clock_timestamp()
+    where id = source.id
+    returning * into saved;
+  else
+    if source.status in ('submitted', 'under_review') then
+      update public.restaurant_revisions
+      set status = 'withdrawn', updated_at = clock_timestamp()
+      where id = source.id;
+    end if;
+
+    select coalesce(max(revision_number), 0) + 1 into next_number
+    from public.restaurant_revisions
+    where restaurant_id = entity.id;
+
+    insert into public.restaurant_revisions (
+      restaurant_id, revision_number, author_id, name, address, state, city,
+      cuisine_type, price_range, reviewed_dishes, social_media_url,
+      cover_image_path, latitude, longitude
+    ) values (
+      entity.id, next_number, auth.uid(), btrim(p_name), btrim(p_address),
+      btrim(p_state), btrim(p_city), btrim(p_cuisine_type), p_price_range,
+      btrim(p_reviewed_dishes), btrim(p_social_media_url), selected_image_path,
+      p_latitude, p_longitude
+    ) returning * into saved;
+
+    update public.restaurants
+    set current_revision_id = saved.id
+    where id = entity.id;
+  end if;
+
+  insert into public.audit_events (
+    actor_id, action, target_type, target_id, metadata
+  ) values (
+    auth.uid(), 'restaurant.revision_draft_saved', 'restaurant', entity.id,
+    jsonb_build_object(
+      'source_revision_id', source.id,
+      'revision_id', saved.id,
+      'revision_number', saved.revision_number
+    )
+  );
+
+  return jsonb_build_object(
+    'restaurant_id', entity.id,
+    'revision_id', saved.id,
+    'image_path', saved.cover_image_path,
+    'status', 'draft',
+    'probable_duplicates', private.probable_restaurant_duplicates(
+      saved.name, saved.address, saved.latitude, saved.longitude, entity.id
+    )
+  );
+end;
+$$;
+
+create or replace function public.delete_restaurant_draft(p_revision_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = pg_catalog, public, private, storage
+as $$
+declare
+  entity public.restaurants;
+  revision public.restaurant_revisions;
+begin
+  if not private.can_use_protected_features()
+      or private.current_role(auth.uid()) <> 'influencer' then
+    raise exception using errcode = '42501', message = 'Approved creator role required';
+  end if;
+
+  select * into entity
+  from public.restaurants
+  where owner_id = auth.uid()
+    and current_revision_id = p_revision_id
+    and ownership_status = 'creator_owned'
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'Draft not found';
+  end if;
+
+  select * into revision
+  from public.restaurant_revisions
+  where id = p_revision_id and status = 'draft'
+  for update;
+  if not found then
+    raise exception using errcode = 'P0002', message = 'Draft not found';
+  end if;
+
+  if entity.approved_revision_id is null then
+    delete from public.restaurants where id = entity.id;
+  else
+    update public.restaurants
+    set current_revision_id = approved_revision_id
+    where id = entity.id;
+    delete from public.restaurant_revisions where id = revision.id;
+  end if;
+end;
+$$;
+
 create or replace function private.enqueue_account_storage_cleanup(
   p_user_id uuid
 )
