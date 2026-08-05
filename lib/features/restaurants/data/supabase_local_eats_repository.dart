@@ -96,32 +96,49 @@ class SupabaseLocalEatsRepository implements LocalEatsRepository {
   }
 
   @override
+  Future<List<RestaurantModel>> fetchOwnedRestaurantSubmissions() async {
+    try {
+      final response = await _client.rpc('list_my_restaurant_submissions');
+      return Future.wait((response as List<dynamic>).map((raw) async {
+        final row = Map<String, dynamic>.from(raw as Map);
+        return RestaurantModel(
+          id: row['restaurant_id'] as String,
+          revisionId: row['revision_id'] as String,
+          moderationVersion: (row['moderation_version'] as num?)?.toInt() ?? 1,
+          name: row['name'] as String,
+          address: row['address'] as String,
+          state: row['state'] as String,
+          city: row['city'] as String,
+          cuisineType: row['cuisine_type'] as String,
+          priceRange: row['price_range'] as String,
+          reviewedDishes: row['reviewed_dishes'] as String,
+          influencerId: _client.auth.currentUser?.id ?? '',
+          influencerName: '',
+          socialMediaUrl: row['social_media_url'] as String,
+          coverPhotoUrl: await _signedImage(row['cover_image_path'] as String?),
+          coverImagePath: row['cover_image_path'] as String?,
+          status: row['status'] as String,
+          isOwnedByCurrentUser: true,
+          decisionReason: row['decision_reason'] as String?,
+          hasApprovedRevision: row['has_approved_revision'] as bool? ?? false,
+          latitude: (row['latitude'] as num?)?.toDouble(),
+          longitude: (row['longitude'] as num?)?.toDouble(),
+        );
+      }));
+    } on PostgrestException catch (error) {
+      throw _error(error, 'Your restaurant submissions could not be loaded.');
+    }
+  }
+
+  @override
   Future<RestaurantDraftResult> createRestaurantDraft({
     required RestaurantDraftInput input,
     required Uint8List imageBytes,
     required String imageMimeType,
   }) async {
-    _validateImage(imageBytes, imageMimeType);
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      throw const AppException(
-        code: AppErrorCode.authentication,
-        userMessage: 'Sign in to submit a restaurant.',
-      );
-    }
-    final extension = switch (imageMimeType) {
-      'image/png' => 'png',
-      'image/webp' => 'webp',
-      _ => 'jpg',
-    };
-    final imagePath =
-        '$userId/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    late final String imagePath;
     try {
-      await _client.storage.from('restaurant-images').uploadBinary(
-            imagePath,
-            imageBytes,
-            fileOptions: FileOptions(contentType: imageMimeType),
-          );
+      imagePath = await _uploadImage(imageBytes, imageMimeType);
       final response = await _client.rpc('create_restaurant_draft', params: {
         'p_name': input.name,
         'p_address': input.address,
@@ -180,6 +197,49 @@ class SupabaseLocalEatsRepository implements LocalEatsRepository {
   }
 
   @override
+  Future<RestaurantDraftResult> saveRestaurantRevisionDraft({
+    required RestaurantModel source,
+    required RestaurantDraftInput input,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+  }) async {
+    String? uploadedPath;
+    try {
+      if (imageBytes != null) {
+        uploadedPath = await _uploadImage(imageBytes, imageMimeType ?? '');
+      }
+      final response =
+          await _client.rpc('save_restaurant_revision_draft', params: {
+        'p_source_revision_id': source.revisionId,
+        'p_name': input.name,
+        'p_address': input.address,
+        'p_state': input.state,
+        'p_city': input.city,
+        'p_cuisine_type': input.cuisineType,
+        'p_price_range': input.priceRange,
+        'p_reviewed_dishes': input.reviewedDishes,
+        'p_social_media_url': input.socialMediaUrl,
+        'p_cover_image_path': uploadedPath,
+        'p_latitude': input.latitude,
+        'p_longitude': input.longitude,
+      });
+      return _draftResult(Map<String, dynamic>.from(response as Map));
+    } on StorageException catch (error) {
+      throw AppException(
+        code: AppErrorCode.unavailable,
+        userMessage: 'The revised restaurant photo could not be uploaded.',
+        technicalMessage: error.message,
+        cause: error,
+      );
+    } on PostgrestException catch (error) {
+      if (uploadedPath != null) {
+        await _removeFailedUpload(uploadedPath);
+      }
+      throw _error(error, 'The restaurant revision could not be saved.');
+    }
+  }
+
+  @override
   Future<void> submitRestaurant({
     required String revisionId,
     String? duplicateOverrideReason,
@@ -201,13 +261,20 @@ class SupabaseLocalEatsRepository implements LocalEatsRepository {
         'delete_restaurant_draft',
         params: {'p_revision_id': draft.revisionId},
       );
-      if (draft.imagePath != null) {
-        await _client.storage
-            .from('restaurant-images')
-            .remove([draft.imagePath!]);
-      }
     } on PostgrestException catch (error) {
       throw _error(error, 'The restaurant draft could not be discarded.');
+    }
+  }
+
+  @override
+  Future<void> withdrawRestaurantRevision(String revisionId) async {
+    try {
+      await _client.rpc(
+        'withdraw_my_restaurant_revision',
+        params: {'p_revision_id': revisionId},
+      );
+    } on PostgrestException catch (error) {
+      throw _error(error, 'The restaurant submission could not be withdrawn.');
     }
   }
 
@@ -309,6 +376,66 @@ class SupabaseLocalEatsRepository implements LocalEatsRepository {
     return _client.storage
         .from('restaurant-images')
         .createSignedUrl(path, 3600);
+  }
+
+  Future<String> _uploadImage(Uint8List bytes, String mimeType) async {
+    _validateImage(bytes, mimeType);
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppException(
+        code: AppErrorCode.authentication,
+        userMessage: 'Sign in to submit a restaurant.',
+      );
+    }
+    final extension = switch (mimeType) {
+      'image/png' => 'png',
+      'image/webp' => 'webp',
+      _ => 'jpg',
+    };
+    final path = '$userId/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    await _client.storage.from('restaurant-images').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: mimeType),
+        );
+    return path;
+  }
+
+  RestaurantDraftResult _draftResult(Map<String, dynamic> row) {
+    final duplicates =
+        (row['probable_duplicates'] as List<dynamic>? ?? []).map((raw) {
+      final duplicate = Map<String, dynamic>.from(raw as Map);
+      return RestaurantModel(
+        id: duplicate['id'] as String,
+        name: duplicate['name'] as String,
+        address: duplicate['address'] as String,
+        state: duplicate['state'] as String,
+        city: duplicate['city'] as String,
+        cuisineType: '',
+        priceRange: r'$',
+        reviewedDishes: '',
+        influencerId: '',
+        influencerName: '',
+        socialMediaUrl: '',
+        coverPhotoUrl: '',
+      );
+    }).toList();
+    return RestaurantDraftResult(
+      restaurantId: row['restaurant_id'] as String,
+      revisionId: row['revision_id'] as String,
+      probableDuplicates: duplicates,
+      imagePath: row['image_path'] as String?,
+    );
+  }
+
+  Future<void> _removeFailedUpload(String path) async {
+    try {
+      await _client.storage.from('restaurant-images').remove([path]);
+    } catch (cleanupError) {
+      if (kDebugMode) {
+        debugPrint('Restaurant image cleanup failed: $cleanupError');
+      }
+    }
   }
 
   void _validateImage(Uint8List bytes, String mimeType) {

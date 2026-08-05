@@ -12,11 +12,17 @@ import '../domain/local_eats_repository.dart';
 class DemoLocalEatsRepository implements LocalEatsRepository {
   DemoLocalEatsRepository(this._authRepository)
       : _restaurants = List.of(SeedDataService.getInitialRestaurants()),
-        _discounts = List.of(SeedDataService.getInitialDiscountCodes());
+        _discounts = List.of(SeedDataService.getInitialDiscountCodes()) {
+    for (final restaurant in _restaurants) {
+      _currentRevisionIds[restaurant.id] =
+          restaurant.revisionId ?? restaurant.id;
+    }
+  }
 
   final DemoAuthRepository _authRepository;
   final List<RestaurantModel> _restaurants;
   final List<DiscountCodeModel> _discounts;
+  final Map<String, String> _currentRevisionIds = {};
 
   @override
   Future<List<RestaurantModel>> fetchPublicRestaurants() async {
@@ -50,6 +56,25 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
     _requireAdmin();
     return _restaurants
         .where((restaurant) => restaurant.status == 'submitted')
+        .toList();
+  }
+
+  @override
+  Future<List<RestaurantModel>> fetchOwnedRestaurantSubmissions() async {
+    final account = _requireInfluencer();
+    return _restaurants
+        .where(
+          (restaurant) =>
+              restaurant.influencerId == account.id &&
+              _currentRevisionIds[restaurant.id] ==
+                  (restaurant.revisionId ?? restaurant.id),
+        )
+        .map(
+          (restaurant) => _copyRestaurant(
+            restaurant,
+            isOwnedByCurrentUser: true,
+          ),
+        )
         .toList();
   }
 
@@ -94,12 +119,14 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
         influencerName: account.fullName,
         socialMediaUrl: input.socialMediaUrl,
         coverPhotoUrl: 'demo://restaurant-image/$revisionId',
+        coverImagePath: 'demo://restaurant-image/$revisionId',
         latitude: input.latitude,
         longitude: input.longitude,
         status: 'draft',
         isOwnedByCurrentUser: true,
       ),
     );
+    _currentRevisionIds[id] = revisionId;
     return RestaurantDraftResult(
       restaurantId: id,
       revisionId: revisionId,
@@ -109,13 +136,120 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
   }
 
   @override
+  Future<RestaurantDraftResult> saveRestaurantRevisionDraft({
+    required RestaurantModel source,
+    required RestaurantDraftInput input,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+  }) async {
+    final account = _requireInfluencer();
+    if (!SocialUrlValidator.isSupported(input.socialMediaUrl)) {
+      throw const AppException(
+        code: AppErrorCode.validation,
+        userMessage: 'Use a supported TikTok or Instagram HTTPS URL.',
+      );
+    }
+    if (imageBytes != null) {
+      _validateImage(imageBytes, imageMimeType ?? '');
+    }
+    final sourceIndex = _restaurants.indexWhere(
+      (restaurant) =>
+          restaurant.revisionId == source.revisionId &&
+          restaurant.influencerId == account.id &&
+          _currentRevisionIds[restaurant.id] == restaurant.revisionId,
+    );
+    if (sourceIndex < 0 ||
+        !{
+          'draft',
+          'submitted',
+          'under_review',
+          'approved',
+          'rejected',
+          'withdrawn',
+        }.contains(_restaurants[sourceIndex].status)) {
+      throw const AppException(
+        code: AppErrorCode.notFound,
+        userMessage: 'The current restaurant submission could not be edited.',
+      );
+    }
+    final existing = _restaurants[sourceIndex];
+    final revisionId = existing.status == 'draft'
+        ? existing.revisionId!
+        : 'demo-restaurant-revision-${DateTime.now().microsecondsSinceEpoch}';
+    final revised = RestaurantModel(
+      id: existing.id,
+      revisionId: revisionId,
+      moderationVersion: existing.moderationVersion,
+      name: input.name,
+      address: input.address,
+      state: input.state,
+      city: input.city,
+      cuisineType: input.cuisineType,
+      priceRange: input.priceRange,
+      reviewedDishes: input.reviewedDishes,
+      influencerId: account.id,
+      influencerName: account.fullName,
+      socialMediaUrl: input.socialMediaUrl,
+      coverPhotoUrl: imageBytes == null
+          ? existing.coverPhotoUrl
+          : 'demo://restaurant-image/$revisionId',
+      coverImagePath: imageBytes == null
+          ? existing.coverImagePath
+          : 'demo://restaurant-image/$revisionId',
+      latitude: input.latitude,
+      longitude: input.longitude,
+      status: 'draft',
+      isOwnedByCurrentUser: true,
+      hasApprovedRevision: _restaurants.any(
+        (restaurant) =>
+            restaurant.id == existing.id && restaurant.status == 'approved',
+      ),
+    );
+    if (revised.coverPhotoUrl.isEmpty) {
+      throw const AppException(
+        code: AppErrorCode.validation,
+        userMessage: 'Choose a cover photo before saving the revision.',
+      );
+    }
+    if (existing.status == 'draft') {
+      _restaurants[sourceIndex] = revised;
+    } else {
+      if (existing.status == 'submitted' || existing.status == 'under_review') {
+        _restaurants[sourceIndex] =
+            _copyRestaurant(existing, status: 'withdrawn');
+      }
+      _restaurants.add(revised);
+    }
+    _currentRevisionIds[existing.id] = revisionId;
+    final duplicates = _restaurants
+        .where(
+          (restaurant) =>
+              restaurant.id != existing.id &&
+              restaurant.status == 'approved' &&
+              (restaurant.name.toLowerCase() == input.name.toLowerCase() ||
+                  restaurant.address.toLowerCase() ==
+                      input.address.toLowerCase()),
+        )
+        .toList();
+    return RestaurantDraftResult(
+      restaurantId: existing.id,
+      revisionId: revisionId,
+      probableDuplicates: duplicates,
+      imagePath: revised.coverImagePath,
+    );
+  }
+
+  @override
   Future<void> submitRestaurant({
     required String revisionId,
     String? duplicateOverrideReason,
   }) async {
-    _requireInfluencer();
+    final account = _requireInfluencer();
     final index = _restaurants.indexWhere(
-      (restaurant) => restaurant.revisionId == revisionId,
+      (restaurant) =>
+          restaurant.revisionId == revisionId &&
+          restaurant.influencerId == account.id &&
+          _currentRevisionIds[restaurant.id] == revisionId,
     );
     if (index < 0 || _restaurants[index].status != 'draft') {
       throw const AppException(
@@ -131,12 +265,60 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
 
   @override
   Future<void> deleteRestaurantDraft(RestaurantDraftResult draft) async {
-    _requireInfluencer();
-    _restaurants.removeWhere(
+    final account = _requireInfluencer();
+    final index = _restaurants.indexWhere(
       (restaurant) =>
           restaurant.revisionId == draft.revisionId &&
-          restaurant.status == 'draft',
+          restaurant.status == 'draft' &&
+          restaurant.influencerId == account.id &&
+          _currentRevisionIds[restaurant.id] == draft.revisionId,
     );
+    if (index < 0) {
+      throw const AppException(
+        code: AppErrorCode.notFound,
+        userMessage: 'The current restaurant draft could not be discarded.',
+      );
+    }
+    final restaurantId = _restaurants[index].id;
+    _restaurants.removeAt(index);
+    final approved = _restaurants.where(
+      (restaurant) =>
+          restaurant.id == restaurantId && restaurant.status == 'approved',
+    );
+    if (approved.isEmpty) {
+      _currentRevisionIds.remove(restaurantId);
+    } else {
+      final current = approved.last;
+      _currentRevisionIds[restaurantId] = current.revisionId ?? current.id;
+    }
+  }
+
+  @override
+  Future<void> withdrawRestaurantRevision(String revisionId) async {
+    final account = _requireInfluencer();
+    final index = _restaurants.indexWhere(
+      (restaurant) =>
+          restaurant.revisionId == revisionId &&
+          restaurant.influencerId == account.id &&
+          _currentRevisionIds[restaurant.id] == revisionId,
+    );
+    if (index < 0 ||
+        !{'submitted', 'under_review'}.contains(_restaurants[index].status)) {
+      throw const AppException(
+        code: AppErrorCode.conflict,
+        userMessage: 'This restaurant is no longer awaiting review.',
+      );
+    }
+    final withdrawn = _restaurants[index];
+    _restaurants[index] = _copyRestaurant(withdrawn, status: 'withdrawn');
+    final approved = _restaurants.where(
+      (restaurant) =>
+          restaurant.id == withdrawn.id && restaurant.status == 'approved',
+    );
+    if (approved.isNotEmpty) {
+      final current = approved.last;
+      _currentRevisionIds[withdrawn.id] = current.revisionId ?? current.id;
+    }
   }
 
   @override
@@ -163,11 +345,23 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
         userMessage: 'This restaurant changed. Refresh and try again.',
       );
     }
+    if (decision == 'approved') {
+      for (var candidate = 0; candidate < _restaurants.length; candidate++) {
+        final item = _restaurants[candidate];
+        if (candidate != index &&
+            item.id == _restaurants[index].id &&
+            item.status == 'approved') {
+          _restaurants[candidate] = _copyRestaurant(item, status: 'archived');
+        }
+      }
+    }
     _restaurants[index] = _copyRestaurant(
       _restaurants[index],
       status: decision,
       moderationVersion: restaurant.moderationVersion + 1,
     );
+    _currentRevisionIds[_restaurants[index].id] =
+        _restaurants[index].revisionId ?? _restaurants[index].id;
   }
 
   @override
@@ -335,6 +529,7 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
       influencerName: value.influencerName,
       socialMediaUrl: value.socialMediaUrl,
       coverPhotoUrl: value.coverPhotoUrl,
+      coverImagePath: value.coverImagePath,
       rating: value.rating,
       reviewCount: value.reviewCount,
       latitude: value.latitude,
@@ -342,6 +537,8 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
       status: status ?? value.status,
       ownershipStatus: value.ownershipStatus,
       isOwnedByCurrentUser: isOwnedByCurrentUser ?? value.isOwnedByCurrentUser,
+      decisionReason: value.decisionReason,
+      hasApprovedRevision: value.hasApprovedRevision,
     );
   }
 }

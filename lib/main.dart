@@ -64,6 +64,7 @@ import 'features/moderation/data/supabase_moderation_repository.dart';
 import 'features/moderation/domain/moderation_repository.dart';
 import 'app/theme/app_theme.dart';
 import 'features/moderation/presentation/blocked_users_screen.dart';
+import 'screens/my_submissions_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -281,6 +282,7 @@ class LiveLocalApp extends StatelessWidget {
           '/password-reset': (context) => const PasswordResetScreen(),
           '/notifications': (context) => const NotificationsScreen(),
           '/blocked-users': (context) => const BlockedUsersScreen(),
+          '/my-submissions': (context) => const MySubmissionsScreen(),
           '/submit-spot': (context) => const SubmitSpotScreen(),
           '/creator-application': (context) => const CreatorApplicationScreen(),
           '/restaurant-detail': (context) {

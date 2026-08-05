@@ -15,6 +15,7 @@ class SpotController with ChangeNotifier {
   final SpotRepository _repository;
   final List<SpotModel> _spots = [];
   List<SpotModel> _pendingSpots = [];
+  List<SpotModel> _ownedSubmissions = [];
   bool _isLoading = false;
   bool _isLoadingMore = false;
   bool _hasMore = true;
@@ -35,6 +36,7 @@ class SpotController with ChangeNotifier {
 
   List<SpotModel> get approvedSpots => _spots.where(_matchesFilters).toList();
   List<SpotModel> get pendingSpots => List.unmodifiable(_pendingSpots);
+  List<SpotModel> get ownedSubmissions => List.unmodifiable(_ownedSubmissions);
 
   Future<void> loadSpots() async {
     _isLoading = true;
@@ -95,6 +97,17 @@ class SpotController with ChangeNotifier {
     }
   }
 
+  Future<void> loadOwnedSubmissions() async {
+    try {
+      _ownedSubmissions = await _repository.fetchOwnedSubmissions();
+      _errorMessage = null;
+    } catch (error) {
+      _errorMessage = _message(error, 'Your submissions could not be loaded.');
+    } finally {
+      notifyListeners();
+    }
+  }
+
   void filter({String? state, String? category, String? query}) {
     if (state != null) _selectedState = state;
     if (category != null) _selectedCategory = category;
@@ -147,6 +160,60 @@ class SpotController with ChangeNotifier {
     }
   }
 
+  Future<SpotDraftResult?> reviseAndSubmit({
+    required SpotModel source,
+    required SpotDraftInput input,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+    required bool imageRightsConfirmed,
+    String? duplicateOverrideReason,
+  }) async {
+    _errorMessage = null;
+    notifyListeners();
+    if ((imageBytes == null && source.imageUrl.isEmpty) ||
+        !imageRightsConfirmed) {
+      _errorMessage =
+          'Choose or keep a photo and confirm that you may share it.';
+      notifyListeners();
+      return null;
+    }
+    try {
+      final draft = await _repository.saveRevisionDraft(
+        source: source,
+        input: input,
+        imageBytes: imageBytes,
+        imageMimeType: imageMimeType,
+      );
+      await _repository.confirmImageRights(draft.revisionId);
+      if (draft.probableDuplicates.isEmpty || duplicateOverrideReason != null) {
+        await _repository.submitRevision(
+          revisionId: draft.revisionId,
+          duplicateOverrideReason: duplicateOverrideReason,
+        );
+      }
+      await loadOwnedSubmissions();
+      return draft;
+    } catch (error) {
+      _errorMessage = _message(error, 'The spot revision could not be saved.');
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> withdrawSubmission(SpotModel spot) async {
+    final revisionId = spot.revisionId;
+    if (revisionId == null) return false;
+    try {
+      await _repository.withdrawRevision(revisionId);
+      await Future.wait([loadOwnedSubmissions(), loadSpots()]);
+      return true;
+    } catch (error) {
+      _errorMessage = _message(error, 'The submission could not be withdrawn.');
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> submitExistingDraft(
     String revisionId,
     String duplicateOverrideReason,
@@ -171,6 +238,7 @@ class SpotController with ChangeNotifier {
         revisionId: draft.revisionId,
         imagePath: draft.imagePath,
       );
+      await loadOwnedSubmissions();
       return true;
     } catch (error) {
       _errorMessage = _message(error, 'The draft could not be discarded.');

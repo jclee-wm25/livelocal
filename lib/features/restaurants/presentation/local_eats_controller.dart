@@ -16,6 +16,7 @@ class LocalEatsController with ChangeNotifier {
   final LocalEatsRepository _repository;
   List<RestaurantModel> _restaurants = [];
   List<RestaurantModel> _pendingRestaurants = [];
+  List<RestaurantModel> _ownedRestaurantSubmissions = [];
   List<DiscountCodeModel> _discountCodes = [];
   List<DiscountCodeModel> _ownedDiscounts = [];
   bool _isLoading = false;
@@ -28,6 +29,8 @@ class LocalEatsController with ChangeNotifier {
   List<RestaurantModel> get restaurants => List.unmodifiable(_restaurants);
   List<RestaurantModel> get pendingRestaurants =>
       List.unmodifiable(_pendingRestaurants);
+  List<RestaurantModel> get ownedRestaurantSubmissions =>
+      List.unmodifiable(_ownedRestaurantSubmissions);
   List<DiscountCodeModel> get discountCodes =>
       List.unmodifiable(_discountCodes);
   List<DiscountCodeModel> get ownedDiscounts =>
@@ -115,6 +118,19 @@ class LocalEatsController with ChangeNotifier {
     }
   }
 
+  Future<void> loadOwnedRestaurantSubmissions() async {
+    try {
+      _ownedRestaurantSubmissions =
+          await _repository.fetchOwnedRestaurantSubmissions();
+      _errorMessage = null;
+    } catch (error) {
+      _errorMessage =
+          _message(error, 'Your restaurant submissions could not be loaded.');
+    } finally {
+      notifyListeners();
+    }
+  }
+
   Future<void> loadOwnedDiscounts() async {
     try {
       _ownedDiscounts = await _repository.fetchOwnedDiscounts();
@@ -170,6 +186,51 @@ class LocalEatsController with ChangeNotifier {
     }
   }
 
+  Future<RestaurantDraftResult?> reviseRestaurant({
+    required RestaurantModel source,
+    required RestaurantDraftInput input,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+  }) async {
+    try {
+      final draft = await _repository.saveRestaurantRevisionDraft(
+        source: source,
+        input: input,
+        imageBytes: imageBytes,
+        imageMimeType: imageMimeType,
+      );
+      if (draft.probableDuplicates.isEmpty) {
+        await _repository.submitRestaurant(revisionId: draft.revisionId);
+      }
+      await loadOwnedRestaurantSubmissions();
+      _errorMessage = null;
+      notifyListeners();
+      return draft;
+    } catch (error) {
+      _errorMessage =
+          _message(error, 'The restaurant revision could not be saved.');
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<bool> withdrawRestaurantSubmission(
+    RestaurantModel restaurant,
+  ) async {
+    final revisionId = restaurant.revisionId;
+    if (revisionId == null) return false;
+    try {
+      await _repository.withdrawRestaurantRevision(revisionId);
+      await Future.wait([loadOwnedRestaurantSubmissions(), loadData()]);
+      return true;
+    } catch (error) {
+      _errorMessage =
+          _message(error, 'The restaurant submission could not be withdrawn.');
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> resolveRestaurantDuplicate(
     RestaurantDraftResult draft, {
     String? overrideReason,
@@ -184,6 +245,7 @@ class LocalEatsController with ChangeNotifier {
           duplicateOverrideReason: overrideReason,
         );
       }
+      await loadOwnedRestaurantSubmissions();
       _errorMessage = null;
       notifyListeners();
       return true;

@@ -193,6 +193,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   ListTile(
                     minTileHeight: 56,
+                    leading: const Icon(Icons.fact_check_outlined),
+                    title: const Text('Your submissions'),
+                    subtitle: const Text('Drafts, review status and revisions'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () =>
+                        Navigator.pushNamed(context, '/my-submissions'),
+                  ),
+                  const Divider(height: 1),
+                  ListTile(
+                    minTileHeight: 56,
                     leading: const Icon(Icons.notifications_outlined),
                     title: const Text('Notifications'),
                     subtitle: const Text('View your in-app history'),

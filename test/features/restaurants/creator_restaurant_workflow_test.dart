@@ -126,6 +126,58 @@ void main() {
         isTrue,
       );
 
+      final owned = await localEats.fetchOwnedRestaurantSubmissions();
+      final approvedListing = owned.singleWhere(
+        (item) => item.id == restaurantDraft.restaurantId,
+      );
+      final revisedDraft = await localEats.saveRestaurantRevisionDraft(
+        source: approvedListing,
+        input: RestaurantDraftInput(
+          name: 'Revised Workflow Test Kitchen',
+          address: approvedListing.address,
+          state: approvedListing.state,
+          city: approvedListing.city,
+          cuisineType: approvedListing.cuisineType,
+          priceRange: approvedListing.priceRange,
+          reviewedDishes: 'Revised nasi lemak and kuih recommendation',
+          socialMediaUrl: approvedListing.socialMediaUrl,
+        ),
+      );
+      await localEats.submitRestaurant(revisionId: revisedDraft.revisionId);
+      expect(
+        (await localEats.fetchPublicRestaurants())
+            .singleWhere((item) => item.id == restaurantDraft.restaurantId)
+            .name,
+        'Workflow Test Kitchen',
+        reason: 'the last approved revision remains public during review',
+      );
+
+      await auth.signOut();
+      await auth.signIn(
+        email: 'admin@livelocal.my',
+        password: SeedDataService.demoPassword,
+      );
+      final revisedQueue = await localEats.fetchPendingRestaurants();
+      await localEats.moderateRestaurant(
+        restaurant: revisedQueue.singleWhere(
+          (item) => item.revisionId == revisedDraft.revisionId,
+        ),
+        decision: 'approved',
+        reason: 'Revised business details verified.',
+      );
+
+      await auth.signOut();
+      await auth.signIn(
+        email: 'tourist@livelocal.my',
+        password: SeedDataService.demoPassword,
+      );
+      expect(
+        (await localEats.fetchPublicRestaurants())
+            .singleWhere((item) => item.id == restaurantDraft.restaurantId)
+            .name,
+        'Revised Workflow Test Kitchen',
+      );
+
       final discount = await localEats.createAndPublishDiscount(
         DiscountDraftInput(
           restaurantId: restaurantDraft.restaurantId,

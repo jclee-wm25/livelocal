@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
@@ -7,9 +8,12 @@ import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/spot_controller.dart';
 import '../features/spots/domain/spot_repository.dart';
+import '../models/spot_model.dart';
 
 class SubmitSpotScreen extends StatefulWidget {
-  const SubmitSpotScreen({super.key});
+  const SubmitSpotScreen({super.key, this.source});
+
+  final SpotModel? source;
 
   @override
   State<SubmitSpotScreen> createState() => _SubmitSpotScreenState();
@@ -52,6 +56,24 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     'Heritage Spot',
   ];
 
+  bool get _isRevision => widget.source != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final source = widget.source;
+    if (source == null) return;
+    _name.text = source.name;
+    _description.text = source.description;
+    _city.text = source.city;
+    _address.text = source.address;
+    _bestTime.text = source.bestTime;
+    _thingsToDo.text = source.thingsToDo;
+    if (_states.contains(source.state)) _state = source.state;
+    if (_categories.contains(source.category)) _category = source.category;
+    _priceRange = source.priceRange;
+  }
+
   @override
   void dispose() {
     _name.dispose();
@@ -69,7 +91,9 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     final spotController = context.watch<SpotController>();
     if (!auth.canWrite) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Submit a local spot')),
+        appBar: AppBar(
+          title: Text(_isRevision ? 'Revise your spot' : 'Submit a local spot'),
+        ),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -97,7 +121,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
       appBar: AppBar(
-        title: const Text('Submit a local spot'),
+        title: Text(_isRevision ? 'Revise your spot' : 'Submit a local spot'),
         backgroundColor: const Color(0xFFF7F5F0),
       ),
       body: Form(
@@ -106,12 +130,16 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
           children: [
             Text(
-              'Share a place worth discovering',
+              _isRevision
+                  ? 'Update your submission'
+                  : 'Share a place worth discovering',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Your submission stays private until an administrator approves it. Material edits create a new reviewable revision.',
+            Text(
+              _isRevision
+                  ? 'Your last approved version stays public while material changes are reviewed. Prior decisions remain in history.'
+                  : 'Your submission stays private until an administrator approves it. Material edits create a new reviewable revision.',
             ),
             const SizedBox(height: 24),
             _field(_name, 'Spot name', minLength: 2, maxLength: 120),
@@ -180,23 +208,37 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: Colors.black12),
                 ),
-                child: _imageBytes == null
-                    ? const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_photo_alternate_outlined, size: 40),
-                          SizedBox(height: 8),
-                          Text('Choose a JPEG, PNG or WebP photo (max 8 MB)'),
-                        ],
-                      )
-                    : ClipRRect(
+                child: _imageBytes != null
+                    ? ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: Image.memory(
                           _imageBytes!,
                           fit: BoxFit.cover,
                           width: double.infinity,
                         ),
-                      ),
+                      )
+                    : widget.source?.imageUrl.isNotEmpty == true
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.source!.imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorWidget: (_, __, ___) => const Center(
+                                child: Text('Choose a replacement photo'),
+                              ),
+                            ),
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_outlined,
+                                  size: 40),
+                              SizedBox(height: 8),
+                              Text(
+                                  'Choose a JPEG, PNG or WebP photo (max 8 MB)'),
+                            ],
+                          ),
               ),
             ),
             CheckboxListTile(
@@ -313,7 +355,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-    if (_imageBytes == null) {
+    if (_imageBytes == null && widget.source?.imageUrl.isNotEmpty != true) {
       _message('Choose a clear photo of the place.');
       return;
     }
@@ -322,22 +364,32 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
       return;
     }
     setState(() => _submitting = true);
-    final result = await context.read<SpotController>().submitDraft(
-          input: SpotDraftInput(
-            name: _name.text.trim(),
-            category: _category,
-            description: _description.text.trim(),
-            state: _state,
-            city: _city.text.trim(),
-            address: _address.text.trim(),
-            priceRange: _priceRange,
-            bestTime: _bestTime.text.trim(),
-            thingsToDo: _thingsToDo.text.trim(),
-          ),
-          imageBytes: _imageBytes,
-          imageMimeType: _imageMimeType,
-          imageRightsConfirmed: _imageRightsConfirmed,
-        );
+    final input = SpotDraftInput(
+      name: _name.text.trim(),
+      category: _category,
+      description: _description.text.trim(),
+      state: _state,
+      city: _city.text.trim(),
+      address: _address.text.trim(),
+      priceRange: _priceRange,
+      bestTime: _bestTime.text.trim(),
+      thingsToDo: _thingsToDo.text.trim(),
+    );
+    final controller = context.read<SpotController>();
+    final result = _isRevision
+        ? await controller.reviseAndSubmit(
+            source: widget.source!,
+            input: input,
+            imageBytes: _imageBytes,
+            imageMimeType: _imageMimeType,
+            imageRightsConfirmed: _imageRightsConfirmed,
+          )
+        : await controller.submitDraft(
+            input: input,
+            imageBytes: _imageBytes,
+            imageMimeType: _imageMimeType,
+            imageRightsConfirmed: _imageRightsConfirmed,
+          );
     if (!mounted) return;
     setState(() => _submitting = false);
     if (result == null) return;
@@ -426,7 +478,11 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
   }
 
   void _finish() {
-    _message('Spot submitted for review.');
+    _message(
+      _isRevision
+          ? 'Spot revision submitted for review.'
+          : 'Spot submitted for review.',
+    );
     Navigator.pop(context);
   }
 

@@ -71,6 +71,8 @@ abstract interface class SpotRepository {
 
   Future<List<SpotModel>> fetchPendingModeration();
 
+  Future<List<SpotModel>> fetchOwnedSubmissions();
+
   Future<SpotDraftResult> createDraft({
     required SpotDraftInput input,
     Uint8List? imageBytes,
@@ -83,6 +85,15 @@ abstract interface class SpotRepository {
   });
 
   Future<void> confirmImageRights(String revisionId);
+
+  Future<SpotDraftResult> saveRevisionDraft({
+    required SpotModel source,
+    required SpotDraftInput input,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+  });
+
+  Future<void> withdrawRevision(String revisionId);
 
   Future<void> deleteDraft({
     required String revisionId,

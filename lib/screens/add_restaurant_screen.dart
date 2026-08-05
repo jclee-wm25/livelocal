@@ -8,9 +8,12 @@ import '../controllers/auth_controller.dart';
 import '../controllers/localeats_controller.dart';
 import '../core/validation/social_url_validator.dart';
 import '../features/restaurants/domain/local_eats_repository.dart';
+import '../models/restaurant_model.dart';
 
 class AddRestaurantScreen extends StatefulWidget {
-  const AddRestaurantScreen({super.key});
+  const AddRestaurantScreen({super.key, this.source});
+
+  final RestaurantModel? source;
 
   @override
   State<AddRestaurantScreen> createState() => _AddRestaurantScreenState();
@@ -54,6 +57,25 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
     'Other',
   ];
 
+  bool get _isRevision => widget.source != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final source = widget.source;
+    if (source == null) return;
+    _name.text = source.name;
+    _address.text = source.address;
+    _city.text = source.city;
+    _dishes.text = source.reviewedDishes;
+    _socialUrl.text = source.socialMediaUrl;
+    if (_states.contains(source.state)) _state = source.state;
+    if (_cuisines.contains(source.cuisineType)) {
+      _cuisine = source.cuisineType;
+    }
+    _price = source.priceRange;
+  }
+
   @override
   void dispose() {
     _name.dispose();
@@ -82,19 +104,25 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Submit a restaurant')),
+      appBar: AppBar(
+        title: Text(
+          _isRevision ? 'Revise your restaurant' : 'Submit a restaurant',
+        ),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
           children: [
             Text(
-              'Restaurant submission',
+              _isRevision ? 'Restaurant revision' : 'Restaurant submission',
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Add public business details and the TikTok or Instagram post that supports your recommendation. The listing is reviewed before publication.',
+            Text(
+              _isRevision
+                  ? 'Your approved listing stays public while these material changes are reviewed. Prior decisions remain in history.'
+                  : 'Add public business details and the TikTok or Instagram post that supports your recommendation. The listing is reviewed before publication.',
             ),
             const SizedBox(height: 24),
             TextFormField(
@@ -203,14 +231,18 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
               icon: const Icon(Icons.add_photo_alternate_outlined),
               label: Text(
                 _imageBytes == null
-                    ? 'Choose cover photo'
+                    ? _isRevision
+                        ? 'Keep or replace cover photo'
+                        : 'Choose cover photo'
                     : 'Change cover photo',
               ),
             ),
             const SizedBox(height: 8),
             Text(
               _imageBytes == null
-                  ? 'JPEG, PNG or WebP · maximum 8 MB'
+                  ? _isRevision
+                      ? 'The current photo will be kept unless replaced.'
+                      : 'JPEG, PNG or WebP · maximum 8 MB'
                   : 'Photo selected · ${(_imageBytes!.length / 1024).ceil()} KB',
             ),
             const SizedBox(height: 24),
@@ -246,26 +278,34 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_imageBytes == null || _imageMimeType == null) {
+    if (!_isRevision && (_imageBytes == null || _imageMimeType == null)) {
       _message('Choose a cover photo.');
       return;
     }
     setState(() => _submitting = true);
     final controller = context.read<LocalEatsController>();
-    final result = await controller.createRestaurantDraft(
-      input: RestaurantDraftInput(
-        name: _name.text.trim(),
-        address: _address.text.trim(),
-        state: _state,
-        city: _city.text.trim(),
-        cuisineType: _cuisine,
-        priceRange: _price,
-        reviewedDishes: _dishes.text.trim(),
-        socialMediaUrl: _socialUrl.text.trim(),
-      ),
-      imageBytes: _imageBytes!,
-      imageMimeType: _imageMimeType!,
+    final input = RestaurantDraftInput(
+      name: _name.text.trim(),
+      address: _address.text.trim(),
+      state: _state,
+      city: _city.text.trim(),
+      cuisineType: _cuisine,
+      priceRange: _price,
+      reviewedDishes: _dishes.text.trim(),
+      socialMediaUrl: _socialUrl.text.trim(),
     );
+    final result = _isRevision
+        ? await controller.reviseRestaurant(
+            source: widget.source!,
+            input: input,
+            imageBytes: _imageBytes,
+            imageMimeType: _imageMimeType,
+          )
+        : await controller.createRestaurantDraft(
+            input: input,
+            imageBytes: _imageBytes!,
+            imageMimeType: _imageMimeType!,
+          );
     if (!mounted) return;
     if (result == null) {
       setState(() => _submitting = false);
@@ -278,7 +318,11 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
       setState(() => _submitting = false);
       if (!resolved) return;
     }
-    _message('Restaurant submitted for review.');
+    _message(
+      _isRevision
+          ? 'Restaurant revision submitted for review.'
+          : 'Restaurant submitted for review.',
+    );
     Navigator.pop(context);
   }
 

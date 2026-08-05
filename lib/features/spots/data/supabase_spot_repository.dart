@@ -84,6 +84,40 @@ class SupabaseSpotRepository implements SpotRepository {
   }
 
   @override
+  Future<List<SpotModel>> fetchOwnedSubmissions() async {
+    try {
+      final response = await _client.rpc('list_my_spot_submissions');
+      return Future.wait((response as List<dynamic>).map((raw) async {
+        final row = Map<String, dynamic>.from(raw as Map);
+        return SpotModel(
+          id: row['spot_id'] as String,
+          revisionId: row['revision_id'] as String,
+          moderationVersion: (row['moderation_version'] as num?)?.toInt() ?? 1,
+          name: row['name'] as String,
+          category: row['category'] as String,
+          description: row['description'] as String,
+          state: row['state'] as String,
+          city: row['city'] as String,
+          address: row['address'] as String,
+          priceRange: row['price_range'] as String,
+          bestTime: row['best_time'] as String,
+          thingsToDo: row['things_to_do'] as String,
+          imageUrl: await _signedImage(row['image_path'] as String?),
+          imagePath: row['image_path'] as String?,
+          submittedBy: _client.auth.currentUser?.id ?? '',
+          status: row['status'] as String,
+          decisionReason: row['decision_reason'] as String?,
+          hasApprovedRevision: row['has_approved_revision'] as bool? ?? false,
+          latitude: (row['latitude'] as num?)?.toDouble(),
+          longitude: (row['longitude'] as num?)?.toDouble(),
+        );
+      }));
+    } on PostgrestException catch (error) {
+      throw _dataError(error, 'Your spot submissions could not be loaded.');
+    }
+  }
+
+  @override
   Future<SpotDraftResult> createDraft({
     required SpotDraftInput input,
     Uint8List? imageBytes,
@@ -93,26 +127,7 @@ class SupabaseSpotRepository implements SpotRepository {
     try {
       if (imageBytes != null) {
         final mimeType = imageMimeType ?? '';
-        _validateImage(imageBytes, mimeType);
-        final userId = _client.auth.currentUser?.id;
-        if (userId == null) {
-          throw const AppException(
-            code: AppErrorCode.authentication,
-            userMessage: 'Sign in to submit a spot.',
-          );
-        }
-        final extension = switch (mimeType) {
-          'image/png' => 'png',
-          'image/webp' => 'webp',
-          _ => 'jpg',
-        };
-        uploadedPath =
-            '$userId/${DateTime.now().microsecondsSinceEpoch}.$extension';
-        await _client.storage.from('spot-images').uploadBinary(
-              uploadedPath,
-              imageBytes,
-              fileOptions: FileOptions(contentType: mimeType),
-            );
+        uploadedPath = await _uploadImage(imageBytes, mimeType);
       }
 
       final response = await _client.rpc('create_spot_draft', params: {
@@ -171,6 +186,50 @@ class SupabaseSpotRepository implements SpotRepository {
   }
 
   @override
+  Future<SpotDraftResult> saveRevisionDraft({
+    required SpotModel source,
+    required SpotDraftInput input,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+  }) async {
+    String? uploadedPath;
+    try {
+      if (imageBytes != null) {
+        uploadedPath = await _uploadImage(imageBytes, imageMimeType ?? '');
+      }
+      final response = await _client.rpc('save_spot_revision_draft', params: {
+        'p_source_revision_id': source.revisionId,
+        'p_name': input.name,
+        'p_category': input.category,
+        'p_description': input.description,
+        'p_state': input.state,
+        'p_city': input.city,
+        'p_address': input.address,
+        'p_price_range': input.priceRange,
+        'p_best_time': input.bestTime,
+        'p_things_to_do': input.thingsToDo,
+        'p_image_path': uploadedPath,
+        'p_latitude': input.latitude,
+        'p_longitude': input.longitude,
+      });
+      final map = Map<String, dynamic>.from(response as Map);
+      return _draftResult(map);
+    } on StorageException catch (error) {
+      throw AppException(
+        code: AppErrorCode.unavailable,
+        userMessage: 'The revised spot photo could not be uploaded.',
+        technicalMessage: error.message,
+        cause: error,
+      );
+    } on PostgrestException catch (error) {
+      if (uploadedPath != null) {
+        await _removeFailedUpload(uploadedPath);
+      }
+      throw _dataError(error, 'The spot revision could not be saved.');
+    }
+  }
+
+  @override
   Future<void> deleteDraft({
     required String revisionId,
     String? imagePath,
@@ -180,19 +239,20 @@ class SupabaseSpotRepository implements SpotRepository {
         'delete_spot_draft',
         params: {'p_revision_id': revisionId},
       );
-      if (imagePath != null) {
-        await _client.storage.from('spot-images').remove([imagePath]);
-      }
     } on PostgrestException catch (error) {
       throw _dataError(error, 'The spot draft could not be discarded.');
-    } on StorageException catch (error) {
-      throw AppException(
-        code: AppErrorCode.unavailable,
-        userMessage:
-            'The draft was removed, but its photo cleanup needs attention.',
-        technicalMessage: error.message,
-        cause: error,
+    }
+  }
+
+  @override
+  Future<void> withdrawRevision(String revisionId) async {
+    try {
+      await _client.rpc(
+        'withdraw_my_spot_revision',
+        params: {'p_revision_id': revisionId},
       );
+    } on PostgrestException catch (error) {
+      throw _dataError(error, 'The spot submission could not be withdrawn.');
     }
   }
 
@@ -281,6 +341,59 @@ class SupabaseSpotRepository implements SpotRepository {
   Future<String> _signedImage(String? path) async {
     if (path == null || path.isEmpty) return '';
     return _client.storage.from('spot-images').createSignedUrl(path, 3600);
+  }
+
+  Future<String> _uploadImage(Uint8List bytes, String mimeType) async {
+    _validateImage(bytes, mimeType);
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppException(
+        code: AppErrorCode.authentication,
+        userMessage: 'Sign in to submit a spot.',
+      );
+    }
+    final extension = switch (mimeType) {
+      'image/png' => 'png',
+      'image/webp' => 'webp',
+      _ => 'jpg',
+    };
+    final path = '$userId/${DateTime.now().microsecondsSinceEpoch}.$extension';
+    await _client.storage.from('spot-images').uploadBinary(
+          path,
+          bytes,
+          fileOptions: FileOptions(contentType: mimeType),
+        );
+    return path;
+  }
+
+  SpotDraftResult _draftResult(Map<String, dynamic> map) {
+    final duplicates =
+        (map['probable_duplicates'] as List<dynamic>? ?? []).map((raw) {
+      final item = Map<String, dynamic>.from(raw as Map);
+      return ProbableSpotDuplicate(
+        id: item['id'] as String,
+        name: item['name'] as String,
+        address: item['address'] as String,
+        city: item['city'] as String,
+        state: item['state'] as String,
+      );
+    }).toList();
+    return SpotDraftResult(
+      spotId: map['spot_id'] as String,
+      revisionId: map['revision_id'] as String,
+      probableDuplicates: duplicates,
+      imagePath: map['image_path'] as String?,
+    );
+  }
+
+  Future<void> _removeFailedUpload(String path) async {
+    try {
+      await _client.storage.from('spot-images').remove([path]);
+    } catch (cleanupError) {
+      if (kDebugMode) {
+        debugPrint('Spot image cleanup failed: $cleanupError');
+      }
+    }
   }
 
   void _validateImage(Uint8List bytes, String mimeType) {

@@ -66,6 +66,7 @@ abstract interface class LocalEatsRepository {
   Future<List<DiscountCodeModel>> fetchActiveDiscounts();
   Future<List<DiscountCodeModel>> fetchOwnedDiscounts();
   Future<List<RestaurantModel>> fetchPendingRestaurants();
+  Future<List<RestaurantModel>> fetchOwnedRestaurantSubmissions();
 
   Future<RestaurantDraftResult> createRestaurantDraft({
     required RestaurantDraftInput input,
@@ -77,6 +78,13 @@ abstract interface class LocalEatsRepository {
     String? duplicateOverrideReason,
   });
   Future<void> deleteRestaurantDraft(RestaurantDraftResult draft);
+  Future<RestaurantDraftResult> saveRestaurantRevisionDraft({
+    required RestaurantModel source,
+    required RestaurantDraftInput input,
+    Uint8List? imageBytes,
+    String? imageMimeType,
+  });
+  Future<void> withdrawRestaurantRevision(String revisionId);
   Future<void> moderateRestaurant({
     required RestaurantModel restaurant,
     required String decision,
