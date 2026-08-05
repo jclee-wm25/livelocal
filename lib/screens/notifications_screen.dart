@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
-import '../services/supabase_service.dart';
+import '../repositories/supabase_repository.dart';
 import '../models/notification_model.dart';
 import '../constants/app_colors.dart';
 
@@ -81,7 +81,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         ],
       ),
       body: FutureBuilder<List<NotificationModel>>(
-        future: SupabaseService().fetchNotifications(userId),
+        future: SupabaseRepository().fetchNotifications(userId),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'seed_data_service.dart';
+import '../services/seed_data_service.dart';
 import '../models/profile_model.dart';
 import '../models/spot_model.dart';
 import '../models/restaurant_model.dart';
@@ -19,14 +19,18 @@ class SupabaseRepository {
   bool get isLiveSupabase => _isSupabaseInitialized;
 
   // In-memory persistent data store for local/demo mode
-  final List<ProfileModel> _localProfiles = SeedDataService.getInitialProfiles();
+  final List<ProfileModel> _localProfiles =
+      SeedDataService.getInitialProfiles();
   final List<SpotModel> _localSpots = SeedDataService.getInitialSpots();
-  final List<RestaurantModel> _localRestaurants = SeedDataService.getInitialRestaurants();
-  final List<DiscountCodeModel> _localDiscounts = SeedDataService.getInitialDiscountCodes();
+  final List<RestaurantModel> _localRestaurants =
+      SeedDataService.getInitialRestaurants();
+  final List<DiscountCodeModel> _localDiscounts =
+      SeedDataService.getInitialDiscountCodes();
   final List<SavedPlaceModel> _localSavedPlaces = [];
   final List<GuideModel> _localGuides = SeedDataService.getInitialGuides();
   final List<ReviewModel> _localReviews = SeedDataService.getInitialReviews();
-  final List<NotificationModel> _localNotifications = SeedDataService.getInitialNotifications();
+  final List<NotificationModel> _localNotifications =
+      SeedDataService.getInitialNotifications();
 
   Future<void> initialize({String? url, String? publishableKey}) async {
     if (url != null &&
@@ -36,13 +40,18 @@ class SupabaseRepository {
       try {
         await Supabase.initialize(url: url, publishableKey: publishableKey);
         _isSupabaseInitialized = true;
-        if (kDebugMode) debugPrint('LiveLocal: Supabase initialized successfully.');
+        if (kDebugMode)
+          debugPrint('LiveLocal: Supabase initialized successfully.');
       } catch (e) {
-        if (kDebugMode) debugPrint('LiveLocal: Supabase init fallback to local seed data store. Error: $e');
+        if (kDebugMode)
+          debugPrint(
+              'LiveLocal: Supabase init fallback to local seed data store. Error: $e');
         _isSupabaseInitialized = false;
       }
     } else {
-      if (kDebugMode) debugPrint('LiveLocal: Running in standalone local seed mode (Supabase ready).');
+      if (kDebugMode)
+        debugPrint(
+            'LiveLocal: Running in standalone local seed mode (Supabase ready).');
       _isSupabaseInitialized = false;
     }
   }
@@ -110,7 +119,10 @@ class SupabaseRepository {
 
   Future<void> updateSpot(SpotModel spot) async {
     if (_isSupabaseInitialized) {
-      await Supabase.instance.client.from('spots').update(spot.toMap()).eq('id', spot.id);
+      await Supabase.instance.client
+          .from('spots')
+          .update(spot.toMap())
+          .eq('id', spot.id);
     } else {
       final idx = _localSpots.indexWhere((s) => s.id == spot.id);
       if (idx >= 0) {
@@ -119,7 +131,8 @@ class SupabaseRepository {
     }
   }
 
-  Future<void> updateSpotStatus(String spotId, String status, {String? rejectionReason}) async {
+  Future<void> updateSpotStatus(String spotId, String status,
+      {String? rejectionReason}) async {
     if (_isSupabaseInitialized) {
       await Supabase.instance.client.from('spots').update({
         'status': status,
@@ -151,7 +164,8 @@ class SupabaseRepository {
     }
   }
 
-  Future<void> updateSpotRating(String spotId, double rating, int reviewCount) async {
+  Future<void> updateSpotRating(
+      String spotId, double rating, int reviewCount) async {
     if (_isSupabaseInitialized) {
       await Supabase.instance.client.from('spots').update({
         'rating': rating,
@@ -194,36 +208,49 @@ class SupabaseRepository {
 
   Future<void> addRestaurant(RestaurantModel restaurant) async {
     if (_isSupabaseInitialized) {
-      await Supabase.instance.client.from('restaurants').insert(restaurant.toMap());
+      await Supabase.instance.client
+          .from('restaurants')
+          .insert(restaurant.toMap());
     } else {
       _localRestaurants.add(restaurant);
     }
   }
 
-  Future<void> updateRestaurantRating(String restaurantId, double rating, int reviewCount) async {
+  Future<void> updateRestaurantRating(
+    String restaurantId,
+    double rating,
+    int reviewCount,
+  ) async {
     if (_isSupabaseInitialized) {
       await Supabase.instance.client.from('restaurants').update({
         'rating': rating,
         'review_count': reviewCount,
       }).eq('id', restaurantId);
     } else {
-      final idx = _localRestaurants.indexWhere((r) => r.id == restaurantId);
-      if (idx >= 0) {
-        final existing = _localRestaurants[idx];
-        _localRestaurants[idx] = RestaurantModel(
+      final index = _localRestaurants.indexWhere(
+        (restaurant) => restaurant.id == restaurantId,
+      );
+
+      if (index >= 0) {
+        final existing = _localRestaurants[index];
+
+        _localRestaurants[index] = RestaurantModel(
           id: existing.id,
           name: existing.name,
-          cuisineType: existing.cuisineType,
-          description: existing.description,
+          address: existing.address,
           state: existing.state,
           city: existing.city,
-          address: existing.address,
+          cuisineType: existing.cuisineType,
           priceRange: existing.priceRange,
           reviewedDishes: existing.reviewedDishes,
-          imageUrl: existing.imageUrl,
+          influencerId: existing.influencerId,
+          influencerName: existing.influencerName,
+          socialMediaUrl: existing.socialMediaUrl,
+          coverPhotoUrl: existing.coverPhotoUrl,
           rating: rating,
           reviewCount: reviewCount,
-          influencerId: existing.influencerId,
+          latitude: existing.latitude,
+          longitude: existing.longitude,
         );
       }
     }
@@ -232,7 +259,8 @@ class SupabaseRepository {
   // --- Discount Codes ---
   Future<List<DiscountCodeModel>> fetchDiscountCodes() async {
     if (_isSupabaseInitialized) {
-      final res = await Supabase.instance.client.from('discount_codes').select();
+      final res =
+          await Supabase.instance.client.from('discount_codes').select();
       return (res as List).map((e) => DiscountCodeModel.fromMap(e)).toList();
     }
     return List.unmodifiable(_localDiscounts);
@@ -240,28 +268,38 @@ class SupabaseRepository {
 
   Future<void> addDiscountCode(DiscountCodeModel code) async {
     if (_isSupabaseInitialized) {
-      await Supabase.instance.client.from('discount_codes').insert(code.toMap());
+      await Supabase.instance.client
+          .from('discount_codes')
+          .insert(code.toMap());
     } else {
       _localDiscounts.add(code);
     }
   }
 
-  Future<void> updateDiscountCodeStatus(String codeId, bool isActive) async {
+  Future<void> updateDiscountCodeStatus(
+    String codeId,
+    bool isActive,
+  ) async {
     if (_isSupabaseInitialized) {
       await Supabase.instance.client.from('discount_codes').update({
         'is_active': isActive,
       }).eq('id', codeId);
     } else {
-      final idx = _localDiscounts.indexWhere((c) => c.id == codeId);
-      if (idx >= 0) {
-        final existing = _localDiscounts[idx];
-        _localDiscounts[idx] = DiscountCodeModel(
+      final index = _localDiscounts.indexWhere(
+        (discount) => discount.id == codeId,
+      );
+
+      if (index >= 0) {
+        final existing = _localDiscounts[index];
+
+        _localDiscounts[index] = DiscountCodeModel(
           id: existing.id,
+          restaurantId: existing.restaurantId,
           code: existing.code,
           description: existing.description,
+          expiryDate: existing.expiryDate,
+          createdBy: existing.createdBy,
           discountPercentage: existing.discountPercentage,
-          restaurantId: existing.restaurantId,
-          influencerId: existing.influencerId,
           isActive: isActive,
         );
       }
@@ -271,7 +309,10 @@ class SupabaseRepository {
   // --- Saved Places ---
   Future<List<SavedPlaceModel>> fetchSavedPlaces(String userId) async {
     if (_isSupabaseInitialized) {
-      final res = await Supabase.instance.client.from('saved_places').select().eq('user_id', userId);
+      final res = await Supabase.instance.client
+          .from('saved_places')
+          .select()
+          .eq('user_id', userId);
       return (res as List).map((e) => SavedPlaceModel.fromMap(e)).toList();
     }
     return _localSavedPlaces.where((p) => p.userId == userId).toList();
@@ -281,33 +322,46 @@ class SupabaseRepository {
     if (_isSupabaseInitialized) {
       await Supabase.instance.client.from('saved_places').insert(item.toMap());
     } else {
-      _localSavedPlaces.removeWhere((p) => p.userId == item.userId && (p.spotId == item.spotId || p.restaurantId == item.restaurantId));
+      _localSavedPlaces.removeWhere((p) =>
+          p.userId == item.userId &&
+          (p.spotId == item.spotId || p.restaurantId == item.restaurantId));
       _localSavedPlaces.add(item);
     }
   }
 
-  Future<void> removeSavedPlace(String userId, {String? spotId, String? restaurantId}) async {
+  Future<void> removeSavedPlace(String userId,
+      {String? spotId, String? restaurantId}) async {
     if (_isSupabaseInitialized) {
       if (spotId != null) {
-        await Supabase.instance.client.from('saved_places').delete().match({'user_id': userId, 'spot_id': spotId});
+        await Supabase.instance.client
+            .from('saved_places')
+            .delete()
+            .match({'user_id': userId, 'spot_id': spotId});
       } else if (restaurantId != null) {
-        await Supabase.instance.client.from('saved_places').delete().match({'user_id': userId, 'restaurant_id': restaurantId});
+        await Supabase.instance.client
+            .from('saved_places')
+            .delete()
+            .match({'user_id': userId, 'restaurant_id': restaurantId});
       }
     } else {
-      _localSavedPlaces.removeWhere((p) => p.userId == userId && (p.spotId == spotId || p.restaurantId == restaurantId));
+      _localSavedPlaces.removeWhere((p) =>
+          p.userId == userId &&
+          (p.spotId == spotId || p.restaurantId == restaurantId));
     }
   }
 
   // --- Guides ---
   Future<List<GuideModel>> fetchGuides() async {
     if (_isSupabaseInitialized) {
-      final res = await Supabase.instance.client.from('neighbourhood_guides').select();
+      final res =
+          await Supabase.instance.client.from('neighbourhood_guides').select();
       return (res as List).map((e) => GuideModel.fromMap(e)).toList();
     }
     return List.unmodifiable(_localGuides);
   }
 
-  Future<void> updateGuideStatus(String guideId, String status, {String? rejectionReason}) async {
+  Future<void> updateGuideStatus(String guideId, String status,
+      {String? rejectionReason}) async {
     if (_isSupabaseInitialized) {
       await Supabase.instance.client.from('neighbourhood_guides').update({
         'status': status,
@@ -379,7 +433,10 @@ class SupabaseRepository {
 
   Future<void> deleteReview(String reviewId) async {
     if (_isSupabaseInitialized) {
-      await Supabase.instance.client.from('reviews').delete().eq('id', reviewId);
+      await Supabase.instance.client
+          .from('reviews')
+          .delete()
+          .eq('id', reviewId);
     } else {
       _localReviews.removeWhere((r) => r.id == reviewId);
     }
@@ -388,22 +445,30 @@ class SupabaseRepository {
   // --- Notifications ---
   Future<List<NotificationModel>> fetchNotifications(String userId) async {
     if (_isSupabaseInitialized) {
-      final res = await Supabase.instance.client.from('notifications').select().eq('user_id', userId);
+      final res = await Supabase.instance.client
+          .from('notifications')
+          .select()
+          .eq('user_id', userId);
       return (res as List).map((e) => NotificationModel.fromMap(e)).toList();
     }
-    return _localNotifications.where((n) => n.userId == userId || n.userId == 'all').toList();
+    return _localNotifications
+        .where((n) => n.userId == userId || n.userId == 'all')
+        .toList();
   }
 
   Future<void> addNotification(NotificationModel notification) async {
     if (_isSupabaseInitialized) {
-      await Supabase.instance.client.from('notifications').insert(notification.toMap());
+      await Supabase.instance.client
+          .from('notifications')
+          .insert(notification.toMap());
     } else {
       _localNotifications.add(notification);
     }
   }
 
   // --- Phase 9: Moderation ---
-  Future<void> submitReport(String reporterId, String targetId, String targetType, String reason) async {
+  Future<void> submitReport(String reporterId, String targetId,
+      String targetType, String reason) async {
     if (_isSupabaseInitialized) {
       await Supabase.instance.client.from('reports').insert({
         'reporter_id': reporterId,
@@ -413,7 +478,8 @@ class SupabaseRepository {
         'status': 'pending',
       });
     } else {
-      if (kDebugMode) debugPrint('Local Mode: Report submitted for \$targetType \$targetId');
+      if (kDebugMode)
+        debugPrint('Local Mode: Report submitted for \$targetType \$targetId');
     }
   }
 
@@ -424,13 +490,17 @@ class SupabaseRepository {
         'blocked_id': blockedId,
       });
     } else {
-      if (kDebugMode) debugPrint('Local Mode: User \$blockerId blocked \$blockedId');
+      if (kDebugMode)
+        debugPrint('Local Mode: User \$blockerId blocked \$blockedId');
     }
   }
 
   Future<List<Map<String, dynamic>>> fetchPendingReports() async {
     if (_isSupabaseInitialized) {
-      final res = await Supabase.instance.client.from('reports').select().eq('status', 'pending');
+      final res = await Supabase.instance.client
+          .from('reports')
+          .select()
+          .eq('status', 'pending');
       return List<Map<String, dynamic>>.from(res);
     }
     return [];
@@ -438,7 +508,9 @@ class SupabaseRepository {
 
   Future<void> updateReportStatus(String reportId, String status) async {
     if (_isSupabaseInitialized) {
-      await Supabase.instance.client.from('reports').update({'status': status}).eq('id', reportId);
+      await Supabase.instance.client
+          .from('reports')
+          .update({'status': status}).eq('id', reportId);
     }
   }
 }

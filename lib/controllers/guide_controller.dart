@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/guide_model.dart';
-import '../services/supabase_repository.dart';
+import '../repositories/supabase_repository.dart';
 
 class GuideController with ChangeNotifier {
   final SupabaseRepository _db = SupabaseRepository();
@@ -33,12 +33,14 @@ class GuideController with ChangeNotifier {
   List<GuideModel> get approvedGuides {
     return _guides.where((g) {
       if (g.status != 'approved') return false;
-      if (_selectedState != 'All' && g.state.toLowerCase() != _selectedState.toLowerCase()) return false;
+      if (_selectedState != 'All' &&
+          g.state.toLowerCase() != _selectedState.toLowerCase()) return false;
       return true;
     }).toList();
   }
 
-  List<GuideModel> get pendingGuides => _guides.where((g) => g.status == 'pending').toList();
+  List<GuideModel> get pendingGuides =>
+      _guides.where((g) => g.status == 'pending').toList();
 
   void setStateFilter(String state) {
     _selectedState = state;
