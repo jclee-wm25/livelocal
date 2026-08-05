@@ -47,8 +47,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleRegister() async {
-    if (!_formKey.currentState!.validate()) return;
-    final authCtrl = Provider.of<AuthController>(context, listen: false);
+    final currentForm = _formKey.currentState;
+    if (currentForm == null || !currentForm.validate()) return;
+    final authCtrl = context.read<AuthController>();
+    if (authCtrl.isLoading) return;
+    FocusScope.of(context).unfocus();
     final success = await authCtrl.register(
       _emailController.text.trim(),
       _passwordController.text,
@@ -90,6 +93,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  void _goBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+      return;
+    }
+    Navigator.pushReplacementNamed(context, '/welcome');
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSubmitting = context.watch<AuthController>().isLoading;
@@ -102,9 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         foregroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pushNamed(context, '/welcome');
-          },
+          onPressed: isSubmitting ? null : _goBack,
         ),
         title: const Text(
           'LiveLocal',
@@ -114,185 +123,211 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Create your account',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.all(24),
+          child: AutofillGroup(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Create your account',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Join thousands discovering authentic Malaysia',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
+                const SizedBox(height: 4),
+                const Text(
+                  'Join thousands discovering authentic Malaysia',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'All new accounts start as tourists. Influencer applications '
-                'are available from your profile after verification.',
-                style: TextStyle(fontSize: 13, color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
-              Form(
-                key: _formKey,
-                child: Column(
+                const SizedBox(height: 24),
+                const Text(
+                  'All new accounts start as tourists. Influencer applications '
+                  'are available from your profile after verification.',
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _fullNameController,
+                        enabled: !isSubmitting,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.name],
+                        decoration: _fieldDecoration(
+                          prefixIcon: Icons.person_outline,
+                          labelText: 'Full Name',
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'This field is required';
+                          }
+                          if (value.trim().length < 2 ||
+                              value.trim().length > 80) {
+                            return 'Use between 2 and 80 characters';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        enabled: !isSubmitting,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autocorrect: false,
+                        autofillHints: const [AutofillHints.email],
+                        decoration: _fieldDecoration(
+                          prefixIcon: Icons.email_outlined,
+                          labelText: 'Email Address',
+                        ),
+                        validator: (value) {
+                          final email = value?.trim() ?? '';
+                          if (email.isEmpty) {
+                            return 'Email address is required';
+                          }
+                          final emailPattern = RegExp(
+                            r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
+                          );
+                          if (!emailPattern.hasMatch(email)) {
+                            return 'Enter a valid email address';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        enabled: !isSubmitting,
+                        obscureText: _obscurePassword,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.newPassword],
+                        decoration: _fieldDecoration(
+                          prefixIcon: Icons.lock_outline,
+                          labelText: 'Password',
+                          suffixIcon: IconButton(
+                            tooltip: _obscurePassword
+                                ? 'Show password'
+                                : 'Hide password',
+                            icon: Icon(
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: AppColors.primary,
+                            ),
+                            onPressed: isSubmitting
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _obscurePassword = !_obscurePassword;
+                                    });
+                                  },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'This field is required';
+                          }
+                          if (value.length < 10 ||
+                              !RegExp('[A-Za-z]').hasMatch(value) ||
+                              !RegExp('[0-9]').hasMatch(value)) {
+                            return 'Use 10+ characters with a letter and number';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        enabled: !isSubmitting,
+                        obscureText: _obscureConfirm,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.newPassword],
+                        onFieldSubmitted: (_) {
+                          if (!isSubmitting) _handleRegister();
+                        },
+                        decoration: _fieldDecoration(
+                          prefixIcon: Icons.lock_outline,
+                          labelText: 'Confirm Password',
+                          suffixIcon: IconButton(
+                            tooltip: _obscureConfirm
+                                ? 'Show password confirmation'
+                                : 'Hide password confirmation',
+                            icon: Icon(
+                              _obscureConfirm
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
+                              color: AppColors.primary,
+                            ),
+                            onPressed: isSubmitting
+                                ? null
+                                : () {
+                                    setState(() {
+                                      _obscureConfirm = !_obscureConfirm;
+                                    });
+                                  },
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'This field is required';
+                          }
+                          if (value != _passwordController.text) {
+                            return 'Passwords do not match';
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: isSubmitting ? null : _handleRegister,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: isSubmitting
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Create Account',
+                            style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextFormField(
-                      controller: _fullNameController,
-                      autofillHints: const [AutofillHints.name],
-                      decoration: _fieldDecoration(
-                        prefixIcon: Icons.person_outline,
-                        labelText: 'Full Name',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'This field is required';
-                        }
-                        if (value.trim().length < 2 ||
-                            value.trim().length > 80) {
-                          return 'Use between 2 and 80 characters';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      autofillHints: const [AutofillHints.email],
-                      decoration: _fieldDecoration(
-                        prefixIcon: Icons.email_outlined,
-                        labelText: 'Email Address',
-                      ),
-                      validator: (value) {
-                        final email = value?.trim() ?? '';
-                        if (!email.contains('@') || !email.contains('.')) {
-                          return 'Enter a valid email address';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: _obscurePassword,
-                      autofillHints: const [AutofillHints.newPassword],
-                      decoration: _fieldDecoration(
-                        prefixIcon: Icons.lock_outline,
-                        labelText: 'Password',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: AppColors.primary,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscurePassword = !_obscurePassword;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'This field is required';
-                        }
-                        if (value.length < 10 ||
-                            !RegExp('[A-Za-z]').hasMatch(value) ||
-                            !RegExp('[0-9]').hasMatch(value)) {
-                          return 'Use 10+ characters with a letter and number';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextFormField(
-                      controller: _confirmPasswordController,
-                      obscureText: _obscureConfirm,
-                      autofillHints: const [AutofillHints.newPassword],
-                      decoration: _fieldDecoration(
-                        prefixIcon: Icons.lock_outline,
-                        labelText: 'Confirm Password',
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureConfirm
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: AppColors.primary,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              _obscureConfirm = !_obscureConfirm;
-                            });
-                          },
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'This field is required';
-                        }
-                        if (value != _passwordController.text) {
-                          return 'Passwords do not match';
-                        }
-                        return null;
-                      },
+                    const Text('Already have an account? '),
+                    TextButton(
+                      onPressed: isSubmitting
+                          ? null
+                          : () => Navigator.pushNamed(context, '/login'),
+                      child: const Text('Log in'),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: isSubmitting ? null : _handleRegister,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: isSubmitting
-                      ? const SizedBox.square(
-                          dimension: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Create Account',
-                          style: TextStyle(fontSize: 16)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('Already have an account? '),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.pushNamed(context, '/login');
-                    },
-                    child: const Text(
-                      'Log in',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
