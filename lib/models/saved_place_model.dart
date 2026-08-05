@@ -13,14 +13,6 @@ class SavedPlaceModel {
     required this.savedAt,
   });
 
-  Map<String, dynamic> toMap() => {
-        'id': id,
-        'user_id': userId,
-        'spot_id': spotId,
-        'restaurant_id': restaurantId,
-        'saved_at': savedAt.toIso8601String(),
-      };
-
   factory SavedPlaceModel.fromMap(Map<String, dynamic> map) => SavedPlaceModel(
         id: map['id'] ?? '',
         userId: map['user_id'] ?? '',

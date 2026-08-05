@@ -47,6 +47,11 @@ import 'features/restaurants/data/demo_local_eats_repository.dart';
 import 'features/restaurants/data/supabase_local_eats_repository.dart';
 import 'features/restaurants/domain/local_eats_repository.dart';
 import 'screens/restaurant_detail_screen.dart';
+import 'screens/saved_places_screen.dart';
+import 'screens/spot_detail_screen.dart';
+import 'features/itinerary/data/demo_saved_itinerary_repository.dart';
+import 'features/itinerary/data/supabase_saved_itinerary_repository.dart';
+import 'features/itinerary/domain/saved_itinerary_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -78,6 +83,7 @@ Future<void> main() async {
   late final AdminRepository adminRepository;
   late final InfluencerApplicationRepository influencerApplicationRepository;
   late final LocalEatsRepository localEatsRepository;
+  late final SavedItineraryRepository savedItineraryRepository;
   try {
     if (configuration.isDemo) {
       SupabaseRepository().configureForDemo();
@@ -90,6 +96,8 @@ Future<void> main() async {
       influencerApplicationRepository =
           DemoInfluencerApplicationRepository(demoAuthRepository);
       localEatsRepository = DemoLocalEatsRepository(demoAuthRepository);
+      savedItineraryRepository =
+          DemoSavedItineraryRepository(demoAuthRepository);
     } else {
       await Supabase.initialize(
         url: configuration.supabaseUrl!,
@@ -112,6 +120,8 @@ Future<void> main() async {
           SupabaseInfluencerApplicationRepository(Supabase.instance.client);
       localEatsRepository =
           SupabaseLocalEatsRepository(Supabase.instance.client);
+      savedItineraryRepository =
+          SupabaseSavedItineraryRepository(Supabase.instance.client);
     }
   } catch (error) {
     if (kDebugMode) {
@@ -136,6 +146,7 @@ Future<void> main() async {
       adminRepository: adminRepository,
       influencerApplicationRepository: influencerApplicationRepository,
       localEatsRepository: localEatsRepository,
+      savedItineraryRepository: savedItineraryRepository,
     ),
   );
 }
@@ -151,6 +162,7 @@ class LiveLocalApp extends StatelessWidget {
     required this.adminRepository,
     required this.influencerApplicationRepository,
     required this.localEatsRepository,
+    required this.savedItineraryRepository,
   });
 
   final AppConfiguration configuration;
@@ -161,6 +173,7 @@ class LiveLocalApp extends StatelessWidget {
   final AdminRepository adminRepository;
   final InfluencerApplicationRepository influencerApplicationRepository;
   final LocalEatsRepository localEatsRepository;
+  final SavedItineraryRepository savedItineraryRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +197,10 @@ class LiveLocalApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => LocalEatsController(repository: localEatsRepository),
         ),
-        ChangeNotifierProvider(create: (_) => ItineraryController()),
+        ChangeNotifierProvider(
+          create: (_) =>
+              ItineraryController(repository: savedItineraryRepository),
+        ),
         ChangeNotifierProvider(create: (_) => GuideController()),
         ChangeNotifierProvider(
           create: (_) => ReviewController(repository: reviewRepository),
@@ -261,6 +277,19 @@ class LiveLocalApp extends StatelessWidget {
             }
             return RestaurantDetailScreen(
               restaurant: arguments.restaurant,
+              pendingAction: arguments.pendingAction,
+            );
+          },
+          '/saved-places': (context) => const SavedPlacesScreen(),
+          '/spot-detail': (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
+            if (arguments is! SpotDetailArguments) {
+              return const ConfigurationFailureApp(
+                message: 'The requested spot is unavailable.',
+              );
+            }
+            return SpotDetailScreen(
+              spot: arguments.spot,
               pendingAction: arguments.pendingAction,
             );
           },

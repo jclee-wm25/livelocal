@@ -8,6 +8,7 @@ import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/localeats_controller.dart';
 import '../controllers/review_controller.dart';
+import '../controllers/itinerary_controller.dart';
 import '../core/routing/protected_navigation.dart';
 import '../core/validation/social_url_validator.dart';
 import '../models/discount_code_model.dart';
@@ -25,6 +26,9 @@ class RestaurantDetailArguments {
 }
 
 class RestaurantPendingAction {
+  const RestaurantPendingAction.save()
+      : kind = 'save',
+        reviewId = null;
   const RestaurantPendingAction.review()
       : kind = 'review',
         reviewId = null;
@@ -59,7 +63,9 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
             restaurantId: widget.restaurant.id,
           );
       if (!mounted || widget.pendingAction == null) return;
-      if (widget.pendingAction!.kind == 'review') {
+      if (widget.pendingAction!.kind == 'save') {
+        await _requestSave();
+      } else if (widget.pendingAction!.kind == 'review') {
         await _requestReview();
       } else if (widget.pendingAction!.reviewId != null) {
         await _requestReport(widget.pendingAction!.reviewId!);
@@ -71,6 +77,10 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
   Widget build(BuildContext context) {
     final localEats = context.watch<LocalEatsController>();
     final reviewController = context.watch<ReviewController>();
+    final itineraryController = context.watch<ItineraryController>();
+    final isSaved = itineraryController.isSaved(
+      restaurantId: widget.restaurant.id,
+    );
     final discounts = localEats.getActiveDiscountsForRestaurant(
       widget.restaurant.id,
     );
@@ -86,6 +96,16 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFFF7F5F0),
         title: const Text('Restaurant'),
+        actions: [
+          IconButton(
+            tooltip: isSaved ? 'Remove from saved' : 'Save place',
+            onPressed: _requestSave,
+            icon: Icon(
+              isSaved ? Icons.bookmark : Icons.bookmark_border,
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -257,6 +277,32 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     );
     if (!mounted || opened) return;
     _message('The creator link could not be opened on this device.');
+  }
+
+  Future<void> _requestSave() async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/restaurant-detail',
+            arguments: RestaurantDetailArguments(
+              restaurant: widget.restaurant,
+              pendingAction: const RestaurantPendingAction.save(),
+            ),
+          );
+      return;
+    }
+    final controller = context.read<ItineraryController>();
+    final wasSaved = controller.isSaved(restaurantId: widget.restaurant.id);
+    final changed = await controller.toggleSave(
+      restaurantId: widget.restaurant.id,
+    );
+    if (!mounted) return;
+    _message(
+      changed
+          ? (wasSaved ? 'Removed from saved.' : 'Saved to your places.')
+          : controller.errorMessage ?? 'The place could not be updated.',
+    );
   }
 
   Future<void> _copyDiscount(DiscountCodeModel discount) async {

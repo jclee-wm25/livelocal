@@ -6,11 +6,38 @@ import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
 import '../constants/app_colors.dart';
+import '../core/routing/protected_navigation.dart';
+
+class SpotDetailArguments {
+  const SpotDetailArguments({required this.spot, this.pendingAction});
+
+  final SpotModel spot;
+  final SpotPendingAction? pendingAction;
+}
+
+class SpotPendingAction {
+  const SpotPendingAction.save()
+      : kind = 'save',
+        reviewId = null;
+  const SpotPendingAction.review()
+      : kind = 'review',
+        reviewId = null;
+  const SpotPendingAction.report(this.reviewId) : kind = 'report';
+
+  final String kind;
+  final String? reviewId;
+}
 
 class SpotDetailScreen extends StatefulWidget {
   final SpotModel spot;
 
-  const SpotDetailScreen({super.key, required this.spot});
+  const SpotDetailScreen({
+    super.key,
+    required this.spot,
+    this.pendingAction,
+  });
+
+  final SpotPendingAction? pendingAction;
 
   @override
   State<SpotDetailScreen> createState() => _SpotDetailScreenState();
@@ -23,9 +50,26 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      context.read<ReviewController>().loadReviews(spotId: widget.spot.id);
+      await context
+          .read<ReviewController>()
+          .loadReviews(spotId: widget.spot.id);
+      if (!mounted || widget.pendingAction == null) return;
+      switch (widget.pendingAction!.kind) {
+        case 'save':
+          await _requestSave();
+          break;
+        case 'review':
+          _requestWriteReview();
+          break;
+        case 'report':
+          final reviewId = widget.pendingAction!.reviewId;
+          if (reviewId != null) {
+            _requestReport(reviewId);
+          }
+          break;
+      }
     });
   }
 
@@ -37,13 +81,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authCtrl = Provider.of<AuthController>(context);
     final itineraryCtrl = Provider.of<ItineraryController>(context);
     final reviewCtrl = Provider.of<ReviewController>(context);
 
-    final user = authCtrl.currentUser;
-    final isSaved =
-        user != null && itineraryCtrl.isSaved(user.id, spotId: widget.spot.id);
+    final isSaved = itineraryCtrl.isSaved(spotId: widget.spot.id);
     final spotReviews = reviewCtrl.getReviewsForSpot(widget.spot.id);
 
     return Scaffold(
@@ -73,41 +114,28 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               ),
             ),
             actions: [
-              if (user != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: GestureDetector(
-                    onTap: () async {
-                      await itineraryCtrl.toggleSave(user.id,
-                          spotId: widget.spot.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(isSaved
-                                ? 'Removed from saved places'
-                                : 'Saved to your places!'),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(color: Colors.black26, blurRadius: 4)
-                        ],
-                      ),
-                      child: Icon(
-                        isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: AppColors.primaryDark,
-                        size: 20,
-                      ),
+              Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: IconButton(
+                  tooltip: isSaved ? 'Remove from saved' : 'Save place',
+                  onPressed: _requestSave,
+                  icon: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(color: Colors.black26, blurRadius: 4)
+                      ],
+                    ),
+                    child: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border,
+                      color: AppColors.primaryDark,
+                      size: 20,
                     ),
                   ),
                 ),
+              ),
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: CachedNetworkImage(
@@ -252,19 +280,17 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         const Text('Community Reviews',
                             style: TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.bold)),
-                        if (user != null)
-                          OutlinedButton.icon(
-                            onPressed: () =>
-                                _showWriteReviewSheet(context, reviewCtrl),
-                            icon: const Icon(Icons.rate_review_outlined,
-                                size: 16),
-                            label: const Text('Write Review'),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(120, 36),
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 6),
-                            ),
+                        OutlinedButton.icon(
+                          onPressed: _requestWriteReview,
+                          icon:
+                              const Icon(Icons.rate_review_outlined, size: 16),
+                          label: const Text('Write Review'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(120, 36),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
                           ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 12),
@@ -320,19 +346,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                           ),
                                         ),
                                       ),
-                                      if (user != null &&
-                                          !r.isOwnedByCurrentUser)
+                                      if (!r.isOwnedByCurrentUser)
                                         IconButton(
                                           constraints: const BoxConstraints(
                                               minWidth: 48, minHeight: 48),
                                           tooltip: 'Report review',
                                           icon: const Icon(Icons.flag_outlined,
                                               size: 16, color: Colors.grey),
-                                          onPressed: () => _showReportDialog(
-                                            context,
-                                            reviewCtrl,
-                                            r.id,
-                                          ),
+                                          onPressed: () => _requestReport(r.id),
                                         ),
                                       if (r.isOwnedByCurrentUser)
                                         IconButton(
@@ -368,6 +389,64 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _requestSave() async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: const SpotPendingAction.save(),
+            ),
+          );
+      return;
+    }
+    final controller = context.read<ItineraryController>();
+    final wasSaved = controller.isSaved(spotId: widget.spot.id);
+    final changed = await controller.toggleSave(spotId: widget.spot.id);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          changed
+              ? (wasSaved ? 'Removed from saved.' : 'Saved to your places.')
+              : controller.errorMessage ?? 'The place could not be updated.',
+        ),
+      ),
+    );
+  }
+
+  void _requestWriteReview() {
+    if (!context.read<AuthController>().canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: const SpotPendingAction.review(),
+            ),
+          );
+      return;
+    }
+    _showWriteReviewSheet(context, context.read<ReviewController>());
+  }
+
+  void _requestReport(String reviewId) {
+    if (!context.read<AuthController>().canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: SpotPendingAction.report(reviewId),
+            ),
+          );
+      return;
+    }
+    _showReportDialog(context, context.read<ReviewController>(), reviewId);
   }
 
   void _showWriteReviewSheet(

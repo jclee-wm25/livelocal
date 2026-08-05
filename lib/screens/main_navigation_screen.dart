@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../controllers/auth_controller.dart';
+import '../controllers/itinerary_controller.dart';
 import 'spots_discovery_screen.dart';
 import 'localeats_screen.dart';
 import 'saved_places_screen.dart';
@@ -30,6 +31,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !context.read<AuthController>().canWrite) return;
+      context.read<ItineraryController>().loadSavedPlaces();
+    });
   }
 
   @override

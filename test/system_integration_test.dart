@@ -11,6 +11,7 @@ import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 import 'package:live_local/features/spots/data/demo_spot_repository.dart';
 import 'package:live_local/features/reviews/data/demo_review_repository.dart';
 import 'package:live_local/features/restaurants/data/demo_local_eats_repository.dart';
+import 'package:live_local/features/itinerary/data/demo_saved_itinerary_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -94,8 +95,14 @@ void main() {
     });
 
     test('Module 4: Saved Places', () async {
-      final itineraryCtrl = ItineraryController();
       final authRepository = DemoAuthRepository();
+      await authRepository.signIn(
+        email: 'tourist@livelocal.my',
+        password: 'DemoOnly123!',
+      );
+      final itineraryCtrl = ItineraryController(
+        repository: DemoSavedItineraryRepository(authRepository),
+      );
       final spotCtrl = SpotController(
         repository: DemoSpotRepository(authRepository),
       );
@@ -105,12 +112,12 @@ void main() {
 
       await spotCtrl.loadSpots();
       await foodCtrl.loadData();
-      await itineraryCtrl.loadSavedPlaces('usr-tourist-1');
+      await itineraryCtrl.loadSavedPlaces();
 
       final spotId = spotCtrl.approvedSpots.first.id;
-      await itineraryCtrl.toggleSave('usr-tourist-1', spotId: spotId);
+      await itineraryCtrl.toggleSave(spotId: spotId);
 
-      expect(itineraryCtrl.isSaved('usr-tourist-1', spotId: spotId), isTrue);
+      expect(itineraryCtrl.isSaved(spotId: spotId), isTrue);
 
       expect(itineraryCtrl.savedPlaces, isNotEmpty);
     });

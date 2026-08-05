@@ -58,6 +58,8 @@ class SeedDataService {
           reviewCount: 42,
           submittedBy: 'usr-tourist-1',
           status: 'approved',
+          latitude: 5.4147,
+          longitude: 100.3334,
         ),
         SpotModel(
           id: 'spot-002',
@@ -77,6 +79,8 @@ class SeedDataService {
           reviewCount: 29,
           submittedBy: 'usr-tourist-1',
           status: 'approved',
+          latitude: 3.1422,
+          longitude: 101.6307,
         ),
         SpotModel(
           id: 'spot-003',
@@ -96,6 +100,8 @@ class SeedDataService {
           reviewCount: 35,
           submittedBy: 'usr-influencer-1',
           status: 'approved',
+          latitude: 4.5967,
+          longitude: 101.0777,
         ),
         SpotModel(
           id: 'spot-004',
@@ -115,6 +121,8 @@ class SeedDataService {
           reviewCount: 18,
           submittedBy: 'usr-tourist-1',
           status: 'approved',
+          latitude: 1.4563,
+          longitude: 103.7633,
         ),
       ];
 
@@ -133,6 +141,8 @@ class SeedDataService {
           socialMediaUrl: 'https://www.tiktok.com/@klfoodie/video/123456789',
           coverPhotoUrl:
               'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=600',
+          latitude: 5.4194,
+          longitude: 100.3265,
         ),
         RestaurantModel(
           id: 'rest-002',
@@ -148,6 +158,8 @@ class SeedDataService {
           socialMediaUrl: 'https://www.instagram.com/p/C123456789/',
           coverPhotoUrl:
               'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600',
+          latitude: 5.4177,
+          longitude: 100.3310,
         ),
         RestaurantModel(
           id: 'rest-003',
@@ -164,6 +176,8 @@ class SeedDataService {
               'https://www.tiktok.com/@foodieexplorer/video/987654321',
           coverPhotoUrl:
               'https://images.unsplash.com/photo-1559925393-8be0ec4767c8?w=600',
+          latitude: 4.5972,
+          longitude: 101.0755,
         ),
       ];
 

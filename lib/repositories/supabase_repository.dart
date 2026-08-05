@@ -5,7 +5,6 @@ import '../models/profile_model.dart';
 import '../models/spot_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/discount_code_model.dart';
-import '../models/saved_place_model.dart';
 import '../models/guide_model.dart';
 import '../models/review_model.dart';
 import '../models/notification_model.dart';
@@ -57,7 +56,6 @@ class SupabaseRepository {
       SeedDataService.getInitialRestaurants();
   final List<DiscountCodeModel> _localDiscounts =
       SeedDataService.getInitialDiscountCodes();
-  final List<SavedPlaceModel> _localSavedPlaces = [];
   final List<GuideModel> _localGuides = SeedDataService.getInitialGuides();
   final List<ReviewModel> _localReviews = SeedDataService.getInitialReviews();
   final List<NotificationModel> _localNotifications =
@@ -323,50 +321,6 @@ class SupabaseRepository {
           isActive: isActive,
         );
       }
-    }
-  }
-
-  // --- Saved Places ---
-  Future<List<SavedPlaceModel>> fetchSavedPlaces(String userId) async {
-    if (_usesSupabase) {
-      final res = await Supabase.instance.client
-          .from('saved_places')
-          .select()
-          .eq('user_id', userId);
-      return (res as List).map((e) => SavedPlaceModel.fromMap(e)).toList();
-    }
-    return _localSavedPlaces.where((p) => p.userId == userId).toList();
-  }
-
-  Future<void> savePlace(SavedPlaceModel item) async {
-    if (_usesSupabase) {
-      await Supabase.instance.client.from('saved_places').insert(item.toMap());
-    } else {
-      _localSavedPlaces.removeWhere((p) =>
-          p.userId == item.userId &&
-          (p.spotId == item.spotId || p.restaurantId == item.restaurantId));
-      _localSavedPlaces.add(item);
-    }
-  }
-
-  Future<void> removeSavedPlace(String userId,
-      {String? spotId, String? restaurantId}) async {
-    if (_usesSupabase) {
-      if (spotId != null) {
-        await Supabase.instance.client
-            .from('saved_places')
-            .delete()
-            .match({'user_id': userId, 'spot_id': spotId});
-      } else if (restaurantId != null) {
-        await Supabase.instance.client
-            .from('saved_places')
-            .delete()
-            .match({'user_id': userId, 'restaurant_id': restaurantId});
-      }
-    } else {
-      _localSavedPlaces.removeWhere((p) =>
-          p.userId == userId &&
-          (p.spotId == spotId || p.restaurantId == restaurantId));
     }
   }
 
