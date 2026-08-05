@@ -5,9 +5,7 @@ import '../models/profile_model.dart';
 import '../models/spot_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/discount_code_model.dart';
-import '../models/guide_model.dart';
 import '../models/review_model.dart';
-import '../models/notification_model.dart';
 
 enum RepositoryMode { unconfigured, demo, supabase }
 
@@ -56,10 +54,7 @@ class SupabaseRepository {
       SeedDataService.getInitialRestaurants();
   final List<DiscountCodeModel> _localDiscounts =
       SeedDataService.getInitialDiscountCodes();
-  final List<GuideModel> _localGuides = SeedDataService.getInitialGuides();
   final List<ReviewModel> _localReviews = SeedDataService.getInitialReviews();
-  final List<NotificationModel> _localNotifications =
-      SeedDataService.getInitialNotifications();
 
   Future<void> initialize({String? url, String? publishableKey}) async {
     if (url == null ||
@@ -324,43 +319,6 @@ class SupabaseRepository {
     }
   }
 
-  // --- Guides ---
-  Future<List<GuideModel>> fetchGuides() async {
-    if (_usesSupabase) {
-      final res =
-          await Supabase.instance.client.from('neighbourhood_guides').select();
-      return (res as List).map((e) => GuideModel.fromMap(e)).toList();
-    }
-    return List.unmodifiable(_localGuides);
-  }
-
-  Future<void> updateGuideStatus(String guideId, String status,
-      {String? rejectionReason}) async {
-    if (_usesSupabase) {
-      await Supabase.instance.client.from('neighbourhood_guides').update({
-        'status': status,
-        if (rejectionReason != null) 'rejection_reason': rejectionReason,
-      }).eq('id', guideId);
-    } else {
-      final idx = _localGuides.indexWhere((g) => g.id == guideId);
-      if (idx >= 0) {
-        final existing = _localGuides[idx];
-        _localGuides[idx] = GuideModel(
-          id: existing.id,
-          title: existing.title,
-          locationName: existing.locationName,
-          state: existing.state,
-          routeOverview: existing.routeOverview,
-          stops: existing.stops,
-          walkingSequence: existing.walkingSequence,
-          estimatedDuration: existing.estimatedDuration,
-          status: status,
-          rejectionReason: rejectionReason,
-        );
-      }
-    }
-  }
-
   // --- Reviews ---
   Future<List<ReviewModel>> fetchReviews() async {
     if (_usesSupabase) {
@@ -413,30 +371,6 @@ class SupabaseRepository {
           .eq('id', reviewId);
     } else {
       _localReviews.removeWhere((r) => r.id == reviewId);
-    }
-  }
-
-  // --- Notifications ---
-  Future<List<NotificationModel>> fetchNotifications(String userId) async {
-    if (_usesSupabase) {
-      final res = await Supabase.instance.client
-          .from('notifications')
-          .select()
-          .eq('user_id', userId);
-      return (res as List).map((e) => NotificationModel.fromMap(e)).toList();
-    }
-    return _localNotifications
-        .where((n) => n.userId == userId || n.userId == 'all')
-        .toList();
-  }
-
-  Future<void> addNotification(NotificationModel notification) async {
-    if (_usesSupabase) {
-      await Supabase.instance.client
-          .from('notifications')
-          .insert(notification.toMap());
-    } else {
-      _localNotifications.add(notification);
     }
   }
 

@@ -22,6 +22,7 @@ class DemoAdminRepository implements AdminRepository {
 
   final DemoAuthRepository _authRepository;
   final List<AdminAccountSummary> _accounts;
+  final List<AdminAuditEvent> _auditEvents = [];
 
   @override
   Future<List<AdminAccountSummary>> fetchAccounts() async {
@@ -33,6 +34,28 @@ class DemoAdminRepository implements AdminRepository {
   Future<List<AdminModerationCase>> fetchModerationCases() async {
     _requireAdmin();
     return const [];
+  }
+
+  @override
+  Future<AdminStatistics> fetchStatistics() async {
+    _requireAdmin();
+    return AdminStatistics(
+      accountsTotal: _accounts.length,
+      accountsRestricted:
+          _accounts.where((item) => item.accessStatus != 'active').length,
+      spotsPublished: SeedDataService.getInitialSpots().length,
+      restaurantsPublished: SeedDataService.getInitialRestaurants().length,
+      guidesPublished: SeedDataService.getInitialGuides().length,
+      reviewsPublished: SeedDataService.getInitialReviews().length,
+      moderationPending: 0,
+      creatorApplicationsPending: 0,
+    );
+  }
+
+  @override
+  Future<List<AdminAuditEvent>> fetchAuditEvents() async {
+    _requireAdmin();
+    return List.unmodifiable(_auditEvents.reversed);
   }
 
   @override
@@ -67,6 +90,17 @@ class DemoAdminRepository implements AdminRepository {
       accessMessage: status == 'active' ? null : publicMessage,
       accessEndsAt: status == 'restricted' ? endsAt : null,
       createdAt: account.createdAt,
+    );
+    _auditEvents.add(
+      AdminAuditEvent(
+        id: 'demo-audit-${DateTime.now().microsecondsSinceEpoch}',
+        action: 'admin.account_access_changed',
+        targetType: 'account',
+        targetId: account.id,
+        reason: internalReason,
+        actorName: actor.fullName,
+        occurredAt: DateTime.now(),
+      ),
     );
   }
 

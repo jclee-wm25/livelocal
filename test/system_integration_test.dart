@@ -12,6 +12,7 @@ import 'package:live_local/features/spots/data/demo_spot_repository.dart';
 import 'package:live_local/features/reviews/data/demo_review_repository.dart';
 import 'package:live_local/features/restaurants/data/demo_local_eats_repository.dart';
 import 'package:live_local/features/itinerary/data/demo_saved_itinerary_repository.dart';
+import 'package:live_local/features/guides/data/demo_guide_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -123,7 +124,9 @@ void main() {
     });
 
     test('Module 5: Neighbourhood Explorer Guides', () async {
-      final guideCtrl = GuideController();
+      final guideCtrl = GuideController(
+        repository: DemoGuideRepository(DemoAuthRepository()),
+      );
       await guideCtrl.loadGuides();
 
       expect(guideCtrl.approvedGuides.isNotEmpty, isTrue);

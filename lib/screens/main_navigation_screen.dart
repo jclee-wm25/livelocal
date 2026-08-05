@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
+import '../features/notifications/presentation/notification_controller.dart';
 import 'spots_discovery_screen.dart';
 import 'localeats_screen.dart';
 import 'saved_places_screen.dart';
@@ -34,6 +35,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !context.read<AuthController>().canWrite) return;
       context.read<ItineraryController>().loadSavedPlaces();
+      context.read<NotificationController>().load();
     });
   }
 
@@ -54,6 +56,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
     final authCtrl = Provider.of<AuthController>(context);
     final user = authCtrl.currentUser;
     final isAdmin = user?.role == 'admin';
+    final unreadNotifications =
+        context.watch<NotificationController>().unreadCount;
 
     final List<Widget> pages = [
       const SpotsDiscoveryScreen(),
@@ -125,8 +129,19 @@ class _MainNavigationScreenState extends State<MainNavigationScreen>
                         turns: Tween(begin: 0.0, end: 0.08)
                             .chain(CurveTween(curve: Curves.elasticIn))
                             .animate(_bellController),
-                        child: const Icon(Icons.notifications_outlined,
-                            color: Colors.white, size: 24),
+                        child: Badge(
+                          isLabelVisible: unreadNotifications > 0,
+                          label: Text(
+                            unreadNotifications > 99
+                                ? '99+'
+                                : '$unreadNotifications',
+                          ),
+                          child: const Icon(
+                            Icons.notifications_outlined,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
                       ),
                     ),
                   ),

@@ -10,15 +10,20 @@ class AdminController with ChangeNotifier {
   final AdminRepository _repository;
   List<AdminAccountSummary> _accounts = [];
   List<AdminModerationCase> _cases = [];
+  List<AdminAuditEvent> _auditEvents = [];
+  AdminStatistics? _statistics;
   bool _isLoading = false;
   String? _errorMessage;
 
   List<AdminAccountSummary> get accounts => List.unmodifiable(_accounts);
   List<AdminModerationCase> get moderationCases => List.unmodifiable(_cases);
+  List<AdminAuditEvent> get auditEvents => List.unmodifiable(_auditEvents);
+  AdminStatistics? get statistics => _statistics;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  int get totalUsers => _accounts.length;
+  int get totalUsers => _statistics?.accountsTotal ?? _accounts.length;
   int get suspendedUsersCount =>
+      _statistics?.accountsRestricted ??
       _accounts.where((account) => account.accessStatus != 'active').length;
 
   Future<void> loadDashboard() async {
@@ -29,9 +34,13 @@ class AdminController with ChangeNotifier {
       final results = await Future.wait([
         _repository.fetchAccounts(),
         _repository.fetchModerationCases(),
+        _repository.fetchStatistics(),
+        _repository.fetchAuditEvents(),
       ]);
       _accounts = results[0] as List<AdminAccountSummary>;
       _cases = results[1] as List<AdminModerationCase>;
+      _statistics = results[2] as AdminStatistics;
+      _auditEvents = results[3] as List<AdminAuditEvent>;
     } catch (error) {
       _errorMessage = _message(error);
     } finally {

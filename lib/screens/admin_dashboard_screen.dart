@@ -11,6 +11,9 @@ import '../features/influencer_applications/domain/influencer_application_reposi
 import '../features/influencer_applications/presentation/influencer_application_controller.dart';
 import '../models/spot_model.dart';
 import '../models/restaurant_model.dart';
+import '../controllers/guide_controller.dart';
+import '../features/guides/presentation/admin_guide_editor_screen.dart';
+import '../models/guide_model.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -35,6 +38,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       context.read<SpotController>().loadPendingSpots(),
       context.read<InfluencerApplicationController>().loadPending(),
       context.read<LocalEatsController>().loadPendingRestaurants(),
+      context.read<GuideController>().loadAdminDrafts(),
     ]);
   }
 
@@ -50,6 +54,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final spots = context.watch<SpotController>();
     final applications = context.watch<InfluencerApplicationController>();
     final localEats = context.watch<LocalEatsController>();
+    final guides = context.watch<GuideController>();
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
       appBar: AppBar(
@@ -69,6 +74,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             const SizedBox(height: 8),
             const Text(
               'Every decision requires a reason and is checked again by the backend.',
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => const AdminGuideEditorScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.add_road_outlined),
+              label: const Text('Create guide draft'),
             ),
             const SizedBox(height: 20),
             Row(
@@ -90,6 +106,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               ],
             ),
+            if (admin.statistics != null) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _MetricCard(
+                      label: 'Published spots',
+                      value: admin.statistics!.spotsPublished,
+                      icon: Icons.place_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _MetricCard(
+                      label: 'Published eats',
+                      value: admin.statistics!.restaurantsPublished,
+                      icon: Icons.restaurant_outlined,
+                    ),
+                  ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Row(
               children: [
@@ -133,13 +171,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             if (admin.errorMessage != null ||
                 spots.errorMessage != null ||
                 applications.errorMessage != null ||
-                localEats.errorMessage != null) ...[
+                localEats.errorMessage != null ||
+                guides.errorMessage != null) ...[
               const SizedBox(height: 16),
               _ErrorPanel(
                 message: admin.errorMessage ??
                     spots.errorMessage ??
                     applications.errorMessage ??
-                    localEats.errorMessage!,
+                    localEats.errorMessage ??
+                    guides.errorMessage!,
                 onRetry: _load,
               ),
             ],
@@ -170,6 +210,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                             child: Text('Reject'),
                           ),
                         ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            _Section(
+              title: 'Guide drafts',
+              count: guides.adminDrafts.length,
+              emptyText: 'No guide drafts are awaiting publication.',
+              children: guides.adminDrafts
+                  .map(
+                    (guide) => ListTile(
+                      minTileHeight: 72,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.route_outlined),
+                      title: Text(guide.title),
+                      subtitle: Text(
+                        '${guide.locationName}, ${guide.state} · ${guide.stops.length} stops',
+                      ),
+                      trailing: FilledButton.tonal(
+                        onPressed: () => _publishGuide(guide),
+                        child: const Text('Publish'),
                       ),
                     ),
                   )
@@ -354,10 +417,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   )
                   .toList(),
             ),
+            const SizedBox(height: 16),
+            _Section(
+              title: 'Recent audit history',
+              count: admin.auditEvents.length,
+              emptyText: 'No audit events are available.',
+              children: admin.auditEvents
+                  .map(
+                    (event) => ListTile(
+                      minTileHeight: 72,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.history_outlined),
+                      title: Text(event.action.replaceAll('.', ' · ')),
+                      subtitle: Text(
+                        '${event.actorName} · ${event.targetType}${event.reason == null ? '' : '\n${event.reason}'}',
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      isThreeLine: event.reason != null,
+                    ),
+                  )
+                  .toList(),
+            ),
             if (admin.isLoading ||
                 spots.isLoading ||
                 applications.isLoading ||
-                localEats.isLoading) ...[
+                localEats.isLoading ||
+                guides.isLoading) ...[
               const SizedBox(height: 24),
               const Center(child: CircularProgressIndicator()),
             ],
@@ -418,6 +504,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ? 'Creator application decision recorded.'
           : context.read<InfluencerApplicationController>().errorMessage ??
               'The application decision could not be saved.',
+    );
+  }
+
+  Future<void> _publishGuide(GuideModel guide) async {
+    final reason = await _reasonDialog(
+      title: 'Publish this guide?',
+      prompt:
+          'Confirm that the route, public locations, and walking instructions have been checked.',
+      destructive: false,
+    );
+    if (reason == null || !mounted) return;
+    final saved =
+        await context.read<GuideController>().publishDraft(guide, reason);
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Guide published.'
+          : context.read<GuideController>().errorMessage ??
+              'The guide could not be published.',
     );
   }
 

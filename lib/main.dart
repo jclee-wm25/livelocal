@@ -52,6 +52,13 @@ import 'screens/spot_detail_screen.dart';
 import 'features/itinerary/data/demo_saved_itinerary_repository.dart';
 import 'features/itinerary/data/supabase_saved_itinerary_repository.dart';
 import 'features/itinerary/domain/saved_itinerary_repository.dart';
+import 'features/guides/data/demo_guide_repository.dart';
+import 'features/guides/data/supabase_guide_repository.dart';
+import 'features/guides/domain/guide_repository.dart';
+import 'features/notifications/data/demo_notification_repository.dart';
+import 'features/notifications/data/supabase_notification_repository.dart';
+import 'features/notifications/domain/notification_repository.dart';
+import 'features/notifications/presentation/notification_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -84,6 +91,8 @@ Future<void> main() async {
   late final InfluencerApplicationRepository influencerApplicationRepository;
   late final LocalEatsRepository localEatsRepository;
   late final SavedItineraryRepository savedItineraryRepository;
+  late final GuideRepository guideRepository;
+  late final NotificationRepository notificationRepository;
   try {
     if (configuration.isDemo) {
       SupabaseRepository().configureForDemo();
@@ -98,6 +107,8 @@ Future<void> main() async {
       localEatsRepository = DemoLocalEatsRepository(demoAuthRepository);
       savedItineraryRepository =
           DemoSavedItineraryRepository(demoAuthRepository);
+      guideRepository = DemoGuideRepository(demoAuthRepository);
+      notificationRepository = DemoNotificationRepository(demoAuthRepository);
     } else {
       await Supabase.initialize(
         url: configuration.supabaseUrl!,
@@ -122,6 +133,9 @@ Future<void> main() async {
           SupabaseLocalEatsRepository(Supabase.instance.client);
       savedItineraryRepository =
           SupabaseSavedItineraryRepository(Supabase.instance.client);
+      guideRepository = SupabaseGuideRepository(Supabase.instance.client);
+      notificationRepository =
+          SupabaseNotificationRepository(Supabase.instance.client);
     }
   } catch (error) {
     if (kDebugMode) {
@@ -147,6 +161,8 @@ Future<void> main() async {
       influencerApplicationRepository: influencerApplicationRepository,
       localEatsRepository: localEatsRepository,
       savedItineraryRepository: savedItineraryRepository,
+      guideRepository: guideRepository,
+      notificationRepository: notificationRepository,
     ),
   );
 }
@@ -163,6 +179,8 @@ class LiveLocalApp extends StatelessWidget {
     required this.influencerApplicationRepository,
     required this.localEatsRepository,
     required this.savedItineraryRepository,
+    required this.guideRepository,
+    required this.notificationRepository,
   });
 
   final AppConfiguration configuration;
@@ -174,6 +192,8 @@ class LiveLocalApp extends StatelessWidget {
   final InfluencerApplicationRepository influencerApplicationRepository;
   final LocalEatsRepository localEatsRepository;
   final SavedItineraryRepository savedItineraryRepository;
+  final GuideRepository guideRepository;
+  final NotificationRepository notificationRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -201,7 +221,13 @@ class LiveLocalApp extends StatelessWidget {
           create: (_) =>
               ItineraryController(repository: savedItineraryRepository),
         ),
-        ChangeNotifierProvider(create: (_) => GuideController()),
+        ChangeNotifierProvider(
+          create: (_) => GuideController(repository: guideRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              NotificationController(repository: notificationRepository),
+        ),
         ChangeNotifierProvider(
           create: (_) => ReviewController(repository: reviewRepository),
         ),

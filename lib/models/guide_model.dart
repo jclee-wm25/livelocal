@@ -9,6 +9,8 @@ class GuideModel {
   final String estimatedDuration;
   final String status; // 'pending', 'approved', 'rejected'
   final String? rejectionReason;
+  final String? revisionId;
+  final int version;
 
   GuideModel({
     required this.id,
@@ -21,6 +23,8 @@ class GuideModel {
     required this.estimatedDuration,
     this.status = 'approved',
     this.rejectionReason,
+    this.revisionId,
+    this.version = 1,
   });
 
   Map<String, dynamic> toMap() => {
@@ -34,6 +38,8 @@ class GuideModel {
         'estimated_duration': estimatedDuration,
         'status': status,
         'rejection_reason': rejectionReason,
+        'revision_id': revisionId,
+        'version': version,
       };
 
   factory GuideModel.fromMap(Map<String, dynamic> map) => GuideModel(
@@ -47,5 +53,7 @@ class GuideModel {
         estimatedDuration: map['estimated_duration'] ?? '',
         status: map['status'] ?? 'approved',
         rejectionReason: map['rejection_reason'],
+        revisionId: map['revision_id'],
+        version: (map['version'] as num?)?.toInt() ?? 1,
       );
 }

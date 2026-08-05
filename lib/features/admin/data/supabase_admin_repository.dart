@@ -47,6 +47,43 @@ class SupabaseAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<AdminStatistics> fetchStatistics() async {
+    final response = await _rpc('admin_platform_statistics');
+    final row = Map<String, dynamic>.from(response as Map);
+    return AdminStatistics(
+      accountsTotal: (row['accounts_total'] as num).toInt(),
+      accountsRestricted: (row['accounts_restricted'] as num).toInt(),
+      spotsPublished: (row['spots_published'] as num).toInt(),
+      restaurantsPublished: (row['restaurants_published'] as num).toInt(),
+      guidesPublished: (row['guides_published'] as num).toInt(),
+      reviewsPublished: (row['reviews_published'] as num).toInt(),
+      moderationPending: (row['moderation_pending'] as num).toInt(),
+      creatorApplicationsPending:
+          (row['creator_applications_pending'] as num).toInt(),
+    );
+  }
+
+  @override
+  Future<List<AdminAuditEvent>> fetchAuditEvents() async {
+    final response = await _rpc('admin_list_audit_events', {
+      'p_limit': 50,
+      'p_before': null,
+    });
+    return (response as List<dynamic>).map((raw) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      return AdminAuditEvent(
+        id: row['id'] as String,
+        action: row['action'] as String,
+        targetType: row['target_type'] as String,
+        targetId: row['target_id'] as String?,
+        reason: row['reason'] as String?,
+        actorName: row['actor_name'] as String,
+        occurredAt: DateTime.parse(row['occurred_at'] as String).toLocal(),
+      );
+    }).toList();
+  }
+
+  @override
   Future<void> setAccountAccess({
     required AdminAccountSummary account,
     required String status,
