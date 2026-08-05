@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(37);
+select plan(38);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -235,13 +235,13 @@ select set_config(
 );
 set local role authenticated;
 select lives_ok(
-  $$select public.create_restaurant_draft(
+  $sql$select public.create_restaurant_draft(
     'Original Revision Kitchen', '91 Revision Test Road', 'Penang',
     'George Town', 'Malaysian', '$$', 'Noodles and local coffee',
     'https://www.instagram.com/revision-kitchen',
     '90000000-0000-0000-0000-000000000003/original-restaurant.jpg',
     5.4142, 100.3289
-  )$$,
+  )$sql$,
   'creator creates the original restaurant draft'
 );
 select lives_ok(
@@ -280,14 +280,14 @@ select set_config(
 );
 set local role authenticated;
 select lives_ok(
-  $$select public.save_restaurant_revision_draft(
+  $sql$select public.save_restaurant_revision_draft(
     (select current_revision_id from public.restaurants where owner_id = auth.uid()),
     'Revised Revision Kitchen', '91 Revision Test Road', 'Penang',
     'George Town', 'Malaysian', '$$', 'Revised noodles and coffee',
     'https://www.instagram.com/revision-kitchen',
     '90000000-0000-0000-0000-000000000003/revised-restaurant.jpg',
     5.4142, 100.3289
-  )$$,
+  )$sql$,
   'creator creates a draft revision from an approved restaurant'
 );
 select is(
@@ -331,12 +331,12 @@ select set_config(
 );
 set local role authenticated;
 select lives_ok(
-  $$select public.save_restaurant_revision_draft(
+  $sql$select public.save_restaurant_revision_draft(
     (select current_revision_id from public.restaurants where owner_id = auth.uid()),
     'Discarded Restaurant Draft', '91 Revision Test Road', 'Penang',
     'George Town', 'Malaysian', '$$', 'Temporary edit for discard testing',
     'https://www.instagram.com/revision-kitchen', null, 5.4142, 100.3289
-  )$$,
+  )$sql$,
   'creator starts another restaurant revision'
 );
 select lives_ok(
@@ -360,12 +360,12 @@ select is(
   'withdraw restores the approved restaurant as current'
 );
 select lives_ok(
-  $$select public.save_restaurant_revision_draft(
+  $sql$select public.save_restaurant_revision_draft(
     (select current_revision_id from public.restaurants where owner_id = auth.uid()),
     'Discarded Restaurant Draft', '91 Revision Test Road', 'Penang',
     'George Town', 'Malaysian', '$$', 'Another temporary discard edit',
     'https://www.instagram.com/revision-kitchen', null, 5.4142, 100.3289
-  )$$,
+  )$sql$,
   'creator starts a new restaurant draft for discard testing'
 );
 select lives_ok(
@@ -399,6 +399,12 @@ select lives_ok(
     'Morning', 'Discard this temporary edit', null, 5.4141, 100.3288
   )$$,
   'spot owner starts another revision'
+);
+select lives_ok(
+  $$select public.confirm_spot_image_rights(
+    (select current_revision_id from public.spots where owner_id = auth.uid())
+  )$$,
+  'spot owner renews image-rights confirmation for the new revision'
 );
 select lives_ok(
   $$select public.submit_spot_revision(

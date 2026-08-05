@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(25);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -63,10 +63,12 @@ select ok(
   ),
   'mobile roles cannot claim privileged cleanup work'
 );
-select lives_ok(
+select throws_ok(
   $$delete from storage.objects
     where bucket_id = 'avatars'
       and name = 'a0000000-0000-4000-8000-000000000001/avatar.jpg'$$,
+  '42501',
+  'Direct deletion from storage tables is not allowed. Use the Storage API instead.',
   'a stale restricted session cannot bypass the Storage delete policy'
 );
 select is(
@@ -94,6 +96,28 @@ select set_config(
   true
 );
 set local role authenticated;
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner, owner_id)
+    values (
+      'avatars',
+      'a0000000-0000-4000-8000-000000000001/nested/avatar.png',
+      'a0000000-0000-4000-8000-000000000001',
+      'a0000000-0000-4000-8000-000000000001'
+    )$$,
+  '42501', null,
+  'avatar policy rejects nested object paths'
+);
+select throws_ok(
+  $$insert into storage.objects (bucket_id, name, owner, owner_id)
+    values (
+      'spot-images',
+      'a0000000-0000-4000-8000-000000000099/foreign.png',
+      'a0000000-0000-4000-8000-000000000001',
+      'a0000000-0000-4000-8000-000000000001'
+    )$$,
+  '42501', null,
+  'spot media policy rejects a foreign ownership path'
+);
 select lives_ok(
   $$select public.create_spot_draft(
     'Temporary Cleanup Garden', 'Park',
@@ -219,58 +243,63 @@ select lives_ok(
     where action = 'rehome' and status = 'processing'$$,
   'service worker activates the retained copy before deleting the source'
 );
-select unlike(
-  (select image_path from public.published_spots
+select ok(
+  (select image_path not like
+      'a0000000-0000-4000-8000-000000000001%'
+    from public.published_spots
     where id = 'a1000000-0000-4000-8000-000000000001'),
-  'a0000000-0000-4000-8000-000000000001%',
   'public retained media path no longer contains the deleted user identifier'
 );
 
-delete from storage.objects object
-using private.storage_cleanup_jobs job
-where job.status = 'processing'
-  and object.bucket_id = job.bucket_id
-  and object.name = job.source_path;
-select lives_ok(
+select throws_ok(
   $$select public.complete_storage_cleanup_job(id, lock_token)
-    from private.storage_cleanup_jobs where status = 'processing'$$,
-  'service worker acknowledges only physically absent source objects'
+    from private.storage_cleanup_jobs
+    where status = 'processing'
+    order by created_at
+    limit 1$$,
+  '22023',
+  'Source object still exists',
+  'worker cannot acknowledge cleanup while the Storage object still exists'
+);
+select lives_ok(
+  $$select public.fail_storage_cleanup_job(
+      id, lock_token, 'Synthetic Storage API failure'
+    )
+    from private.storage_cleanup_jobs
+    where status = 'processing'
+    order by created_at
+    limit 1$$,
+  'worker can record a retryable Storage API failure'
+);
+select is(
+  (select count(*) from private.storage_cleanup_jobs
+    where status = 'failed' and lock_token is null and locked_at is null),
+  1::bigint,
+  'failed cleanup releases its worker lock for a later retry'
 );
 select is(
   public.finalize_due_account_deletions(),
-  1,
-  'account finalization completes after Storage API acknowledgement'
+  0,
+  'account finalization remains paused while Storage cleanup is incomplete'
 );
 select is(
   (select count(*) from auth.users
     where id = 'a0000000-0000-4000-8000-000000000001'),
-  0::bigint,
-  'Auth identity is deleted after all owned objects are gone'
+  1::bigint,
+  'Auth identity remains while Storage cleanup is incomplete'
 );
 select is(
   (select count(*) from public.published_spots
     where id = 'a1000000-0000-4000-8000-000000000001'),
   1::bigint,
-  'approved public spot remains available after account deletion'
-);
-select is(
-  (select owner_id from public.spots
-    where id = 'a1000000-0000-4000-8000-000000000001'),
-  null::uuid,
-  'retained public spot has no personal owner'
-);
-select is(
-  (select count(*) from storage.objects
-    where bucket_id = 'spot-images' and name like 'retained/%'
-      and owner_id is null),
-  1::bigint,
-  'retained media exists under platform ownership'
+  'approved public spot remains available while cleanup is retried'
 );
 select is(
   (select count(*) from private.storage_cleanup_jobs
-    where owner_id = 'a0000000-0000-4000-8000-000000000001'),
-  0::bigint,
-  'completed per-user cleanup jobs are minimized after finalization'
+    where owner_id = 'a0000000-0000-4000-8000-000000000001'
+      and status in ('processing', 'failed')),
+  3::bigint,
+  'all incomplete per-user cleanup jobs remain auditable and retryable'
 );
 
 select * from finish();

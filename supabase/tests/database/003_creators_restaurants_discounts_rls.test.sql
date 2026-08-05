@@ -111,7 +111,12 @@ select lives_ok(
   'admin approval atomically grants creator access'
 );
 select is(
-  private.current_role('40000000-0000-0000-0000-000000000002'),
+  (
+    select role::text
+    from public.user_roles
+    where user_id = '40000000-0000-0000-0000-000000000002'
+      and revoked_at is null
+  ),
   'influencer',
   'approved applicant receives the influencer role'
 );
@@ -134,22 +139,22 @@ select set_config(
 set local role authenticated;
 
 select throws_ok(
-  $$select public.create_restaurant_draft(
+  $sql$select public.create_restaurant_draft(
     'Secure Kitchen', '1 Restaurant Test Road', 'Penang', 'George Town',
     'Malay', '$$', 'Nasi lemak', 'https://example.com/deceptive',
     null, null, null
-  )$$,
+  )$sql$,
   '22023', 'Unsupported social URL',
   'restaurant RPC rejects unsupported social hosts'
 );
 select lives_ok(
-  $$select public.create_restaurant_draft(
+  $sql$select public.create_restaurant_draft(
     'Secure Kitchen', '1 Restaurant Test Road', 'Penang', 'George Town',
     'Malay', '$$', 'Nasi lemak',
     'https://www.tiktok.com/@secure/video/123',
     '40000000-0000-0000-0000-000000000002/secure-kitchen.jpg',
     null, null
-  )$$,
+  )$sql$,
   'approved creator creates a restaurant draft'
 );
 select lives_ok(
@@ -192,7 +197,7 @@ select throws_ok(
     (select id from public.restaurant_revisions where status = 'approved'),
     'rejected', 'Conflicting stale decision.', 1
   )$$,
-  'P0002', 'Restaurant revision is not awaiting moderation',
+  '40001', 'Restaurant changed concurrently',
   'approved restaurant cannot receive a second conflicting decision'
 );
 

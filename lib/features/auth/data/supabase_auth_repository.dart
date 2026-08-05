@@ -121,7 +121,7 @@ class SupabaseAuthRepository implements AuthRepository {
   @override
   Future<void> signOut() async {
     try {
-      await _client.auth.signOut(scope: SignOutScope.local);
+      await _client.auth.signOut(scope: SignOutScope.global);
     } on AuthException catch (error) {
       throw _mapAuthException(error);
     }
