@@ -229,48 +229,28 @@ insert into public.account_deletion_requests (
   '60000000-0000-0000-0000-000000000002', 'pending',
   clock_timestamp() - interval '1 minute'
 );
-select lives_ok(
-  $cleanup$
-  do $$
-  begin
-    perform public.finalize_due_account_deletions();
-    perform public.claim_storage_cleanup_jobs(50);
-    insert into storage.objects (bucket_id, name, owner, owner_id)
-    select bucket_id, destination_path, null, null
-    from private.storage_cleanup_jobs
-    where status = 'processing' and action = 'rehome';
-    perform public.activate_storage_rehome_job(id, lock_token)
-    from private.storage_cleanup_jobs
-    where status = 'processing' and action = 'rehome';
-    delete from storage.objects object
-    using private.storage_cleanup_jobs job
-    where job.status = 'processing'
-      and object.bucket_id = job.bucket_id
-      and object.name = job.source_path;
-    perform public.complete_storage_cleanup_job(id, lock_token)
-    from private.storage_cleanup_jobs where status = 'processing';
-    perform public.finalize_due_account_deletions();
-  end;
-  $$
-  $cleanup$,
-  'service-side Storage API handshake and finalizer process due deletion'
+select is(
+  public.finalize_due_account_deletions(),
+  0,
+  'account finalization pauses until the Storage API worker completes'
 );
 select is(
   (select count(*) from auth.users
     where id = '60000000-0000-0000-0000-000000000002'),
-  0::bigint,
-  'due account Auth identity is deleted'
+  1::bigint,
+  'Auth identity remains while owned Storage objects exist'
 );
 select is(
   (select count(*) from public.published_spots),
   1::bigint,
-  'approved public spot remains after owner deletion'
+  'approved public spot remains available while cleanup is pending'
 );
 select is(
-  (select count(*) from public.notifications
-    where user_id = '60000000-0000-0000-0000-000000000002'),
-  0::bigint,
-  'private notifications are deleted with the account'
+  (select count(*) from private.storage_cleanup_jobs
+    where owner_id = '60000000-0000-0000-0000-000000000002'
+      and action = 'rehome' and status = 'pending'),
+  1::bigint,
+  'due deletion queues retained public media for Storage API re-homing'
 );
 
 select * from finish();

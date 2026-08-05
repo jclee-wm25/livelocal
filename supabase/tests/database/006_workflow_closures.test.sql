@@ -147,13 +147,13 @@ select set_config(
 );
 set local role authenticated;
 select lives_ok(
-  $$select public.create_restaurant_draft(
+  $sql$select public.create_restaurant_draft(
     'Closure Test Kitchen', '12 Test Street', 'Penang', 'George Town',
     'Malaysian', '$$', 'Noodles and coffee',
     'https://www.instagram.com/closuretest',
     '70000000-0000-0000-0000-000000000002/closure-kitchen.jpg',
     5.4141, 100.3288
-  )$$,
+  )$sql$,
   'creator creates a restaurant draft'
 );
 select lives_ok(
@@ -347,6 +347,13 @@ select is(
   'active',
   'accepted appeal restores account access transactionally'
 );
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"70000000-0000-0000-0000-000000000003","role":"authenticated"}',
+  true
+);
+set local role authenticated;
 select is(
   (select count(*) from public.notifications
     where user_id = '70000000-0000-0000-0000-000000000003'
@@ -354,6 +361,13 @@ select is(
   1::bigint,
   'appeal outcome creates an in-app notification'
 );
+reset role;
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"70000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
 select throws_ok(
   $$select public.admin_decide_account_appeal(
     (select id from public.account_appeals), 'dismissed',
@@ -364,13 +378,14 @@ select throws_ok(
 );
 
 reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
 select throws_ok(
   $$select public.report_content(
     'restaurant', (select id from public.published_restaurants),
     'broken_link', 'Anonymous report.', false
   )$$,
-  '42501', 'Account cannot report content',
+  '42501', 'permission denied for function report_content',
   'anonymous users cannot submit reports'
 );
 

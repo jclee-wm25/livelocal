@@ -58,7 +58,11 @@ select is(
 );
 
 set local role anon;
-select is((select count(*) from public.profiles), 0::bigint, 'anon sees no profiles');
+select throws_ok(
+  $$select count(*) from public.profiles$$,
+  '42501', 'permission denied for table profiles',
+  'anonymous clients cannot read private profiles'
+);
 reset role;
 
 select set_config(

@@ -128,6 +128,7 @@ select throws_ok(
 );
 
 reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
 select is(
   (select count(*) from public.published_spots),
@@ -198,6 +199,7 @@ select is(
 );
 
 reset role;
+select set_config('request.jwt.claims', '{"role":"anon"}', true);
 set local role anon;
 select is(
   (select count(*) from public.public_reviews),

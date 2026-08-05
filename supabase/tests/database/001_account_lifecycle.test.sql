@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(14);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -132,6 +132,32 @@ select throws_ok(
   '40001',
   'Account state changed concurrently',
   'stale moderation version is rejected'
+);
+
+select lives_ok(
+  $$select public.admin_set_account_access(
+    '20000000-0000-0000-0000-000000000002', 'banned',
+    'Permanent platform ban', 'Confirmed severe abuse', null, 4
+  )$$,
+  'admin can permanently ban with the current expected version'
+);
+select ok(
+  (select banned_until > clock_timestamp() from auth.users
+    where id = '20000000-0000-0000-0000-000000000002'),
+  'permanent platform ban blocks fresh Auth sessions'
+);
+select lives_ok(
+  $$select public.admin_set_account_access(
+    '20000000-0000-0000-0000-000000000002', 'active',
+    null, 'Successful appeal restores access', null, 5
+  )$$,
+  'admin can restore a banned account with the current expected version'
+);
+select is(
+  (select banned_until from auth.users
+    where id = '20000000-0000-0000-0000-000000000002'),
+  null::timestamptz,
+  'restoring account access also restores future Auth sessions'
 );
 
 select * from finish();
