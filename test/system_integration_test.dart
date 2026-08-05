@@ -7,8 +7,13 @@ import 'package:live_local/controllers/localeats_controller.dart';
 import 'package:live_local/controllers/review_controller.dart';
 import 'package:live_local/controllers/spot_controller.dart';
 import 'package:live_local/models/spot_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  SharedPreferences.setMockInitialValues({});
+
   group('LiveLocal System Integration Tests', () {
     test('Module 1: Auth and Role Switching', () async {
       final authCtrl = AuthController();

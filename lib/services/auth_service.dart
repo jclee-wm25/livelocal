@@ -1,38 +1,138 @@
+import 'dart:convert';
+
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import '../models/profile_model.dart';
 import '../repositories/supabase_repository.dart';
 
 class AuthService {
   final SupabaseRepository _repo = SupabaseRepository();
 
-  // Local development mode only.
+  static const String _sessionKey = 'livelocal_auth_session';
+
+  // Only used in local/demo mode.
   // Seed accounts use "password" as the demo password.
-  // Newly registered local accounts are stored here during the current run.
   static final Map<String, String> _localPasswords = {};
 
+  bool get isLiveSupabase => _repo.isLiveSupabase;
+
   bool _isValidEmail(String email) {
-    final emailPattern = RegExp(
+    final RegExp emailPattern = RegExp(
       r'^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$',
     );
 
     return emailPattern.hasMatch(email);
   }
 
+  Future<void> saveSession(ProfileModel profile) async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+
+    await preferences.setString(
+      _sessionKey,
+      jsonEncode(profile.toMap()),
+    );
+  }
+
+  Future<ProfileModel?> restoreSession() async {
+    try {
+      if (_repo.isLiveSupabase) {
+        final User? authUser = Supabase.instance.client.auth.currentUser;
+
+        if (authUser == null) {
+          await _clearStoredSession();
+          return null;
+        }
+
+        final List<ProfileModel> profiles = await _repo.fetchProfiles();
+
+        ProfileModel? matchingProfile;
+
+        for (final ProfileModel profile in profiles) {
+          final bool sameId = profile.id == authUser.id;
+
+          final bool sameEmail = authUser.email != null &&
+              profile.email.trim().toLowerCase() ==
+                  authUser.email!.trim().toLowerCase();
+
+          if (sameId || sameEmail) {
+            matchingProfile = profile;
+            break;
+          }
+        }
+
+        if (matchingProfile == null) {
+          await logout();
+          return null;
+        }
+
+        if (matchingProfile.isSuspended) {
+          await logout();
+          return null;
+        }
+
+        await saveSession(matchingProfile);
+        return matchingProfile;
+      }
+
+      final SharedPreferences preferences =
+          await SharedPreferences.getInstance();
+
+      final String? storedSession = preferences.getString(_sessionKey);
+
+      if (storedSession == null || storedSession.isEmpty) {
+        return null;
+      }
+
+      final Object? decodedSession = jsonDecode(storedSession);
+
+      if (decodedSession is! Map) {
+        await _clearStoredSession();
+        return null;
+      }
+
+      final Map<String, dynamic> sessionMap =
+          Map<String, dynamic>.from(decodedSession);
+
+      final ProfileModel profile = ProfileModel.fromMap(sessionMap);
+
+      if (profile.id.isEmpty || profile.email.isEmpty) {
+        await _clearStoredSession();
+        return null;
+      }
+
+      if (profile.isSuspended) {
+        await _clearStoredSession();
+        return null;
+      }
+
+      return profile;
+    } catch (_) {
+      await _clearStoredSession();
+      return null;
+    }
+  }
+
   Future<ProfileModel> login(
     String email,
     String password,
   ) async {
-    final normalizedEmail = email.trim().toLowerCase();
+    final String normalizedEmail = email.trim().toLowerCase();
 
     if (normalizedEmail.isEmpty || password.isEmpty) {
-      throw Exception('Email and password cannot be empty.');
+      throw Exception(
+        'Email and password cannot be empty.',
+      );
     }
 
     if (!_isValidEmail(normalizedEmail)) {
-      throw Exception('Please enter a valid email address.');
+      throw Exception(
+        'Please enter a valid email address.',
+      );
     }
 
     if (_repo.isLiveSupabase) {
-      final response = await _repo.signIn(
+      final AuthResponse? response = await _repo.signIn(
         normalizedEmail,
         password,
       );
@@ -41,42 +141,52 @@ class AuthService {
         throw Exception('Invalid email or password.');
       }
 
-      final profiles = await _repo.fetchProfiles();
+      final List<ProfileModel> profiles = await _repo.fetchProfiles();
 
-      final userProfile = profiles.firstWhere(
-        (profile) => profile.email.trim().toLowerCase() == normalizedEmail,
+      final ProfileModel userProfile = profiles.firstWhere(
+        (ProfileModel profile) =>
+            profile.email.trim().toLowerCase() == normalizedEmail,
         orElse: () {
-          throw Exception('Profile not found for this account.');
+          throw Exception(
+            'Profile not found for this account.',
+          );
         },
       );
 
       if (userProfile.isSuspended) {
+        await Supabase.instance.client.auth.signOut();
+
         throw Exception(
           'Your account has been suspended by an administrator.',
         );
       }
 
+      await saveSession(userProfile);
+
       return userProfile;
     }
 
-    // Local fallback mode
-    final profiles = await _repo.fetchProfiles();
+    // Local fallback mode.
+    final List<ProfileModel> profiles = await _repo.fetchProfiles();
 
-    final matchingProfiles = profiles.where(
-      (profile) => profile.email.trim().toLowerCase() == normalizedEmail,
-    );
+    final List<ProfileModel> matchingProfiles = profiles
+        .where(
+          (ProfileModel profile) =>
+              profile.email.trim().toLowerCase() == normalizedEmail,
+        )
+        .toList();
 
     if (matchingProfiles.isEmpty) {
       throw Exception('Invalid email or password.');
     }
 
-    final profile = matchingProfiles.first;
+    final ProfileModel profile = matchingProfiles.first;
 
-    // Registered local accounts use their entered password.
-    // Seed accounts use "password" for development testing.
-    final savedPassword = _localPasswords[normalizedEmail];
+    final String? savedPassword = _localPasswords[normalizedEmail];
 
-    final passwordIsValid = savedPassword != null
+    // New local accounts use their entered password.
+    // Seed accounts use "password".
+    final bool passwordIsValid = savedPassword != null
         ? savedPassword == password
         : password == 'password';
 
@@ -90,6 +200,8 @@ class AuthService {
       );
     }
 
+    await saveSession(profile);
+
     return profile;
   }
 
@@ -99,16 +211,22 @@ class AuthService {
     String fullName,
     String role,
   ) async {
-    final normalizedEmail = email.trim().toLowerCase();
-    final normalizedName = fullName.trim();
-    final normalizedRole = role.trim().toLowerCase();
+    final String normalizedEmail = email.trim().toLowerCase();
+
+    final String normalizedName = fullName.trim();
+
+    final String normalizedRole = role.trim().toLowerCase();
 
     if (normalizedEmail.isEmpty || password.isEmpty || normalizedName.isEmpty) {
-      throw Exception('All registration fields are required.');
+      throw Exception(
+        'All registration fields are required.',
+      );
     }
 
     if (!_isValidEmail(normalizedEmail)) {
-      throw Exception('Please enter a valid email address.');
+      throw Exception(
+        'Please enter a valid email address.',
+      );
     }
 
     if (password.length < 6) {
@@ -117,7 +235,7 @@ class AuthService {
       );
     }
 
-    const allowedRoles = {
+    const Set<String> allowedRoles = {
       'tourist',
       'influencer',
     };
@@ -126,10 +244,11 @@ class AuthService {
       throw Exception('Invalid user role selected.');
     }
 
-    final existingProfiles = await _repo.fetchProfiles();
+    final List<ProfileModel> existingProfiles = await _repo.fetchProfiles();
 
-    final emailAlreadyExists = existingProfiles.any(
-      (profile) => profile.email.trim().toLowerCase() == normalizedEmail,
+    final bool emailAlreadyExists = existingProfiles.any(
+      (ProfileModel profile) =>
+          profile.email.trim().toLowerCase() == normalizedEmail,
     );
 
     if (emailAlreadyExists) {
@@ -139,7 +258,7 @@ class AuthService {
     }
 
     if (_repo.isLiveSupabase) {
-      final response = await _repo.signUp(
+      final AuthResponse? response = await _repo.signUp(
         normalizedEmail,
         password,
       );
@@ -150,7 +269,7 @@ class AuthService {
         );
       }
 
-      final newProfile = ProfileModel(
+      final ProfileModel newProfile = ProfileModel(
         id: response.user!.id,
         email: normalizedEmail,
         fullName: normalizedName,
@@ -158,11 +277,12 @@ class AuthService {
       );
 
       await _repo.saveProfile(newProfile);
+      await saveSession(newProfile);
 
       return newProfile;
     }
 
-    final newProfile = ProfileModel(
+    final ProfileModel newProfile = ProfileModel(
       id: 'usr-${DateTime.now().millisecondsSinceEpoch}',
       email: normalizedEmail,
       fullName: normalizedName,
@@ -171,8 +291,9 @@ class AuthService {
 
     await _repo.saveProfile(newProfile);
 
-    // Save the local development password for this app session.
     _localPasswords[normalizedEmail] = password;
+
+    await saveSession(newProfile);
 
     return newProfile;
   }
@@ -181,5 +302,24 @@ class AuthService {
     ProfileModel updatedProfile,
   ) async {
     await _repo.saveProfile(updatedProfile);
+    await saveSession(updatedProfile);
+  }
+
+  Future<void> logout() async {
+    if (_repo.isLiveSupabase) {
+      final User? authUser = Supabase.instance.client.auth.currentUser;
+
+      if (authUser != null) {
+        await Supabase.instance.client.auth.signOut();
+      }
+    }
+
+    await _clearStoredSession();
+  }
+
+  Future<void> _clearStoredSession() async {
+    final SharedPreferences preferences = await SharedPreferences.getInstance();
+
+    await preferences.remove(_sessionKey);
   }
 }
