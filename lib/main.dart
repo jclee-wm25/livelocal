@@ -49,6 +49,7 @@ import 'features/restaurants/domain/local_eats_repository.dart';
 import 'screens/restaurant_detail_screen.dart';
 import 'screens/saved_places_screen.dart';
 import 'screens/spot_detail_screen.dart';
+import 'screens/guide_detail_screen.dart';
 import 'features/itinerary/data/demo_saved_itinerary_repository.dart';
 import 'features/itinerary/data/supabase_saved_itinerary_repository.dart';
 import 'features/itinerary/domain/saved_itinerary_repository.dart';
@@ -59,6 +60,9 @@ import 'features/notifications/data/demo_notification_repository.dart';
 import 'features/notifications/data/supabase_notification_repository.dart';
 import 'features/notifications/domain/notification_repository.dart';
 import 'features/notifications/presentation/notification_controller.dart';
+import 'features/moderation/data/demo_moderation_repository.dart';
+import 'features/moderation/data/supabase_moderation_repository.dart';
+import 'features/moderation/domain/moderation_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,15 +97,18 @@ Future<void> main() async {
   late final SavedItineraryRepository savedItineraryRepository;
   late final GuideRepository guideRepository;
   late final NotificationRepository notificationRepository;
+  late final ModerationRepository moderationRepository;
   try {
     if (configuration.isDemo) {
       SupabaseRepository().configureForDemo();
       final demoAuthRepository = DemoAuthRepository();
       authRepository = demoAuthRepository;
-      accountRepository = DemoAccountRepository(demoAuthRepository);
+      final demoAccountRepository = DemoAccountRepository(demoAuthRepository);
+      accountRepository = demoAccountRepository;
       spotRepository = DemoSpotRepository(demoAuthRepository);
       reviewRepository = DemoReviewRepository(demoAuthRepository);
-      adminRepository = DemoAdminRepository(demoAuthRepository);
+      adminRepository =
+          DemoAdminRepository(demoAuthRepository, demoAccountRepository);
       influencerApplicationRepository =
           DemoInfluencerApplicationRepository(demoAuthRepository);
       localEatsRepository = DemoLocalEatsRepository(demoAuthRepository);
@@ -109,6 +116,7 @@ Future<void> main() async {
           DemoSavedItineraryRepository(demoAuthRepository);
       guideRepository = DemoGuideRepository(demoAuthRepository);
       notificationRepository = DemoNotificationRepository(demoAuthRepository);
+      moderationRepository = DemoModerationRepository(demoAuthRepository);
     } else {
       await Supabase.initialize(
         url: configuration.supabaseUrl!,
@@ -136,6 +144,8 @@ Future<void> main() async {
       guideRepository = SupabaseGuideRepository(Supabase.instance.client);
       notificationRepository =
           SupabaseNotificationRepository(Supabase.instance.client);
+      moderationRepository =
+          SupabaseModerationRepository(Supabase.instance.client);
     }
   } catch (error) {
     if (kDebugMode) {
@@ -163,6 +173,7 @@ Future<void> main() async {
       savedItineraryRepository: savedItineraryRepository,
       guideRepository: guideRepository,
       notificationRepository: notificationRepository,
+      moderationRepository: moderationRepository,
     ),
   );
 }
@@ -181,6 +192,7 @@ class LiveLocalApp extends StatelessWidget {
     required this.savedItineraryRepository,
     required this.guideRepository,
     required this.notificationRepository,
+    required this.moderationRepository,
   });
 
   final AppConfiguration configuration;
@@ -194,6 +206,7 @@ class LiveLocalApp extends StatelessWidget {
   final SavedItineraryRepository savedItineraryRepository;
   final GuideRepository guideRepository;
   final NotificationRepository notificationRepository;
+  final ModerationRepository moderationRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +252,9 @@ class LiveLocalApp extends StatelessWidget {
             repository: influencerApplicationRepository,
           ),
         ),
-        ChangeNotifierProvider(create: (_) => ModerationController()),
+        ChangeNotifierProvider(
+          create: (_) => ModerationController(repository: moderationRepository),
+        ),
       ],
       child: MaterialApp(
         title: 'LiveLocal',
@@ -317,6 +332,18 @@ class LiveLocalApp extends StatelessWidget {
             return SpotDetailScreen(
               spot: arguments.spot,
               pendingAction: arguments.pendingAction,
+            );
+          },
+          '/guide-detail': (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
+            if (arguments is! GuideDetailArguments) {
+              return const ConfigurationFailureApp(
+                message: 'The requested guide is unavailable.',
+              );
+            }
+            return GuideDetailScreen(
+              guide: arguments.guide,
+              pendingReport: arguments.pendingReport,
             );
           },
           '/home': (context) => const SessionGate(),

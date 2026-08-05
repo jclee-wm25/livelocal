@@ -13,6 +13,7 @@ import 'package:live_local/features/restaurants/data/demo_local_eats_repository.
 import 'package:live_local/features/itinerary/data/demo_saved_itinerary_repository.dart';
 import 'package:live_local/features/guides/data/demo_guide_repository.dart';
 import 'package:live_local/features/notifications/data/demo_notification_repository.dart';
+import 'package:live_local/features/moderation/data/demo_moderation_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -35,6 +36,7 @@ void main() {
         savedItineraryRepository: DemoSavedItineraryRepository(authRepository),
         guideRepository: DemoGuideRepository(authRepository),
         notificationRepository: DemoNotificationRepository(authRepository),
+        moderationRepository: DemoModerationRepository(authRepository),
       ),
     );
     expect(find.byType(LiveLocalApp), findsOneWidget);

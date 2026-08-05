@@ -10,12 +10,16 @@ class AppealCase {
     required this.relatedDecisionId,
     required this.status,
     required this.createdAt,
+    required this.version,
+    this.outcomeReason,
   });
 
   final String id;
   final String relatedDecisionId;
   final AppealStatus status;
   final DateTime createdAt;
+  final int version;
+  final String? outcomeReason;
 }
 
 abstract interface class AccountRepository {
@@ -35,4 +39,6 @@ abstract interface class AccountRepository {
     required String reason,
     String? explanation,
   });
+
+  Future<AppealCase?> fetchLatestAppeal({required String decisionId});
 }

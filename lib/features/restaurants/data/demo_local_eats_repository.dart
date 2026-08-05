@@ -38,6 +38,14 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
   }
 
   @override
+  Future<List<DiscountCodeModel>> fetchOwnedDiscounts() async {
+    final account = _requireInfluencer();
+    return _discounts
+        .where((discount) => discount.createdBy == account.id)
+        .toList();
+  }
+
+  @override
   Future<List<RestaurantModel>> fetchPendingRestaurants() async {
     _requireAdmin();
     return _restaurants
@@ -201,6 +209,57 @@ class DemoLocalEatsRepository implements LocalEatsRepository {
     );
     _discounts.add(discount);
     return discount;
+  }
+
+  @override
+  Future<DiscountCodeModel> transitionDiscount({
+    required DiscountCodeModel discount,
+    required String action,
+  }) async {
+    final account = _requireInfluencer();
+    final index = _discounts.indexWhere(
+      (item) => item.id == discount.id && item.createdBy == account.id,
+    );
+    if (index < 0 || _discounts[index].version != discount.version) {
+      throw const AppException(
+        code: AppErrorCode.conflict,
+        userMessage: 'This discount changed. Refresh and try again.',
+      );
+    }
+    final existing = _discounts[index];
+    final nextStatus = switch ((existing.status, action)) {
+      ('active', 'pause') || ('scheduled', 'pause') => 'paused',
+      ('paused', 'resume') =>
+        existing.startDate?.isAfter(DateTime.now()) == true
+            ? 'scheduled'
+            : 'active',
+      (final status, 'revoke')
+          when status != 'expired' && status != 'revoked' =>
+        'revoked',
+      _ => null,
+    };
+    if (nextStatus == null ||
+        (action == 'resume' && existing.expiryDate.isBefore(DateTime.now()))) {
+      throw const AppException(
+        code: AppErrorCode.conflict,
+        userMessage: 'That discount transition is no longer valid.',
+      );
+    }
+    final updated = DiscountCodeModel(
+      id: existing.id,
+      restaurantId: existing.restaurantId,
+      code: existing.code,
+      description: existing.description,
+      expiryDate: existing.expiryDate,
+      createdBy: existing.createdBy,
+      isActive: nextStatus == 'active',
+      startDate: existing.startDate,
+      redemptionTerms: existing.redemptionTerms,
+      status: nextStatus,
+      version: existing.version + 1,
+    );
+    _discounts[index] = updated;
+    return updated;
   }
 
   AccountIdentity _requireInfluencer() {

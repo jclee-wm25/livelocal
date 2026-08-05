@@ -88,11 +88,42 @@ class AdminAuditEvent {
   final DateTime occurredAt;
 }
 
+class AdminAppealCase {
+  const AdminAppealCase({
+    required this.id,
+    required this.userId,
+    required this.displayName,
+    required this.email,
+    required this.relatedDecisionId,
+    required this.accessStatus,
+    required this.reason,
+    required this.status,
+    required this.version,
+    required this.createdAt,
+    this.publicMessage,
+    this.explanation,
+  });
+
+  final String id;
+  final String userId;
+  final String displayName;
+  final String email;
+  final String relatedDecisionId;
+  final String accessStatus;
+  final String? publicMessage;
+  final String reason;
+  final String? explanation;
+  final String status;
+  final int version;
+  final DateTime createdAt;
+}
+
 abstract interface class AdminRepository {
   Future<List<AdminAccountSummary>> fetchAccounts();
   Future<List<AdminModerationCase>> fetchModerationCases();
   Future<AdminStatistics> fetchStatistics();
   Future<List<AdminAuditEvent>> fetchAuditEvents();
+  Future<List<AdminAppealCase>> fetchAppeals();
 
   Future<void> setAccountAccess({
     required AdminAccountSummary account,
@@ -102,8 +133,14 @@ abstract interface class AdminRepository {
     DateTime? endsAt,
   });
 
-  Future<void> decideReviewCase({
+  Future<void> decideModerationCase({
     required AdminModerationCase moderationCase,
+    required String decision,
+    required String reason,
+  });
+
+  Future<void> decideAppeal({
+    required AdminAppealCase appeal,
     required String decision,
     required String reason,
   });

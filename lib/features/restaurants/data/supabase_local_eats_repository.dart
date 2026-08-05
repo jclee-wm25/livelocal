@@ -48,6 +48,21 @@ class SupabaseLocalEatsRepository implements LocalEatsRepository {
   }
 
   @override
+  Future<List<DiscountCodeModel>> fetchOwnedDiscounts() async {
+    try {
+      final response = await _client.rpc('list_my_discounts');
+      return (response as List<dynamic>).map((raw) {
+        final row = Map<String, dynamic>.from(raw as Map);
+        row['expiry_date'] = row['expires_at'];
+        row['created_by'] = _client.auth.currentUser?.id ?? '';
+        return DiscountCodeModel.fromMap(row);
+      }).toList();
+    } on PostgrestException catch (error) {
+      throw _error(error, 'Your discounts could not be loaded.');
+    }
+  }
+
+  @override
   Future<List<RestaurantModel>> fetchPendingRestaurants() async {
     try {
       final rows = await _client
@@ -242,6 +257,25 @@ class SupabaseLocalEatsRepository implements LocalEatsRepository {
     }
   }
 
+  @override
+  Future<DiscountCodeModel> transitionDiscount({
+    required DiscountCodeModel discount,
+    required String action,
+  }) async {
+    try {
+      final response = await _client.rpc('transition_discount', params: {
+        'p_discount_id': discount.id,
+        'p_action': action,
+        'p_expected_version': discount.version,
+      });
+      final row = Map<String, dynamic>.from(response as Map);
+      row['expiry_date'] = row['expires_at'];
+      return DiscountCodeModel.fromMap(row);
+    } on PostgrestException catch (error) {
+      throw _error(error, 'The discount status could not be updated.');
+    }
+  }
+
   Future<RestaurantModel> _mapPublished(
     Map<String, dynamic> row,
     bool isOwned,
@@ -265,6 +299,7 @@ class SupabaseLocalEatsRepository implements LocalEatsRepository {
       latitude: (row['latitude'] as num?)?.toDouble(),
       longitude: (row['longitude'] as num?)?.toDouble(),
       ownershipStatus: row['ownership_status'] as String,
+      socialLinkStatus: row['social_link_status'] as String? ?? 'active',
       isOwnedByCurrentUser: isOwned,
     );
   }

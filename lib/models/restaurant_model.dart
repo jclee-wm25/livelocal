@@ -19,6 +19,7 @@ class RestaurantModel {
   final int moderationVersion;
   final String status;
   final String ownershipStatus;
+  final String socialLinkStatus;
   final bool isOwnedByCurrentUser;
 
   RestaurantModel({
@@ -42,6 +43,7 @@ class RestaurantModel {
     this.moderationVersion = 1,
     this.status = 'approved',
     this.ownershipStatus = 'creator_owned',
+    this.socialLinkStatus = 'active',
     this.isOwnedByCurrentUser = false,
   });
 
@@ -66,6 +68,7 @@ class RestaurantModel {
         'moderation_version': moderationVersion,
         'status': status,
         'ownership_status': ownershipStatus,
+        'social_link_status': socialLinkStatus,
       };
 
   factory RestaurantModel.fromMap(Map<String, dynamic> map) => RestaurantModel(
@@ -89,6 +92,7 @@ class RestaurantModel {
         moderationVersion: (map['moderation_version'] as num?)?.toInt() ?? 1,
         status: map['status'] ?? 'approved',
         ownershipStatus: map['ownership_status'] ?? 'creator_owned',
+        socialLinkStatus: map['social_link_status'] ?? 'active',
         isOwnedByCurrentUser: map['is_owned_by_current_user'] ?? false,
       );
 }

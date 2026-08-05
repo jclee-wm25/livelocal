@@ -14,6 +14,7 @@ import '../core/validation/social_url_validator.dart';
 import '../models/discount_code_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/review_model.dart';
+import '../features/moderation/presentation/content_report_dialog.dart';
 
 class RestaurantDetailArguments {
   const RestaurantDetailArguments({
@@ -34,6 +35,12 @@ class RestaurantPendingAction {
         reviewId = null;
 
   const RestaurantPendingAction.report(this.reviewId) : kind = 'report';
+  const RestaurantPendingAction.reportListing()
+      : kind = 'report_listing',
+        reviewId = null;
+  const RestaurantPendingAction.reportLink()
+      : kind = 'report_link',
+        reviewId = null;
 
   final String kind;
   final String? reviewId;
@@ -67,6 +74,10 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
         await _requestSave();
       } else if (widget.pendingAction!.kind == 'review') {
         await _requestReview();
+      } else if (widget.pendingAction!.kind == 'report_listing') {
+        await _requestContentReport();
+      } else if (widget.pendingAction!.kind == 'report_link') {
+        await _requestContentReport(brokenLink: true);
       } else if (widget.pendingAction!.reviewId != null) {
         await _requestReport(widget.pendingAction!.reviewId!);
       }
@@ -103,6 +114,18 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
             icon: Icon(
               isSaved ? Icons.bookmark : Icons.bookmark_border,
             ),
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'Restaurant options',
+            onSelected: (value) {
+              if (value == 'report') _requestContentReport();
+            },
+            itemBuilder: (_) => const [
+              PopupMenuItem(
+                value: 'report',
+                child: Text('Report this listing'),
+              ),
+            ],
           ),
           const SizedBox(width: 8),
         ],
@@ -175,11 +198,28 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                         : 'The linked creator post supports this recommendation.',
                   ),
                   const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: _openSocialPost,
-                    icon: const Icon(Icons.open_in_new),
-                    label: const Text('Open creator post'),
-                  ),
+                  if (widget.restaurant.socialLinkStatus == 'active') ...[
+                    OutlinedButton.icon(
+                      onPressed: _openSocialPost,
+                      icon: const Icon(Icons.open_in_new),
+                      label: const Text('Open creator post'),
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () =>
+                            _requestContentReport(brokenLink: true),
+                        icon: const Icon(Icons.link_off_outlined),
+                        label: const Text('Report broken creator link'),
+                      ),
+                    ),
+                  ] else
+                    const _InfoCard(
+                      icon: Icons.link_off_outlined,
+                      title: 'Creator link unavailable',
+                      body:
+                          'The external link was removed after moderation. The public restaurant information remains available.',
+                    ),
                   const SizedBox(height: 28),
                   Text(
                     'Recommended dishes',
@@ -277,6 +317,29 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     );
     if (!mounted || opened) return;
     _message('The creator link could not be opened on this device.');
+  }
+
+  Future<void> _requestContentReport({bool brokenLink = false}) async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/restaurant-detail',
+            arguments: RestaurantDetailArguments(
+              restaurant: widget.restaurant,
+              pendingAction: brokenLink
+                  ? const RestaurantPendingAction.reportLink()
+                  : const RestaurantPendingAction.reportListing(),
+            ),
+          );
+      return;
+    }
+    await showContentReportDialog(
+      context,
+      targetType: 'restaurant',
+      targetId: widget.restaurant.id,
+      brokenLinkOnly: brokenLink,
+    );
   }
 
   Future<void> _requestSave() async {

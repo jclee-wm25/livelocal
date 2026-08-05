@@ -45,11 +45,24 @@ class GuideController with ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> createDraft(GuideDraftInput input) async {
+  Future<bool> createDraft(
+    GuideDraftInput input, {
+    GuideModel? guide,
+  }) async {
     var saved = false;
     await _run(() async {
-      await _repository.saveAdminDraft(input);
+      await _repository.saveAdminDraft(input, guide: guide);
       _adminDrafts = await _repository.fetchAdminDrafts();
+      saved = true;
+    });
+    return saved;
+  }
+
+  Future<bool> archiveGuide(GuideModel guide, String reason) async {
+    var saved = false;
+    await _run(() async {
+      await _repository.archiveGuide(guide, reason);
+      _guides = await _repository.fetchPublishedGuides();
       saved = true;
     });
     return saved;

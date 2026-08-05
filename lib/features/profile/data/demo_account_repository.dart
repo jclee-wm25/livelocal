@@ -10,6 +10,9 @@ class DemoAccountRepository implements AccountRepository {
   DemoAccountRepository(this._authRepository);
 
   final DemoAuthRepository _authRepository;
+  final List<AppealCase> _appeals = [];
+
+  List<AppealCase> get appealsForDemo => List.unmodifiable(_appeals);
 
   AccountIdentity get _account {
     final account = _authRepository.currentAccountForDemo;
@@ -82,11 +85,60 @@ class DemoAccountRepository implements AccountRepository {
     required String reason,
     String? explanation,
   }) async {
-    return AppealCase(
+    if (_appeals.any(
+      (appeal) =>
+          appeal.relatedDecisionId == decisionId &&
+          (appeal.status == AppealStatus.submitted ||
+              appeal.status == AppealStatus.underReview),
+    )) {
+      throw const AppException(
+        code: AppErrorCode.conflict,
+        userMessage: 'An active appeal already exists for this decision.',
+      );
+    }
+    final appeal = AppealCase(
       id: 'demo-appeal-${DateTime.now().microsecondsSinceEpoch}',
       relatedDecisionId: decisionId,
       status: AppealStatus.submitted,
       createdAt: DateTime.now().toUtc(),
+      version: 1,
     );
+    _appeals.add(appeal);
+    return appeal;
+  }
+
+  @override
+  Future<AppealCase?> fetchLatestAppeal({required String decisionId}) async {
+    final matching = _appeals
+        .where((appeal) => appeal.relatedDecisionId == decisionId)
+        .toList()
+      ..sort((left, right) => right.createdAt.compareTo(left.createdAt));
+    return matching.isEmpty ? null : matching.first;
+  }
+
+  AppealCase decideAppealForDemo({
+    required String appealId,
+    required AppealStatus decision,
+    required String outcomeReason,
+    required int expectedVersion,
+  }) {
+    final index = _appeals.indexWhere((appeal) => appeal.id == appealId);
+    if (index < 0 || _appeals[index].version != expectedVersion) {
+      throw const AppException(
+        code: AppErrorCode.conflict,
+        userMessage: 'This appeal changed. Refresh and try again.',
+      );
+    }
+    final existing = _appeals[index];
+    final decided = AppealCase(
+      id: existing.id,
+      relatedDecisionId: existing.relatedDecisionId,
+      status: decision,
+      createdAt: existing.createdAt,
+      version: existing.version + 1,
+      outcomeReason: outcomeReason,
+    );
+    _appeals[index] = decided;
+    return decided;
   }
 }

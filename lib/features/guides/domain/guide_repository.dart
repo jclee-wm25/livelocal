@@ -23,6 +23,10 @@ class GuideDraftInput {
 abstract interface class GuideRepository {
   Future<List<GuideModel>> fetchPublishedGuides();
   Future<List<GuideModel>> fetchAdminDrafts();
-  Future<GuideModel> saveAdminDraft(GuideDraftInput input);
+  Future<GuideModel> saveAdminDraft(
+    GuideDraftInput input, {
+    GuideModel? guide,
+  });
   Future<void> publishAdminDraft(GuideModel draft, String reason);
+  Future<void> archiveGuide(GuideModel guide, String reason);
 }

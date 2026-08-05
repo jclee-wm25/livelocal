@@ -24,11 +24,24 @@ class DemoGuideRepository implements GuideRepository {
   }
 
   @override
-  Future<GuideModel> saveAdminDraft(GuideDraftInput input) async {
+  Future<GuideModel> saveAdminDraft(
+    GuideDraftInput input, {
+    GuideModel? guide,
+  }) async {
     _requireAdmin();
     _validate(input);
-    final id = 'demo-guide-${DateTime.now().microsecondsSinceEpoch}';
-    final guide = GuideModel(
+    if (guide != null &&
+        !_guides.any(
+          (item) => item.id == guide.id && item.version == guide.version,
+        )) {
+      throw const AppException(
+        code: AppErrorCode.conflict,
+        userMessage: 'The guide changed. Refresh and try again.',
+      );
+    }
+    final id =
+        guide?.id ?? 'demo-guide-${DateTime.now().microsecondsSinceEpoch}';
+    final saved = GuideModel(
       id: id,
       revisionId:
           'demo-guide-revision-${DateTime.now().microsecondsSinceEpoch}',
@@ -41,9 +54,10 @@ class DemoGuideRepository implements GuideRepository {
           input.walkingSequence.map((item) => item.trim()).toList(),
       estimatedDuration: input.estimatedDuration.trim(),
       status: 'draft',
+      version: guide == null ? 1 : guide.version + 1,
     );
-    _guides.add(guide);
-    return guide;
+    _guides.add(saved);
+    return saved;
   }
 
   @override
@@ -55,14 +69,54 @@ class DemoGuideRepository implements GuideRepository {
         userMessage: 'Record a publication reason.',
       );
     }
-    final index = _guides.indexWhere((guide) => guide.id == draft.id);
+    final index = _guides.indexWhere(
+      (guide) => guide.revisionId == draft.revisionId,
+    );
     if (index < 0 || _guides[index].status != 'draft') {
       throw const AppException(
         code: AppErrorCode.conflict,
         userMessage: 'The guide draft changed. Refresh and try again.',
       );
     }
-    _guides[index] = _copy(_guides[index], status: 'approved', version: 2);
+    _guides.removeWhere(
+      (guide) => guide.id == draft.id && guide.status == 'approved',
+    );
+    final draftIndex = _guides.indexWhere(
+      (guide) => guide.revisionId == draft.revisionId,
+    );
+    _guides[draftIndex] = _copy(
+      _guides[draftIndex],
+      status: 'approved',
+      version: draft.version + 1,
+    );
+  }
+
+  @override
+  Future<void> archiveGuide(GuideModel guide, String reason) async {
+    _requireAdmin();
+    if (reason.trim().length < 3) {
+      throw const AppException(
+        code: AppErrorCode.validation,
+        userMessage: 'Record an archive reason.',
+      );
+    }
+    final index = _guides.indexWhere(
+      (item) =>
+          item.id == guide.id &&
+          item.status == 'approved' &&
+          item.version == guide.version,
+    );
+    if (index < 0) {
+      throw const AppException(
+        code: AppErrorCode.conflict,
+        userMessage: 'The guide changed. Refresh and try again.',
+      );
+    }
+    _guides[index] = _copy(
+      _guides[index],
+      status: 'archived',
+      version: guide.version + 1,
+    );
   }
 
   void _requireAdmin() {

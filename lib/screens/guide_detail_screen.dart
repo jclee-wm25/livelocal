@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/guide_model.dart';
 import '../constants/app_colors.dart';
+import '../controllers/auth_controller.dart';
+import '../core/routing/protected_navigation.dart';
+import '../features/moderation/presentation/content_report_dialog.dart';
+
+class GuideDetailArguments {
+  const GuideDetailArguments({required this.guide, this.pendingReport = false});
+
+  final GuideModel guide;
+  final bool pendingReport;
+}
 
 class GuideDetailScreen extends StatefulWidget {
   final GuideModel guide;
-  const GuideDetailScreen({super.key, required this.guide});
+  const GuideDetailScreen({
+    super.key,
+    required this.guide,
+    this.pendingReport = false,
+  });
+
+  final bool pendingReport;
 
   @override
   State<GuideDetailScreen> createState() => _GuideDetailScreenState();
@@ -29,6 +46,11 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
     _animCtrl.forward();
     // Stagger reveal of stops
     _startStaggerReveal();
+    if (widget.pendingReport) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _requestReport();
+      });
+    }
   }
 
   void _startStaggerReveal() async {
@@ -267,17 +289,20 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
+                  Row(
+                    children: [
+                      IconButton.filledTonal(
+                        tooltip: 'Back',
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back),
                       ),
-                      child: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
+                      const Spacer(),
+                      IconButton.filledTonal(
+                        tooltip: 'Report this guide',
+                        onPressed: _requestReport,
+                        icon: const Icon(Icons.flag_outlined),
+                      ),
+                    ],
                   ),
                   const Spacer(),
                   FadeTransition(
@@ -316,6 +341,25 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _requestReport() async {
+    if (!context.read<AuthController>().canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/guide-detail',
+            arguments: GuideDetailArguments(
+              guide: widget.guide,
+              pendingReport: true,
+            ),
+          );
+      return;
+    }
+    await showContentReportDialog(
+      context,
+      targetType: 'guide',
+      targetId: widget.guide.id,
     );
   }
 

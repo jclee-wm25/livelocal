@@ -7,6 +7,7 @@ import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
 import '../constants/app_colors.dart';
 import '../core/routing/protected_navigation.dart';
+import '../features/moderation/presentation/content_report_dialog.dart';
 
 class SpotDetailArguments {
   const SpotDetailArguments({required this.spot, this.pendingAction});
@@ -23,6 +24,9 @@ class SpotPendingAction {
       : kind = 'review',
         reviewId = null;
   const SpotPendingAction.report(this.reviewId) : kind = 'report';
+  const SpotPendingAction.reportSpot()
+      : kind = 'report_spot',
+        reviewId = null;
 
   final String kind;
   final String? reviewId;
@@ -69,6 +73,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             _requestReport(reviewId);
           }
           break;
+        case 'report_spot':
+          await _requestSpotReport();
+          break;
       }
     });
   }
@@ -114,6 +121,11 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               ),
             ),
             actions: [
+              IconButton(
+                tooltip: 'Report this spot',
+                onPressed: _requestSpotReport,
+                icon: const Icon(Icons.flag_outlined, color: Colors.white),
+              ),
               Padding(
                 padding: const EdgeInsets.only(right: 16.0),
                 child: IconButton(
@@ -388,6 +400,26 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _requestSpotReport() async {
+    final auth = context.read<AuthController>();
+    if (!auth.canWrite) {
+      context.read<ProtectedNavigation>().open(
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: const SpotPendingAction.reportSpot(),
+            ),
+          );
+      return;
+    }
+    await showContentReportDialog(
+      context,
+      targetType: 'spot',
+      targetId: widget.spot.id,
     );
   }
 

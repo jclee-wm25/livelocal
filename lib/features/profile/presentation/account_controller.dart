@@ -22,6 +22,13 @@ class AccountController with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   AppealCase? get submittedAppeal => _submittedAppeal;
 
+  Future<void> loadAppeal(String decisionId) async {
+    await _run(() async {
+      _submittedAppeal =
+          await _repository.fetchLatestAppeal(decisionId: decisionId);
+    });
+  }
+
   Future<bool> updateDisplayName(String displayName) async {
     return _run(() async {
       await _repository.updateProfile(displayName: displayName);

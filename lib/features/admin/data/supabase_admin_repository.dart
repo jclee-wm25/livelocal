@@ -84,6 +84,28 @@ class SupabaseAdminRepository implements AdminRepository {
   }
 
   @override
+  Future<List<AdminAppealCase>> fetchAppeals() async {
+    final response = await _rpc('admin_list_account_appeals');
+    return (response as List<dynamic>).map((raw) {
+      final row = Map<String, dynamic>.from(raw as Map);
+      return AdminAppealCase(
+        id: row['id'] as String,
+        userId: row['user_id'] as String,
+        displayName: row['display_name'] as String,
+        email: row['email'] as String,
+        relatedDecisionId: row['related_decision_id'] as String,
+        accessStatus: row['access_status'] as String,
+        publicMessage: row['public_message'] as String?,
+        reason: row['reason'] as String,
+        explanation: row['explanation'] as String?,
+        status: row['status'] as String,
+        version: (row['version'] as num).toInt(),
+        createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
+      );
+    }).toList();
+  }
+
+  @override
   Future<void> setAccountAccess({
     required AdminAccountSummary account,
     required String status,
@@ -102,16 +124,30 @@ class SupabaseAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<void> decideReviewCase({
+  Future<void> decideModerationCase({
     required AdminModerationCase moderationCase,
     required String decision,
     required String reason,
   }) async {
-    await _rpc('admin_decide_review_report', {
+    await _rpc('admin_decide_content_report', {
       'p_case_id': moderationCase.id,
       'p_decision': decision,
       'p_reason': reason,
       'p_expected_version': moderationCase.version,
+    });
+  }
+
+  @override
+  Future<void> decideAppeal({
+    required AdminAppealCase appeal,
+    required String decision,
+    required String reason,
+  }) async {
+    await _rpc('admin_decide_account_appeal', {
+      'p_appeal_id': appeal.id,
+      'p_decision': decision,
+      'p_reason': reason,
+      'p_expected_version': appeal.version,
     });
   }
 

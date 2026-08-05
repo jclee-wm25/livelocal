@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/localeats_controller.dart';
 import '../features/restaurants/domain/local_eats_repository.dart';
+import '../models/discount_code_model.dart';
 
 class ManageDiscountScreen extends StatefulWidget {
   const ManageDiscountScreen({super.key});
@@ -23,6 +24,14 @@ class _ManageDiscountScreenState extends State<ManageDiscountScreen> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<LocalEatsController>().loadOwnedDiscounts();
+    });
+  }
+
+  @override
   void dispose() {
     _code.dispose();
     _description.dispose();
@@ -37,10 +46,10 @@ class _ManageDiscountScreenState extends State<ManageDiscountScreen> {
         body: Center(child: Text('Approved creator access is required.')),
       );
     }
-    final restaurants =
-        context.watch<LocalEatsController>().ownedApprovedRestaurants;
+    final controller = context.watch<LocalEatsController>();
+    final restaurants = controller.ownedApprovedRestaurants;
     return Scaffold(
-      appBar: AppBar(title: const Text('Create a discount')),
+      appBar: AppBar(title: const Text('Manage discounts')),
       body: restaurants.isEmpty
           ? _NoApprovedRestaurant(
               onRefresh: () => context.read<LocalEatsController>().loadData())
@@ -50,7 +59,34 @@ class _ManageDiscountScreenState extends State<ManageDiscountScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
                 children: [
                   Text(
-                    'Promotional details',
+                    'Your offers',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  if (controller.ownedDiscounts.isEmpty)
+                    const Text('No creator offers have been created yet.')
+                  else
+                    ...controller.ownedDiscounts.map(
+                      (discount) => Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: _OwnedDiscountCard(
+                          discount: discount,
+                          onAction: (action) => _transition(discount, action),
+                        ),
+                      ),
+                    ),
+                  if (controller.errorMessage != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      controller.errorMessage!,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 28),
+                  Text(
+                    'Create an offer',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   const SizedBox(height: 8),
@@ -205,8 +241,110 @@ class _ManageDiscountScreenState extends State<ManageDiscountScreen> {
     Navigator.pop(context);
   }
 
+  Future<void> _transition(
+    DiscountCodeModel discount,
+    String action,
+  ) async {
+    if (action == 'revoke') {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Revoke this discount?'),
+          content: const Text(
+            'Revocation is immediate and cannot be reversed. The offer will stop appearing as active.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Revoke'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    final saved = await context
+        .read<LocalEatsController>()
+        .transitionDiscount(discount, action);
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Discount status updated.'
+          : context.read<LocalEatsController>().errorMessage ??
+              'The discount status could not be updated.',
+    );
+  }
+
   void _message(String value) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
+  }
+}
+
+class _OwnedDiscountCard extends StatelessWidget {
+  const _OwnedDiscountCard({
+    required this.discount,
+    required this.onAction,
+  });
+
+  final DiscountCodeModel discount;
+  final ValueChanged<String> onAction;
+
+  @override
+  Widget build(BuildContext context) {
+    final canPause =
+        discount.status == 'active' || discount.status == 'scheduled';
+    final canResume = discount.status == 'paused' && !discount.isExpired;
+    final canRevoke = discount.status != 'revoked' && !discount.isExpired;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    discount.code,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                Chip(label: Text(discount.status.replaceAll('_', ' '))),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(discount.description),
+            if (canPause || canResume || canRevoke) ...[
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  if (canPause)
+                    TextButton(
+                      onPressed: () => onAction('pause'),
+                      child: const Text('Pause'),
+                    ),
+                  if (canResume)
+                    TextButton(
+                      onPressed: () => onAction('resume'),
+                      child: const Text('Resume'),
+                    ),
+                  if (canRevoke)
+                    TextButton(
+                      onPressed: () => onAction('revoke'),
+                      child: const Text('Revoke'),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 

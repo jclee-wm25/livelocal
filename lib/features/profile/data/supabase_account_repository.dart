@@ -119,7 +119,38 @@ class SupabaseAccountRepository implements AccountRepository {
       relatedDecisionId: response['related_decision_id'] as String,
       status: _appealStatus(response['status'] as String?),
       createdAt: DateTime.parse(response['created_at'] as String).toLocal(),
+      version: (response['version'] as num?)?.toInt() ?? 1,
+      outcomeReason: response['outcome_reason'] as String?,
     );
+  }
+
+  @override
+  Future<AppealCase?> fetchLatestAppeal({required String decisionId}) async {
+    try {
+      final rows = await _client
+          .from('account_appeals')
+          .select()
+          .eq('related_decision_id', decisionId)
+          .order('created_at', ascending: false)
+          .limit(1);
+      if (rows.isEmpty) return null;
+      final row = Map<String, dynamic>.from(rows.first);
+      return AppealCase(
+        id: row['id'] as String,
+        relatedDecisionId: row['related_decision_id'] as String,
+        status: _appealStatus(row['status'] as String?),
+        createdAt: DateTime.parse(row['created_at'] as String).toLocal(),
+        version: (row['version'] as num).toInt(),
+        outcomeReason: row['outcome_reason'] as String?,
+      );
+    } on PostgrestException catch (error) {
+      throw AppException(
+        code: AppErrorCode.unexpected,
+        userMessage: 'Your appeal status could not be loaded.',
+        technicalMessage: error.message,
+        cause: error,
+      );
+    }
   }
 
   Future<void> _reauthenticate(String password) async {

@@ -2,10 +2,12 @@ import '../../../core/errors/app_exception.dart';
 import '../../../services/seed_data_service.dart';
 import '../../auth/data/demo_auth_repository.dart';
 import '../../auth/domain/account_identity.dart';
+import '../../profile/data/demo_account_repository.dart';
+import '../../profile/domain/account_repository.dart';
 import '../domain/admin_repository.dart';
 
 class DemoAdminRepository implements AdminRepository {
-  DemoAdminRepository(this._authRepository)
+  DemoAdminRepository(this._authRepository, [this._accountRepository])
       : _accounts = SeedDataService.getInitialProfiles()
             .map(
               (profile) => AdminAccountSummary(
@@ -21,6 +23,7 @@ class DemoAdminRepository implements AdminRepository {
             .toList();
 
   final DemoAuthRepository _authRepository;
+  final DemoAccountRepository? _accountRepository;
   final List<AdminAccountSummary> _accounts;
   final List<AdminAuditEvent> _auditEvents = [];
 
@@ -56,6 +59,32 @@ class DemoAdminRepository implements AdminRepository {
   Future<List<AdminAuditEvent>> fetchAuditEvents() async {
     _requireAdmin();
     return List.unmodifiable(_auditEvents.reversed);
+  }
+
+  @override
+  Future<List<AdminAppealCase>> fetchAppeals() async {
+    _requireAdmin();
+    return (_accountRepository?.appealsForDemo ?? const <AppealCase>[])
+        .where(
+          (appeal) =>
+              appeal.status == AppealStatus.submitted ||
+              appeal.status == AppealStatus.underReview,
+        )
+        .map(
+          (appeal) => AdminAppealCase(
+            id: appeal.id,
+            userId: 'usr-tourist-1',
+            displayName: 'Demo tourist',
+            email: 'tourist@livelocal.my',
+            relatedDecisionId: appeal.relatedDecisionId,
+            accessStatus: 'restricted',
+            reason: 'Demo appeal',
+            status: appeal.status.name,
+            version: appeal.version,
+            createdAt: appeal.createdAt,
+          ),
+        )
+        .toList();
   }
 
   @override
@@ -105,12 +134,46 @@ class DemoAdminRepository implements AdminRepository {
   }
 
   @override
-  Future<void> decideReviewCase({
+  Future<void> decideModerationCase({
     required AdminModerationCase moderationCase,
     required String decision,
     required String reason,
   }) async {
     _requireAdmin();
+  }
+
+  @override
+  Future<void> decideAppeal({
+    required AdminAppealCase appeal,
+    required String decision,
+    required String reason,
+  }) async {
+    final actor = _requireAdmin();
+    final accountRepository = _accountRepository;
+    if (accountRepository == null) {
+      throw const AppException(
+        code: AppErrorCode.unavailable,
+        userMessage: 'No demo appeal store is configured.',
+      );
+    }
+    accountRepository.decideAppealForDemo(
+      appealId: appeal.id,
+      decision:
+          decision == 'upheld' ? AppealStatus.upheld : AppealStatus.dismissed,
+      outcomeReason: reason,
+      expectedVersion: appeal.version,
+    );
+    _auditEvents.add(
+      AdminAuditEvent(
+        id: 'demo-audit-${DateTime.now().microsecondsSinceEpoch}',
+        action: 'admin.account_appeal_$decision',
+        targetType: 'account_appeal',
+        targetId: appeal.id,
+        reason: reason,
+        actorName: actor.fullName,
+        occurredAt: DateTime.now(),
+      ),
+    );
   }
 
   AccountIdentity _requireAdmin() {

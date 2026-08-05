@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../../constants/app_colors.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../screens/main_navigation_screen.dart';
+import '../../profile/domain/account_repository.dart';
 import '../../profile/presentation/account_controller.dart';
 import 'auth_controller.dart';
 
@@ -166,8 +167,28 @@ class EmailVerificationScreen extends StatelessWidget {
   }
 }
 
-class RestrictedAccountScreen extends StatelessWidget {
+class RestrictedAccountScreen extends StatefulWidget {
   const RestrictedAccountScreen({super.key});
+
+  @override
+  State<RestrictedAccountScreen> createState() =>
+      _RestrictedAccountScreenState();
+}
+
+class _RestrictedAccountScreenState extends State<RestrictedAccountScreen> {
+  String? _loadedDecisionId;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final decisionId =
+        context.read<AuthController>().currentUser?.accessDecisionId;
+    if (decisionId == null || decisionId == _loadedDecisionId) return;
+    _loadedDecisionId = decisionId;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AccountController>().loadAppeal(decisionId);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -176,6 +197,9 @@ class RestrictedAccountScreen extends StatelessWidget {
     final account = auth.currentUser;
     final configuration = context.read<AppConfiguration>();
     final isDeletionPending = auth.status == AuthStatus.deletionPending;
+    final appeal = accountController.submittedAppeal;
+    final appealIsActive = appeal?.status == AppealStatus.submitted ||
+        appeal?.status == AppealStatus.underReview;
     final title = switch (auth.status) {
       AuthStatus.restricted => 'Account temporarily restricted',
       AuthStatus.deletionPending => 'Account deletion scheduled',
@@ -241,7 +265,8 @@ class RestrictedAccountScreen extends StatelessWidget {
                 else
                   FilledButton.icon(
                     onPressed: account?.accessDecisionId == null ||
-                            accountController.isLoading
+                            accountController.isLoading ||
+                            appealIsActive
                         ? null
                         : () => _showAppealDialog(
                               context,
@@ -250,11 +275,22 @@ class RestrictedAccountScreen extends StatelessWidget {
                             ),
                     icon: const Icon(Icons.support_agent_outlined),
                     label: Text(
-                      accountController.submittedAppeal == null
-                          ? 'Submit an appeal'
-                          : 'Appeal submitted',
+                      appealIsActive
+                          ? 'Appeal under review'
+                          : 'Submit an appeal',
                     ),
                   ),
+                if (!isDeletionPending && appeal != null) ...[
+                  const SizedBox(height: 12),
+                  Semantics(
+                    liveRegion: true,
+                    child: Text(
+                      'Appeal status: ${_appealStatusLabel(appeal.status)}'
+                      '${appeal.outcomeReason == null ? '' : '\n${appeal.outcomeReason}'}',
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ],
                 if (!isDeletionPending &&
                     account?.accessDecisionId == null) ...[
                   const SizedBox(height: 8),
@@ -290,6 +326,14 @@ class RestrictedAccountScreen extends StatelessWidget {
       ),
     );
   }
+
+  String _appealStatusLabel(AppealStatus status) => switch (status) {
+        AppealStatus.submitted => 'Submitted',
+        AppealStatus.underReview => 'Under review',
+        AppealStatus.upheld => 'Accepted',
+        AppealStatus.dismissed => 'Not accepted',
+        AppealStatus.withdrawn => 'Withdrawn',
+      };
 
   Future<void> _showRecoveryDialog(
     BuildContext context,

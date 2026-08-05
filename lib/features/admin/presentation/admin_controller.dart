@@ -11,6 +11,7 @@ class AdminController with ChangeNotifier {
   List<AdminAccountSummary> _accounts = [];
   List<AdminModerationCase> _cases = [];
   List<AdminAuditEvent> _auditEvents = [];
+  List<AdminAppealCase> _appeals = [];
   AdminStatistics? _statistics;
   bool _isLoading = false;
   String? _errorMessage;
@@ -18,6 +19,7 @@ class AdminController with ChangeNotifier {
   List<AdminAccountSummary> get accounts => List.unmodifiable(_accounts);
   List<AdminModerationCase> get moderationCases => List.unmodifiable(_cases);
   List<AdminAuditEvent> get auditEvents => List.unmodifiable(_auditEvents);
+  List<AdminAppealCase> get appeals => List.unmodifiable(_appeals);
   AdminStatistics? get statistics => _statistics;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -36,11 +38,13 @@ class AdminController with ChangeNotifier {
         _repository.fetchModerationCases(),
         _repository.fetchStatistics(),
         _repository.fetchAuditEvents(),
+        _repository.fetchAppeals(),
       ]);
       _accounts = results[0] as List<AdminAccountSummary>;
       _cases = results[1] as List<AdminModerationCase>;
       _statistics = results[2] as AdminStatistics;
       _auditEvents = results[3] as List<AdminAuditEvent>;
+      _appeals = results[4] as List<AdminAppealCase>;
     } catch (error) {
       _errorMessage = _message(error);
     } finally {
@@ -65,13 +69,25 @@ class AdminController with ChangeNotifier {
         ));
   }
 
-  Future<bool> decideReviewCase({
+  Future<bool> decideModerationCase({
     required AdminModerationCase moderationCase,
     required String decision,
     required String reason,
   }) async {
-    return _run(() => _repository.decideReviewCase(
+    return _run(() => _repository.decideModerationCase(
           moderationCase: moderationCase,
+          decision: decision,
+          reason: reason,
+        ));
+  }
+
+  Future<bool> decideAppeal({
+    required AdminAppealCase appeal,
+    required String decision,
+    required String reason,
+  }) {
+    return _run(() => _repository.decideAppeal(
+          appeal: appeal,
           decision: decision,
           reason: reason,
         ));

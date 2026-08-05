@@ -137,6 +137,29 @@ void main() {
         ),
       );
       expect(discount.isCurrentlyActive, isTrue);
+      expect(await localEats.fetchOwnedDiscounts(), hasLength(1));
+      final paused = await localEats.transitionDiscount(
+        discount: discount,
+        action: 'pause',
+      );
+      expect(paused.status, 'paused');
+      await expectLater(
+        localEats.transitionDiscount(
+          discount: discount,
+          action: 'resume',
+        ),
+        throwsA(isA<AppException>()),
+      );
+      final resumed = await localEats.transitionDiscount(
+        discount: paused,
+        action: 'resume',
+      );
+      expect(resumed.status, 'active');
+      final revoked = await localEats.transitionDiscount(
+        discount: resumed,
+        action: 'revoke',
+      );
+      expect(revoked.status, 'revoked');
     });
 
     test('demo adapter rejects invalid image content and social URL', () async {

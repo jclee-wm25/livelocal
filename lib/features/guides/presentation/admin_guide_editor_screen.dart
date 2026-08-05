@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../controllers/auth_controller.dart';
+import '../../../models/guide_model.dart';
 import '../domain/guide_repository.dart';
 import 'guide_controller.dart';
 
 class AdminGuideEditorScreen extends StatefulWidget {
-  const AdminGuideEditorScreen({super.key});
+  const AdminGuideEditorScreen({super.key, this.guide});
+
+  final GuideModel? guide;
 
   @override
   State<AdminGuideEditorScreen> createState() => _AdminGuideEditorScreenState();
@@ -21,6 +24,20 @@ class _AdminGuideEditorScreenState extends State<AdminGuideEditorScreen> {
   final _stops = TextEditingController();
   final _sequence = TextEditingController();
   final _duration = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final guide = widget.guide;
+    if (guide == null) return;
+    _title.text = guide.title;
+    _location.text = guide.locationName;
+    _state.text = guide.state;
+    _overview.text = guide.routeOverview;
+    _stops.text = guide.stops.join('\n');
+    _sequence.text = guide.walkingSequence.join('\n');
+    _duration.text = guide.estimatedDuration;
+  }
 
   @override
   void dispose() {
@@ -43,7 +60,10 @@ class _AdminGuideEditorScreenState extends State<AdminGuideEditorScreen> {
     }
     final controller = context.watch<GuideController>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Create guide draft')),
+      appBar: AppBar(
+        title:
+            Text(widget.guide == null ? 'Create guide draft' : 'Revise guide'),
+      ),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -54,8 +74,10 @@ class _AdminGuideEditorScreenState extends State<AdminGuideEditorScreen> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 8),
-            const Text(
-              'Save a draft first. Publication is a separate audited action from the admin dashboard.',
+            Text(
+              widget.guide == null
+                  ? 'Save a draft first. Publication is a separate audited action from the admin dashboard.'
+                  : 'The published guide remains unchanged until this revision is reviewed and published.',
             ),
             const SizedBox(height: 20),
             _field(_title, 'Guide title', minLength: 3, maxLength: 160),
@@ -142,6 +164,7 @@ class _AdminGuideEditorScreenState extends State<AdminGuideEditorScreen> {
         walkingSequence: sequence,
         estimatedDuration: _duration.text.trim(),
       ),
+      guide: widget.guide,
     );
     if (!mounted) return;
     if (!saved) {

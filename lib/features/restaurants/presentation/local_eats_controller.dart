@@ -17,6 +17,7 @@ class LocalEatsController with ChangeNotifier {
   List<RestaurantModel> _restaurants = [];
   List<RestaurantModel> _pendingRestaurants = [];
   List<DiscountCodeModel> _discountCodes = [];
+  List<DiscountCodeModel> _ownedDiscounts = [];
   bool _isLoading = false;
   String? _errorMessage;
   String _selectedState = 'All';
@@ -29,6 +30,8 @@ class LocalEatsController with ChangeNotifier {
       List.unmodifiable(_pendingRestaurants);
   List<DiscountCodeModel> get discountCodes =>
       List.unmodifiable(_discountCodes);
+  List<DiscountCodeModel> get ownedDiscounts =>
+      List.unmodifiable(_ownedDiscounts);
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   String get selectedState => _selectedState;
@@ -107,6 +110,17 @@ class LocalEatsController with ChangeNotifier {
         error,
         'Restaurant submissions could not be loaded.',
       );
+    } finally {
+      notifyListeners();
+    }
+  }
+
+  Future<void> loadOwnedDiscounts() async {
+    try {
+      _ownedDiscounts = await _repository.fetchOwnedDiscounts();
+      _errorMessage = null;
+    } catch (error) {
+      _errorMessage = _message(error, 'Your discounts could not be loaded.');
     } finally {
       notifyListeners();
     }
@@ -207,9 +221,31 @@ class LocalEatsController with ChangeNotifier {
     try {
       await _repository.createAndPublishDiscount(input);
       await loadData();
+      await loadOwnedDiscounts();
       return true;
     } catch (error) {
       _errorMessage = _message(error, 'The discount could not be created.');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> transitionDiscount(
+    DiscountCodeModel discount,
+    String action,
+  ) async {
+    try {
+      await _repository.transitionDiscount(
+        discount: discount,
+        action: action,
+      );
+      await Future.wait([loadOwnedDiscounts(), loadData()]);
+      return true;
+    } catch (error) {
+      _errorMessage = _message(
+        error,
+        'The discount status could not be updated.',
+      );
       notifyListeners();
       return false;
     }

@@ -64,6 +64,7 @@ class DiscountDraftInput {
 abstract interface class LocalEatsRepository {
   Future<List<RestaurantModel>> fetchPublicRestaurants();
   Future<List<DiscountCodeModel>> fetchActiveDiscounts();
+  Future<List<DiscountCodeModel>> fetchOwnedDiscounts();
   Future<List<RestaurantModel>> fetchPendingRestaurants();
 
   Future<RestaurantDraftResult> createRestaurantDraft({
@@ -83,4 +84,8 @@ abstract interface class LocalEatsRepository {
   });
 
   Future<DiscountCodeModel> createAndPublishDiscount(DiscountDraftInput input);
+  Future<DiscountCodeModel> transitionDiscount({
+    required DiscountCodeModel discount,
+    required String action,
+  });
 }

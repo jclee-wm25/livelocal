@@ -48,10 +48,13 @@ class SupabaseGuideRepository implements GuideRepository {
   }
 
   @override
-  Future<GuideModel> saveAdminDraft(GuideDraftInput input) async {
+  Future<GuideModel> saveAdminDraft(
+    GuideDraftInput input, {
+    GuideModel? guide,
+  }) async {
     try {
       final response = await _client.rpc('admin_save_guide_draft', params: {
-        'p_guide_id': null,
+        'p_guide_id': guide?.id,
         'p_title': input.title,
         'p_location_name': input.locationName,
         'p_state': input.state,
@@ -59,7 +62,7 @@ class SupabaseGuideRepository implements GuideRepository {
         'p_stops': input.stops,
         'p_walking_sequence': input.walkingSequence,
         'p_estimated_duration': input.estimatedDuration,
-        'p_expected_version': null,
+        'p_expected_version': guide?.version,
       });
       final result = Map<String, dynamic>.from(response as Map);
       return GuideModel(
@@ -93,11 +96,26 @@ class SupabaseGuideRepository implements GuideRepository {
     }
   }
 
+  @override
+  Future<void> archiveGuide(GuideModel guide, String reason) async {
+    try {
+      await _client.rpc('admin_archive_guide', params: {
+        'p_guide_id': guide.id,
+        'p_reason': reason,
+        'p_expected_version': guide.version,
+      });
+    } on PostgrestException catch (error) {
+      throw _error(error, 'The guide could not be archived.');
+    }
+  }
+
   GuideModel _map(Map<String, dynamic> row, {required String status}) {
     return GuideModel(
       id: row['id'] as String,
       revisionId: row['revision_id'] as String?,
-      version: (row['version'] as num?)?.toInt() ?? 1,
+      version: (row['version'] as num?)?.toInt() ??
+          (row['guide_version'] as num?)?.toInt() ??
+          1,
       title: row['title'] as String,
       locationName: row['location_name'] as String,
       state: row['state'] as String,

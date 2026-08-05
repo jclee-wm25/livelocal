@@ -39,6 +39,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       context.read<InfluencerApplicationController>().loadPending(),
       context.read<LocalEatsController>().loadPendingRestaurants(),
       context.read<GuideController>().loadAdminDrafts(),
+      context.read<GuideController>().loadGuides(),
     ]);
   }
 
@@ -161,9 +162,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _MetricCard(
-                    label: 'Restricted',
-                    value: admin.suspendedUsersCount,
-                    icon: Icons.gpp_maybe_outlined,
+                    label: 'Appeals',
+                    value: admin.appeals.length,
+                    icon: Icons.support_agent_outlined,
                   ),
                 ),
               ],
@@ -233,6 +234,50 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       trailing: FilledButton.tonal(
                         onPressed: () => _publishGuide(guide),
                         child: const Text('Publish'),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            _Section(
+              title: 'Published guides',
+              count: guides.guides.length,
+              emptyText: 'No neighbourhood guides are currently published.',
+              children: guides.guides
+                  .map(
+                    (guide) => ListTile(
+                      minTileHeight: 72,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.map_outlined),
+                      title: Text(guide.title),
+                      subtitle: Text('${guide.locationName}, ${guide.state}'),
+                      trailing: PopupMenuButton<String>(
+                        tooltip: 'Manage guide',
+                        onSelected: (action) {
+                          if (action == 'revise') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute<void>(
+                                builder: (_) => AdminGuideEditorScreen(
+                                  guide: guide,
+                                ),
+                              ),
+                            );
+                          } else {
+                            _archiveGuide(guide);
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'revise',
+                            child: Text('Create revision'),
+                          ),
+                          PopupMenuItem(
+                            value: 'archive',
+                            child: Text('Archive guide'),
+                          ),
+                        ],
                       ),
                     ),
                   )
@@ -335,31 +380,67 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      trailing: moderationCase.targetType == 'review'
-                          ? PopupMenuButton<String>(
-                              tooltip: 'Decide report',
-                              onSelected: (decision) =>
-                                  _showReportDecision(moderationCase, decision),
-                              itemBuilder: (_) => const [
-                                PopupMenuItem(
-                                  value: 'upheld',
-                                  child: Text('Uphold and remove review'),
-                                ),
-                                PopupMenuItem(
-                                  value: 'dismissed',
-                                  child: Text('Dismiss report'),
-                                ),
-                                PopupMenuItem(
-                                  value: 'escalated',
-                                  child: Text('Escalate'),
-                                ),
-                              ],
-                            )
-                          : const Tooltip(
-                              message:
-                                  'This report type requires its feature moderation workflow.',
-                              child: Icon(Icons.pending_outlined),
+                      trailing: PopupMenuButton<String>(
+                        tooltip: 'Decide report',
+                        onSelected: (decision) =>
+                            _showReportDecision(moderationCase, decision),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'upheld',
+                            child: Text(
+                              moderationCase.reason == 'broken_link'
+                                  ? 'Uphold and remove link'
+                                  : 'Uphold and remove content',
                             ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'dismissed',
+                            child: Text('Dismiss report'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'escalated',
+                            child: Text('Escalate'),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+            const SizedBox(height: 16),
+            _Section(
+              title: 'Account appeals',
+              count: admin.appeals.length,
+              emptyText: 'No account appeals are awaiting review.',
+              children: admin.appeals
+                  .map(
+                    (appeal) => ListTile(
+                      minTileHeight: 80,
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.support_agent_outlined),
+                      title: Text(appeal.displayName),
+                      subtitle: Text(
+                        '${appeal.email}\n${appeal.accessStatus} · ${appeal.reason}'
+                        '${appeal.explanation == null ? '' : '\n${appeal.explanation}'}',
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      isThreeLine: true,
+                      trailing: PopupMenuButton<String>(
+                        tooltip: 'Decide appeal',
+                        onSelected: (decision) =>
+                            _showAppealDecision(appeal, decision),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'upheld',
+                            child: Text('Accept and restore access'),
+                          ),
+                          PopupMenuItem(
+                            value: 'dismissed',
+                            child: Text('Do not accept'),
+                          ),
+                        ],
+                      ),
                     ),
                   )
                   .toList(),
@@ -526,6 +607,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Future<void> _archiveGuide(GuideModel guide) async {
+    final reason = await _reasonDialog(
+      title: 'Archive this guide?',
+      prompt:
+          'The guide will stop appearing publicly. Record why the route is no longer suitable.',
+      destructive: true,
+    );
+    if (reason == null || !mounted) return;
+    final saved =
+        await context.read<GuideController>().archiveGuide(guide, reason);
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Guide archived.'
+          : context.read<GuideController>().errorMessage ??
+              'The guide could not be archived.',
+    );
+  }
+
   Future<void> _showRestaurantDecision(
     RestaurantModel restaurant,
     String decision,
@@ -558,7 +658,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   ) async {
     final reason = await _reasonDialog(
       title: switch (decision) {
-        'upheld' => 'Remove reported review?',
+        'upheld' => moderationCase.reason == 'broken_link'
+            ? 'Remove the reported external link?'
+            : 'Remove the reported content?',
         'dismissed' => 'Dismiss this report?',
         _ => 'Escalate this report?',
       },
@@ -566,7 +668,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       destructive: decision == 'upheld',
     );
     if (reason == null || !mounted) return;
-    final saved = await context.read<AdminController>().decideReviewCase(
+    final saved = await context.read<AdminController>().decideModerationCase(
           moderationCase: moderationCase,
           decision: decision,
           reason: reason,
@@ -577,6 +679,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ? 'Moderation decision recorded.'
           : context.read<AdminController>().errorMessage ??
               'The decision could not be saved.',
+    );
+  }
+
+  Future<void> _showAppealDecision(
+    AdminAppealCase appeal,
+    String decision,
+  ) async {
+    final reason = await _reasonDialog(
+      title: decision == 'upheld'
+          ? 'Accept this appeal and restore access?'
+          : 'Do not accept this appeal?',
+      prompt:
+          'Record the evidence-based outcome. This will be shown in the appeal history.',
+      destructive: decision == 'dismissed',
+    );
+    if (reason == null || !mounted) return;
+    final saved = await context.read<AdminController>().decideAppeal(
+          appeal: appeal,
+          decision: decision,
+          reason: reason,
+        );
+    if (!mounted) return;
+    _message(
+      saved
+          ? 'Appeal decision recorded.'
+          : context.read<AdminController>().errorMessage ??
+              'The appeal decision could not be saved.',
     );
   }
 
