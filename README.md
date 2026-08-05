@@ -1,5 +1,14 @@
 # 🌿 LiveLocal — Local Tourism & Influencer Eatery Discovery App
 
+> [!IMPORTANT]
+> **Current status: prototype baseline.** The feature descriptions below are
+> historical prototype/coursework descriptions and must not be read as claims
+> of production completion, backend authorization, offline persistence, or
+> store readiness. The approved target behaviour and current implementation
+> gaps are documented in
+> [`docs/product/product-behaviour-spec.md`](docs/product/product-behaviour-spec.md)
+> and [`docs/product/implementation-status.md`](docs/product/implementation-status.md).
+
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev)
 [![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?style=for-the-badge&logo=dart&logoColor=white)](https://dart.dev)
 [![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
@@ -51,8 +60,8 @@
 | **Framework** | **Flutter 3.x (Dart 3.x)** | Cross-platform mobile development for iOS & Android |
 | **State Management** | **Provider (`MultiProvider`)** | Reactive state propagation across 7 dedicated controllers |
 | **Backend & Cloud DB** | **Supabase (`supabase_flutter`)** | Cloud PostgreSQL database for auth, spots, reviews, and vouchers |
-| **Local Offline Fallback**| **`SeedDataService`** | Standalone local memory store ensuring 100% offline stability |
-| **Local Storage** | **`shared_preferences`** | Persisting user session state and local preferences |
+| **Demo Fixtures** | **`SeedDataService`** | In-memory prototype/demo records; not persistent offline storage |
+| **Local Storage** | **`shared_preferences`** | Dependency present; production persistence behaviour is not yet implemented |
 | **Utilities** | **`url_launcher`**, **`flutter_rating_bar`** | External links, directions, and star rating UI components |
 
 ---
