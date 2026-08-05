@@ -7,7 +7,7 @@ class TimelineStepCard extends StatelessWidget {
   final Map<String, Object> step;
   final int index;
   final bool isLast;
-  
+
   const TimelineStepCard({
     super.key,
     required this.step,
@@ -38,7 +38,8 @@ class TimelineStepCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [AppColors.accent, AppColors.primary]),
+                    gradient: const LinearGradient(
+                        colors: [AppColors.accent, AppColors.primary]),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -50,7 +51,9 @@ class TimelineStepCard extends StatelessWidget {
                   child: Center(
                     child: Text('${index + 1}',
                         style: const TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14)),
                   ),
                 ),
                 if (!isLast)
@@ -58,7 +61,8 @@ class TimelineStepCard extends StatelessWidget {
                     child: Container(
                       width: 2,
                       color: AppColors.accentLight,
-                      margin: const EdgeInsets.symmetric(vertical: AppStyles.padXs),
+                      margin:
+                          const EdgeInsets.symmetric(vertical: AppStyles.padXs),
                     ),
                   ),
                 if (isLast) const SizedBox(height: AppStyles.padLg),
@@ -88,12 +92,13 @@ class TimelineStepCard extends StatelessWidget {
                             Row(
                               children: [
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: AppColors.mintBg,
-                                    borderRadius: AppStyles.radiusSm == 8.0 
-                                      ? BorderRadius.circular(8) 
-                                      : BorderRadius.circular(8),
+                                    borderRadius: AppStyles.radiusSm == 8.0
+                                        ? BorderRadius.circular(8)
+                                        : BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     (step['step'] ?? '') as String,
@@ -105,7 +110,8 @@ class TimelineStepCard extends StatelessWidget {
                                 ),
                                 const Spacer(),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade100,
                                     borderRadius: BorderRadius.circular(8),
@@ -128,7 +134,8 @@ class TimelineStepCard extends StatelessWidget {
                             const SizedBox(height: AppStyles.padSm),
                             Row(
                               children: [
-                                const Icon(Icons.place, size: 14, color: AppColors.accent),
+                                const Icon(Icons.place,
+                                    size: 14, color: AppColors.accent),
                                 const SizedBox(width: 4),
                                 Expanded(
                                   child: Text(

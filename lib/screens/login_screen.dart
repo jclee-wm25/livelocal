@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
+import '../core/config/app_environment.dart';
+import '../core/routing/protected_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
+
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   bool _showError = false;
@@ -33,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -49,7 +53,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (!mounted) return;
     if (success) {
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      final navigator = Navigator.of(context);
+      final pending = context.read<ProtectedNavigation>().consumePending();
+      navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+      if (pending != null && authCtrl.canWrite) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          navigator.pushNamed(
+            pending.routeName,
+            arguments: pending.arguments,
+          );
+        });
+      }
     } else {
       setState(() {
         _showError = true;
@@ -58,8 +72,11 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
   @override
   Widget build(BuildContext context) {
+    final isSubmitting = context.watch<AuthController>().isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -139,13 +156,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.email_outlined,
                         labelText: 'Email Address',
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'This field is required';
+                        final email = value?.trim() ?? '';
+                        if (!email.contains('@') || !email.contains('.')) {
+                          return 'Enter a valid email address';
                         }
                         return null;
                       },
@@ -154,6 +173,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      autofillHints: const [AutofillHints.password],
+                      onFieldSubmitted: (_) =>
+                          isSubmitting ? null : _handleLogin(),
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.lock_outline,
                         labelText: 'Password',
@@ -184,29 +206,26 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 8),
               Align(
                 alignment: Alignment.centerRight,
-                child: GestureDetector(
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Password reset email sent!'),
-                      ),
-                    );
-                  },
-                  child: const Text(
-                    'Forgot password?',
-                    style: TextStyle(
-                      color: AppColors.primary,
-                      fontSize: 13,
-                    ),
-                  ),
+                child: TextButton(
+                  onPressed: isSubmitting
+                      ? null
+                      : () => Navigator.pushNamed(context, '/password-reset'),
+                  child: const Text('Forgot password?'),
                 ),
               ),
+              if (context.read<AppConfiguration>().isDemo) ...[
+                const Text(
+                  'Demo mode uses the fixed password DemoOnly123! and does not contact production services.',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
+                const SizedBox(height: 8),
+              ],
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => _handleLogin(),
+                  onPressed: isSubmitting ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -214,58 +233,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Log In',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Row(
-                children: [
-                  Expanded(child: Divider()),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      'or',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                  Expanded(child: Divider()),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: OutlinedButton(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Google login coming soon!'),
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Colors.grey.shade300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.g_mobiledata,
-                        size: 24,
-                        color: Colors.red,
-                      ),
-                      Text(
-                        ' Continue with Google',
-                        style: TextStyle(color: Colors.black87),
-                      ),
-                    ],
-                  ),
+                  child: isSubmitting
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Log In', style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 16),

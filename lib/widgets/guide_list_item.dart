@@ -84,7 +84,8 @@ class GuideListItem extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: AppStyles.pillRadius,
@@ -92,30 +93,40 @@ class GuideListItem extends StatelessWidget {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.place, color: Colors.white, size: 12),
+                              const Icon(Icons.place,
+                                  color: Colors.white, size: 12),
                               const SizedBox(width: AppStyles.padXs),
                               Text(
                                 guide.locationName,
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
                         ),
                         const Spacer(),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
                             color: AppColors.gold.withValues(alpha: 0.2),
                             borderRadius: AppStyles.pillRadius,
-                            border: Border.all(color: AppColors.gold.withValues(alpha: 0.5)),
+                            border: Border.all(
+                                color: AppColors.gold.withValues(alpha: 0.5)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.access_time, color: AppColors.gold, size: 12),
+                              const Icon(Icons.access_time,
+                                  color: AppColors.gold, size: 12),
                               const SizedBox(width: AppStyles.padXs),
                               Text(
                                 guide.estimatedDuration,
-                                style: const TextStyle(color: AppColors.gold, fontSize: 11, fontWeight: FontWeight.w600),
+                                style: const TextStyle(
+                                    color: AppColors.gold,
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),
@@ -123,7 +134,8 @@ class GuideListItem extends StatelessWidget {
                       ],
                     ),
                     const Spacer(),
-                    Text(guide.title, style: AppStyles.headerWhite.copyWith(fontSize: 20)),
+                    Text(guide.title,
+                        style: AppStyles.headerWhite.copyWith(fontSize: 20)),
                     const SizedBox(height: AppStyles.padSm),
                     Text(
                       guide.routeOverview,
@@ -138,12 +150,15 @@ class GuideListItem extends StatelessWidget {
                       children: guide.stops
                           .take(3)
                           .map((stop) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.15),
                                   borderRadius: AppStyles.defaultRadius,
                                 ),
-                                child: Text(stop, style: const TextStyle(color: Colors.white, fontSize: 10)),
+                                child: Text(stop,
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 10)),
                               ))
                           .toList(),
                     ),

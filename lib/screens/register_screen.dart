@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
+import '../core/routing/protected_navigation.dart';
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
+
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  String selectedRole = 'tourist';
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   final _fullNameController = TextEditingController();
@@ -34,53 +36,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-  Widget _buildRoleCard({
-    required String role,
-    required IconData icon,
-    required String label,
-  }) {
-    final bool isSelected = selectedRole == role;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedRole = role;
-          });
-        },
-        child: Container(
-          height: 80,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.selectedBg : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 28,
-                color: isSelected ? AppColors.primary : Colors.grey,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? AppColors.primary : Colors.grey.shade700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -97,26 +53,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _emailController.text.trim(),
       _passwordController.text,
       _fullNameController.text.trim(),
-      selectedRole,
     );
     if (!mounted) return;
     if (success) {
+      final requiresVerification =
+          authCtrl.status == AuthStatus.verificationRequired;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Account created successfully!')),
+        SnackBar(
+          content: Text(
+            requiresVerification
+                ? 'Account created. Check your email to verify it.'
+                : 'Account created successfully.',
+          ),
+        ),
       );
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      final navigator = Navigator.of(context);
+      final pending = context.read<ProtectedNavigation>().consumePending();
+      navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+      if (pending != null && authCtrl.canWrite) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          navigator.pushNamed(
+            pending.routeName,
+            arguments: pending.arguments,
+          );
+        });
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            authCtrl.errorMessage ?? 'Unable to create account. Please try again.',
+            authCtrl.errorMessage ??
+                'Unable to create account. Please try again.',
           ),
         ),
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
+    final isSubmitting = context.watch<AuthController>().isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -160,27 +137,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'I am a',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _buildRoleCard(
-                    role: 'tourist',
-                    icon: Icons.backpack,
-                    label: 'Tourist',
-                  ),
-                  const SizedBox(width: 12),
-                  _buildRoleCard(
-                    role: 'influencer',
-                    icon: Icons.star,
-                    label: 'Influencer',
-                  ),
-                ],
+                'All new accounts start as tourists. Influencer applications '
+                'are available from your profile after verification.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 24),
               Form(
@@ -189,13 +148,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     TextFormField(
                       controller: _fullNameController,
+                      autofillHints: const [AutofillHints.name],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.person_outline,
                         labelText: 'Full Name',
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return 'This field is required';
+                        }
+                        if (value.trim().length < 2 ||
+                            value.trim().length > 80) {
+                          return 'Use between 2 and 80 characters';
                         }
                         return null;
                       },
@@ -204,13 +168,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      autofillHints: const [AutofillHints.email],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.email_outlined,
                         labelText: 'Email Address',
                       ),
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'This field is required';
+                        final email = value?.trim() ?? '';
+                        if (!email.contains('@') || !email.contains('.')) {
+                          return 'Enter a valid email address';
                         }
                         return null;
                       },
@@ -219,6 +185,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      autofillHints: const [AutofillHints.newPassword],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.lock_outline,
                         labelText: 'Password',
@@ -240,6 +207,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         if (value == null || value.isEmpty) {
                           return 'This field is required';
                         }
+                        if (value.length < 10 ||
+                            !RegExp('[A-Za-z]').hasMatch(value) ||
+                            !RegExp('[0-9]').hasMatch(value)) {
+                          return 'Use 10+ characters with a letter and number';
+                        }
                         return null;
                       },
                     ),
@@ -247,6 +219,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     TextFormField(
                       controller: _confirmPasswordController,
                       obscureText: _obscureConfirm,
+                      autofillHints: const [AutofillHints.newPassword],
                       decoration: _fieldDecoration(
                         prefixIcon: Icons.lock_outline,
                         labelText: 'Confirm Password',
@@ -278,29 +251,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (selectedRole == 'influencer')
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.warnBgLight,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Influencer accounts require admin approval before activation',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange.shade800,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => _handleRegister(),
+                  onPressed: isSubmitting ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -308,10 +264,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Create Account',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: isSubmitting
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Create Account',
+                          style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 16),

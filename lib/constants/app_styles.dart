@@ -17,7 +17,7 @@ class AppStyles {
   static const double radiusMd = 12.0;
   static const double radiusLg = 16.0;
   static const double radiusXl = 20.0;
-  
+
   static final BorderRadius defaultRadius = BorderRadius.circular(radiusMd);
   static final BorderRadius cardRadius = BorderRadius.circular(radiusLg);
   static final BorderRadius pillRadius = BorderRadius.circular(100.0);
@@ -31,7 +31,7 @@ class AppStyles {
   );
 
   static const TextStyle subtitleWhite = TextStyle(
-    color: Colors.white70, 
+    color: Colors.white70,
     fontSize: 14,
   );
 
@@ -54,7 +54,7 @@ class AppStyles {
       offset: const Offset(0, 4),
     ),
   ];
-  
+
   static final List<BoxShadow> heavyShadow = [
     BoxShadow(
       color: Colors.black.withValues(alpha: 0.12),
