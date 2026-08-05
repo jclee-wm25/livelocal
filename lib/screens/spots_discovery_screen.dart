@@ -6,8 +6,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../controllers/spot_controller.dart';
 import '../models/spot_model.dart';
 import 'spot_detail_screen.dart';
-import 'submit_spot_screen.dart';
 import '../constants/app_colors.dart';
+import '../core/routing/protected_navigation.dart';
 
 class SpotsDiscoveryScreen extends StatefulWidget {
   const SpotsDiscoveryScreen({super.key});
@@ -280,52 +280,78 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen>
                         child: CircularProgressIndicator(
                             color: AppColors.primary)),
                   )
-                : approvedSpots.isEmpty
+                : spotCtrl.errorMessage != null && approvedSpots.isEmpty
                     ? SliverFillRemaining(
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.location_off,
-                                  size: 64, color: Colors.grey.shade300),
-                              const SizedBox(height: 16),
-                              Text('No spots found.',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.grey.shade500)),
-                            ],
-                          ),
+                        child: _DiscoveryError(
+                          message: spotCtrl.errorMessage!,
+                          onRetry: spotCtrl.loadSpots,
                         ),
                       )
-                    : SliverPadding(
-                        padding: const EdgeInsets.only(
-                            left: 16, right: 16, bottom: 110),
-                        sliver: SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                            (context, index) {
-                              final spot = approvedSpots[index];
-                              return TweenAnimationBuilder<double>(
-                                duration: Duration(
-                                    milliseconds:
-                                        400 + (index * 100).clamp(0, 600)),
-                                tween: Tween(begin: 0.0, end: 1.0),
-                                curve: Curves.easeOutQuint,
-                                builder: (context, value, child) {
-                                  return Transform.translate(
-                                    offset: Offset(0, 50 * (1 - value)),
-                                    child: Opacity(
-                                      opacity: value,
-                                      child: child,
-                                    ),
+                    : approvedSpots.isEmpty
+                        ? SliverFillRemaining(
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.location_off,
+                                      size: 64, color: Colors.grey.shade300),
+                                  const SizedBox(height: 16),
+                                  Text('No spots found.',
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey.shade500)),
+                                ],
+                              ),
+                            ),
+                          )
+                        : SliverPadding(
+                            padding: const EdgeInsets.only(
+                                left: 16, right: 16, bottom: 110),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  if (index == approvedSpots.length) {
+                                    return Padding(
+                                      padding: const EdgeInsets.all(16),
+                                      child: Center(
+                                        child: spotCtrl.isLoadingMore
+                                            ? const CircularProgressIndicator()
+                                            : OutlinedButton(
+                                                onPressed: spotCtrl.hasMore
+                                                    ? spotCtrl.loadMore
+                                                    : null,
+                                                child: Text(
+                                                  spotCtrl.hasMore
+                                                      ? 'Load more'
+                                                      : 'You have reached the end',
+                                                ),
+                                              ),
+                                      ),
+                                    );
+                                  }
+                                  final spot = approvedSpots[index];
+                                  return TweenAnimationBuilder<double>(
+                                    duration: Duration(
+                                        milliseconds:
+                                            400 + (index * 100).clamp(0, 600)),
+                                    tween: Tween(begin: 0.0, end: 1.0),
+                                    curve: Curves.easeOutQuint,
+                                    builder: (context, value, child) {
+                                      return Transform.translate(
+                                        offset: Offset(0, 50 * (1 - value)),
+                                        child: Opacity(
+                                          opacity: value,
+                                          child: child,
+                                        ),
+                                      );
+                                    },
+                                    child: SpotCard(spot: spot),
                                   );
                                 },
-                                child: SpotCard(spot: spot),
-                              );
-                            },
-                            childCount: approvedSpots.length,
+                                childCount: approvedSpots.length + 1,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
           ],
         ),
       ),
@@ -334,14 +360,41 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen>
         elevation: 4,
         highlightElevation: 8,
         onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SubmitSpotScreen()),
-          );
+          context.read<ProtectedNavigation>().open(context, '/submit-spot');
         },
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('Submit Spot',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+      ),
+    );
+  }
+}
+
+class _DiscoveryError extends StatelessWidget {
+  const _DiscoveryError({required this.message, required this.onRetry});
+
+  final String message;
+  final Future<void> Function() onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.cloud_off_outlined, size: 48),
+            const SizedBox(height: 12),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: onRetry,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Try again'),
+            ),
+          ],
+        ),
       ),
     );
   }

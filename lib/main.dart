@@ -27,6 +27,17 @@ import 'features/profile/data/supabase_account_repository.dart';
 import 'features/profile/domain/account_repository.dart';
 import 'features/profile/presentation/account_controller.dart';
 import 'screens/notifications_screen.dart';
+import 'features/spots/data/demo_spot_repository.dart';
+import 'features/spots/data/supabase_spot_repository.dart';
+import 'features/spots/domain/spot_repository.dart';
+import 'core/routing/protected_navigation.dart';
+import 'screens/submit_spot_screen.dart';
+import 'features/reviews/data/demo_review_repository.dart';
+import 'features/reviews/data/supabase_review_repository.dart';
+import 'features/reviews/domain/review_repository.dart';
+import 'features/admin/data/demo_admin_repository.dart';
+import 'features/admin/data/supabase_admin_repository.dart';
+import 'features/admin/domain/admin_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,12 +64,18 @@ Future<void> main() async {
 
   late final AuthRepository authRepository;
   late final AccountRepository accountRepository;
+  late final SpotRepository spotRepository;
+  late final ReviewRepository reviewRepository;
+  late final AdminRepository adminRepository;
   try {
     if (configuration.isDemo) {
       SupabaseRepository().configureForDemo();
       final demoAuthRepository = DemoAuthRepository();
       authRepository = demoAuthRepository;
       accountRepository = DemoAccountRepository(demoAuthRepository);
+      spotRepository = DemoSpotRepository(demoAuthRepository);
+      reviewRepository = DemoReviewRepository(demoAuthRepository);
+      adminRepository = DemoAdminRepository(demoAuthRepository);
     } else {
       await Supabase.initialize(
         url: configuration.supabaseUrl!,
@@ -74,6 +91,9 @@ Future<void> main() async {
         client: Supabase.instance.client,
         authRepository: supabaseAuthRepository,
       );
+      spotRepository = SupabaseSpotRepository(Supabase.instance.client);
+      reviewRepository = SupabaseReviewRepository(Supabase.instance.client);
+      adminRepository = SupabaseAdminRepository(Supabase.instance.client);
     }
   } catch (error) {
     if (kDebugMode) {
@@ -93,6 +113,9 @@ Future<void> main() async {
       configuration: configuration,
       authRepository: authRepository,
       accountRepository: accountRepository,
+      spotRepository: spotRepository,
+      reviewRepository: reviewRepository,
+      adminRepository: adminRepository,
     ),
   );
 }
@@ -103,17 +126,24 @@ class LiveLocalApp extends StatelessWidget {
     required this.configuration,
     required this.authRepository,
     required this.accountRepository,
+    required this.spotRepository,
+    required this.reviewRepository,
+    required this.adminRepository,
   });
 
   final AppConfiguration configuration;
   final AuthRepository authRepository;
   final AccountRepository accountRepository;
+  final SpotRepository spotRepository;
+  final ReviewRepository reviewRepository;
+  final AdminRepository adminRepository;
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         Provider<AppConfiguration>.value(value: configuration),
+        Provider<ProtectedNavigation>(create: (_) => ProtectedNavigation()),
         ChangeNotifierProvider(
           create: (_) =>
               AuthController(repository: authRepository)..initialize(),
@@ -124,12 +154,18 @@ class LiveLocalApp extends StatelessWidget {
             authController: context.read<AuthController>(),
           ),
         ),
-        ChangeNotifierProvider(create: (_) => SpotController()),
+        ChangeNotifierProvider(
+          create: (_) => SpotController(repository: spotRepository),
+        ),
         ChangeNotifierProvider(create: (_) => LocalEatsController()),
         ChangeNotifierProvider(create: (_) => ItineraryController()),
         ChangeNotifierProvider(create: (_) => GuideController()),
-        ChangeNotifierProvider(create: (_) => ReviewController()),
-        ChangeNotifierProvider(create: (_) => AdminController()),
+        ChangeNotifierProvider(
+          create: (_) => ReviewController(repository: reviewRepository),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => AdminController(repository: adminRepository),
+        ),
         ChangeNotifierProvider(create: (_) => ModerationController()),
       ],
       child: MaterialApp(
@@ -183,6 +219,7 @@ class LiveLocalApp extends StatelessWidget {
           '/register': (context) => const RegisterScreen(),
           '/password-reset': (context) => const PasswordResetScreen(),
           '/notifications': (context) => const NotificationsScreen(),
+          '/submit-spot': (context) => const SubmitSpotScreen(),
           '/home': (context) => const SessionGate(),
         },
       ),

@@ -10,6 +10,9 @@ class ReviewModel {
   final bool isFlagged;
   final String? flagReason;
   final DateTime createdAt;
+  final DateTime? updatedAt;
+  final int version;
+  final bool isOwnedByCurrentUser;
 
   ReviewModel({
     required this.id,
@@ -23,6 +26,9 @@ class ReviewModel {
     this.isFlagged = false,
     this.flagReason,
     required this.createdAt,
+    this.updatedAt,
+    this.version = 1,
+    this.isOwnedByCurrentUser = false,
   });
 
   Map<String, dynamic> toMap() => {
@@ -37,6 +43,8 @@ class ReviewModel {
         'is_flagged': isFlagged,
         'flag_reason': flagReason,
         'created_at': createdAt.toIso8601String(),
+        'updated_at': updatedAt?.toIso8601String(),
+        'version': version,
       };
 
   factory ReviewModel.fromMap(Map<String, dynamic> map) => ReviewModel(
@@ -52,5 +60,10 @@ class ReviewModel {
         flagReason: map['flag_reason'],
         createdAt: DateTime.parse(
             map['created_at'] ?? DateTime.now().toIso8601String()),
+        updatedAt: map['updated_at'] == null
+            ? null
+            : DateTime.parse(map['updated_at'] as String),
+        version: (map['version'] as num?)?.toInt() ?? 1,
+        isOwnedByCurrentUser: map['is_owned_by_current_user'] ?? false,
       );
 }

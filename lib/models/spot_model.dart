@@ -17,6 +17,8 @@ class SpotModel {
   final String? rejectionReason;
   final double? latitude;
   final double? longitude;
+  final String? revisionId;
+  final int moderationVersion;
 
   SpotModel({
     required this.id,
@@ -37,6 +39,8 @@ class SpotModel {
     this.rejectionReason,
     this.latitude,
     this.longitude,
+    this.revisionId,
+    this.moderationVersion = 1,
   });
 
   Map<String, dynamic> toMap() => {
@@ -58,6 +62,8 @@ class SpotModel {
         'rejection_reason': rejectionReason,
         'latitude': latitude,
         'longitude': longitude,
+        'revision_id': revisionId,
+        'moderation_version': moderationVersion,
       };
 
   factory SpotModel.fromMap(Map<String, dynamic> map) => SpotModel(
@@ -79,5 +85,7 @@ class SpotModel {
         rejectionReason: map['rejection_reason'],
         latitude: (map['latitude'] as num?)?.toDouble(),
         longitude: (map['longitude'] as num?)?.toDouble(),
+        revisionId: map['revision_id'],
+        moderationVersion: (map['moderation_version'] as num?)?.toInt() ?? 1,
       );
 }

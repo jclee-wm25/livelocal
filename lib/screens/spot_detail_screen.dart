@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/spot_model.dart';
-import '../features/auth/domain/account_identity.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
@@ -20,6 +19,15 @@ class SpotDetailScreen extends StatefulWidget {
 class _SpotDetailScreenState extends State<SpotDetailScreen> {
   final _commentCtrl = TextEditingController();
   double _userRating = 5.0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<ReviewController>().loadReviews(spotId: widget.spot.id);
+    });
+  }
 
   @override
   void dispose() {
@@ -246,8 +254,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                 fontSize: 18, fontWeight: FontWeight.bold)),
                         if (user != null)
                           OutlinedButton.icon(
-                            onPressed: () => _showWriteReviewSheet(
-                                context, user, reviewCtrl),
+                            onPressed: () =>
+                                _showWriteReviewSheet(context, reviewCtrl),
                             icon: const Icon(Icons.rate_review_outlined,
                                 size: 16),
                             label: const Text('Write Review'),
@@ -312,26 +320,32 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                           ),
                                         ),
                                       ),
-                                      IconButton(
-                                        constraints: const BoxConstraints(
-                                            minWidth: 48, minHeight: 48),
-                                        icon: const Icon(Icons.flag_outlined,
-                                            size: 16, color: Colors.grey),
-                                        onPressed: () {
-                                          if (user != null) {
-                                            _showModerationUnavailable(context);
-                                          }
-                                        },
-                                      ),
-                                      if (user != null && r.userId != user.id)
+                                      if (user != null &&
+                                          !r.isOwnedByCurrentUser)
                                         IconButton(
                                           constraints: const BoxConstraints(
                                               minWidth: 48, minHeight: 48),
-                                          icon: const Icon(Icons.block,
+                                          tooltip: 'Report review',
+                                          icon: const Icon(Icons.flag_outlined,
                                               size: 16, color: Colors.grey),
-                                          onPressed: () {
-                                            _showModerationUnavailable(context);
-                                          },
+                                          onPressed: () => _showReportDialog(
+                                            context,
+                                            reviewCtrl,
+                                            r.id,
+                                          ),
+                                        ),
+                                      if (r.isOwnedByCurrentUser)
+                                        IconButton(
+                                          constraints: const BoxConstraints(
+                                              minWidth: 48, minHeight: 48),
+                                          tooltip: 'Delete review',
+                                          icon: const Icon(Icons.delete_outline,
+                                              size: 18, color: Colors.grey),
+                                          onPressed: () => _confirmDeleteReview(
+                                            context,
+                                            reviewCtrl,
+                                            r.id,
+                                          ),
                                         ),
                                     ],
                                   ),
@@ -357,7 +371,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   }
 
   void _showWriteReviewSheet(
-      BuildContext context, AccountIdentity user, ReviewController reviewCtrl) {
+      BuildContext context, ReviewController reviewCtrl) {
+    final ownReviews = reviewCtrl
+        .getReviewsForSpot(widget.spot.id)
+        .where((review) => review.isOwnedByCurrentUser);
+    final existing = ownReviews.isEmpty ? null : ownReviews.single;
+    _commentCtrl.text = existing?.comment ?? '';
+    _userRating = existing?.rating ?? 5;
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -378,9 +398,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Write a Review',
-                      style:
-                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text(existing == null ? 'Write a review' : 'Edit your review',
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -428,13 +448,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       onPressed: () async {
                         if (_commentCtrl.text.trim().isEmpty) return;
                         try {
-                          await reviewCtrl.addReview(
+                          final saved = await reviewCtrl.addReview(
                             spotId: widget.spot.id,
-                            userId: user.id,
-                            userName: user.fullName,
                             rating: _userRating,
                             comment: _commentCtrl.text.trim(),
                           );
+                          if (!saved) throw StateError('Review was not saved');
                         } catch (_) {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -469,11 +488,139 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     );
   }
 
-  void _showModerationUnavailable(BuildContext context) {
+  Future<void> _confirmDeleteReview(
+    BuildContext context,
+    ReviewController controller,
+    String reviewId,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete your review?'),
+        content: const Text(
+          'The rating aggregate will be updated immediately. This cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final removed = await controller.removeReview(reviewId);
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text(
-          'Reporting and blocking are unavailable until the secure moderation flow is implemented.',
+          removed
+              ? 'Review deleted.'
+              : controller.errorMessage ?? 'The review could not be deleted.',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showReportDialog(
+    BuildContext context,
+    ReviewController controller,
+    String reviewId,
+  ) async {
+    var reason = 'spam';
+    var hideForMe = true;
+    final explanation = TextEditingController();
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Report this review'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  initialValue: reason,
+                  decoration: const InputDecoration(
+                    labelText: 'Reason',
+                    border: OutlineInputBorder(),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'spam', child: Text('Spam')),
+                    DropdownMenuItem(
+                        value: 'harassment', child: Text('Harassment')),
+                    DropdownMenuItem(
+                        value: 'hate', child: Text('Hateful content')),
+                    DropdownMenuItem(
+                        value: 'dangerous', child: Text('Dangerous content')),
+                    DropdownMenuItem(
+                        value: 'misleading', child: Text('Misleading')),
+                    DropdownMenuItem(
+                        value: 'privacy', child: Text('Privacy concern')),
+                    DropdownMenuItem(value: 'other', child: Text('Other')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) setDialogState(() => reason = value);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: explanation,
+                  maxLength: 2000,
+                  minLines: 2,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: 'Optional details',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                CheckboxListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: hideForMe,
+                  title: const Text('Hide this review for me'),
+                  subtitle: const Text(
+                    'One report does not hide it from everyone.',
+                  ),
+                  onChanged: (value) {
+                    setDialogState(() => hideForMe = value ?? true);
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Submit report'),
+            ),
+          ],
+        ),
+      ),
+    );
+    final details = explanation.text.trim();
+    explanation.dispose();
+    if (submitted != true) return;
+    final success = await controller.reportReview(
+      reviewId: reviewId,
+      reason: reason,
+      explanation: details.isEmpty ? null : details,
+      hideForReporter: hideForMe,
+    );
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? 'Report submitted for moderation.'
+              : controller.errorMessage ?? 'The report could not be submitted.',
         ),
       ),
     );

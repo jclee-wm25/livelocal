@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
+import '../core/routing/protected_navigation.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -66,7 +67,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       );
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      final navigator = Navigator.of(context);
+      final pending = context.read<ProtectedNavigation>().consumePendingRoute();
+      navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+      if (pending != null && authCtrl.canWrite) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          navigator.pushNamed(pending);
+        });
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

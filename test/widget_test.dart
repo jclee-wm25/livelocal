@@ -5,6 +5,9 @@ import 'package:live_local/main.dart';
 import 'package:live_local/repositories/supabase_repository.dart';
 import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 import 'package:live_local/features/profile/data/demo_account_repository.dart';
+import 'package:live_local/features/spots/data/demo_spot_repository.dart';
+import 'package:live_local/features/reviews/data/demo_review_repository.dart';
+import 'package:live_local/features/admin/data/demo_admin_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -18,6 +21,9 @@ void main() {
         configuration: AppConfiguration.demoForTesting(),
         authRepository: authRepository,
         accountRepository: DemoAccountRepository(authRepository),
+        spotRepository: DemoSpotRepository(authRepository),
+        reviewRepository: DemoReviewRepository(authRepository),
+        adminRepository: DemoAdminRepository(authRepository),
       ),
     );
     expect(find.byType(LiveLocalApp), findsOneWidget);

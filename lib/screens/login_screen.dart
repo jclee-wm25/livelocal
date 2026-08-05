@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
 import '../core/config/app_environment.dart';
+import '../core/routing/protected_navigation.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -52,7 +53,14 @@ class _LoginScreenState extends State<LoginScreen> {
     );
     if (!mounted) return;
     if (success) {
-      Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      final navigator = Navigator.of(context);
+      final pending = context.read<ProtectedNavigation>().consumePendingRoute();
+      navigator.pushNamedAndRemoveUntil('/home', (route) => false);
+      if (pending != null && authCtrl.canWrite) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          navigator.pushNamed(pending);
+        });
+      }
     } else {
       setState(() {
         _showError = true;

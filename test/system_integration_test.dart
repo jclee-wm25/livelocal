@@ -8,6 +8,8 @@ import 'package:live_local/controllers/review_controller.dart';
 import 'package:live_local/models/spot_model.dart';
 import 'package:live_local/repositories/supabase_repository.dart';
 import 'package:live_local/features/auth/data/demo_auth_repository.dart';
+import 'package:live_local/features/spots/data/demo_spot_repository.dart';
+import 'package:live_local/features/reviews/data/demo_review_repository.dart';
 
 void main() {
   setUpAll(() {
@@ -24,7 +26,14 @@ void main() {
     });
 
     test('Module 2: Local Spots Filtering & Submission Flow', () async {
-      final spotCtrl = SpotController();
+      final authRepository = DemoAuthRepository();
+      await authRepository.signIn(
+        email: 'tourist@livelocal.my',
+        password: 'DemoOnly123!',
+      );
+      final spotCtrl = SpotController(
+        repository: DemoSpotRepository(authRepository),
+      );
       await spotCtrl.loadSpots();
 
       final initialApprovedCount = spotCtrl.approvedSpots.length;
@@ -53,7 +62,15 @@ void main() {
       );
 
       await spotCtrl.submitSpot(newSpot);
-      expect(spotCtrl.pendingSpots.any((s) => s.id == 'spot-test-1'), isTrue);
+      expect(
+        spotCtrl.pendingSpots.any((s) => s.name == 'Test Kopitiam'),
+        isTrue,
+      );
+      expect(
+        spotCtrl.pendingSpots.every((s) => s.id != 'spot-test-1'),
+        isTrue,
+        reason: 'The repository, not the client, assigns persisted IDs.',
+      );
 
       // Admin authorization is deliberately not characterized here. The
       // current client-role contract is not production authorization and will
@@ -74,7 +91,10 @@ void main() {
 
     test('Module 4: Saved Places', () async {
       final itineraryCtrl = ItineraryController();
-      final spotCtrl = SpotController();
+      final authRepository = DemoAuthRepository();
+      final spotCtrl = SpotController(
+        repository: DemoSpotRepository(authRepository),
+      );
       final foodCtrl = LocalEatsController();
 
       await spotCtrl.loadSpots();
@@ -100,15 +120,20 @@ void main() {
     });
 
     test('Module 6: Community review validation and storage', () async {
-      final reviewCtrl = ReviewController();
+      final authRepository = DemoAuthRepository();
+      await authRepository.signIn(
+        email: 'tourist@livelocal.my',
+        password: 'DemoOnly123!',
+      );
+      final reviewCtrl = ReviewController(
+        repository: DemoReviewRepository(authRepository),
+      );
 
       await reviewCtrl.loadReviews();
 
       // Add review
       await reviewCtrl.addReview(
         spotId: 'spot-001',
-        userId: 'usr-tourist-1',
-        userName: 'Test User',
         rating: 5.0,
         comment: 'Awesome place!',
       );
