@@ -13,7 +13,7 @@ class ModerationController with ChangeNotifier {
     try {
       await _repo.submitReport(reporterId, targetId, targetType, reason);
     } catch (e) {
-      debugPrint('ModerationController: submitReport failed: \$e');
+      debugPrint('ModerationController: submitReport failed: $e');
       rethrow;
     }
   }
@@ -25,7 +25,7 @@ class ModerationController with ChangeNotifier {
     try {
       await _repo.blockUser(blockerId, blockedId);
     } catch (e) {
-      debugPrint('ModerationController: blockUser failed: \$e');
+      debugPrint('ModerationController: blockUser failed: $e');
       rethrow;
     }
   }

@@ -11,6 +11,8 @@ class RestaurantModel {
   final String influencerName;
   final String socialMediaUrl;
   final String coverPhotoUrl;
+  final double rating;
+  final int reviewCount;
   final double? latitude;
   final double? longitude;
 
@@ -27,41 +29,47 @@ class RestaurantModel {
     required this.influencerName,
     required this.socialMediaUrl,
     required this.coverPhotoUrl,
+    this.rating = 0,
+    this.reviewCount = 0,
     this.latitude,
     this.longitude,
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'name': name,
-    'address': address,
-    'state': state,
-    'city': city,
-    'cuisine_type': cuisineType,
-    'price_range': priceRange,
-    'reviewed_dishes': reviewedDishes,
-    'influencer_id': influencerId,
-    'influencer_name': influencerName,
-    'social_media_url': socialMediaUrl,
-    'cover_photo_url': coverPhotoUrl,
-    'latitude': latitude,
-    'longitude': longitude,
-  };
+        'id': id,
+        'name': name,
+        'address': address,
+        'state': state,
+        'city': city,
+        'cuisine_type': cuisineType,
+        'price_range': priceRange,
+        'reviewed_dishes': reviewedDishes,
+        'influencer_id': influencerId,
+        'influencer_name': influencerName,
+        'social_media_url': socialMediaUrl,
+        'cover_photo_url': coverPhotoUrl,
+        'rating': rating,
+        'review_count': reviewCount,
+        'latitude': latitude,
+        'longitude': longitude,
+      };
 
   factory RestaurantModel.fromMap(Map<String, dynamic> map) => RestaurantModel(
-    id: map['id'] ?? '',
-    name: map['name'] ?? '',
-    address: map['address'] ?? '',
-    state: map['state'] ?? '',
-    city: map['city'] ?? '',
-    cuisineType: map['cuisine_type'] ?? '',
-    priceRange: map['price_range'] ?? '\$',
-    reviewedDishes: map['reviewed_dishes'] ?? '',
-    influencerId: map['influencer_id'] ?? '',
-    influencerName: map['influencer_name'] ?? '',
-    socialMediaUrl: map['social_media_url'] ?? '',
-    coverPhotoUrl: map['cover_photo_url'] ?? '',
-    latitude: (map['latitude'] as num?)?.toDouble(),
-    longitude: (map['longitude'] as num?)?.toDouble(),
-  );
+        id: map['id'] ?? '',
+        name: map['name'] ?? '',
+        address: map['address'] ?? '',
+        state: map['state'] ?? '',
+        city: map['city'] ?? '',
+        cuisineType: map['cuisine_type'] ?? '',
+        priceRange: map['price_range'] ?? '\$',
+        reviewedDishes: map['reviewed_dishes'] ?? '',
+        influencerId: map['influencer_id'] ?? '',
+        influencerName: map['influencer_name'] ?? '',
+        socialMediaUrl: map['social_media_url'] ?? '',
+        coverPhotoUrl: map['cover_photo_url'] ?? '',
+        rating: (map['rating'] as num?)?.toDouble() ?? 0,
+        reviewCount: (map['review_count'] as num?)?.toInt() ?? 0,
+        latitude: (map['latitude'] as num?)?.toDouble(),
+        longitude: (map['longitude'] as num?)?.toDouble(),
+      );
 }

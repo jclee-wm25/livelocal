@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import '../models/profile_model.dart';
 import '../repositories/supabase_repository.dart';
 
@@ -12,7 +11,8 @@ class AdminService {
     return _repo.fetchProfiles();
   }
 
-  Future<void> toggleUserSuspension(String userId, String currentUserRole) async {
+  Future<void> toggleUserSuspension(
+      String userId, String currentUserRole) async {
     if (currentUserRole != 'admin') {
       throw Exception('Unauthorized: Only admins can suspend users.');
     }
@@ -20,7 +20,7 @@ class AdminService {
     final idx = allUsers.indexWhere((u) => u.id == userId);
     if (idx < 0) return;
     final target = allUsers[idx];
-    
+
     final updated = ProfileModel(
       id: target.id,
       email: target.email,
@@ -33,21 +33,26 @@ class AdminService {
 
     if (updated.isSuspended && updated.role == 'influencer') {
       final allDiscounts = await _repo.fetchDiscountCodes();
-      final influencerDiscounts = allDiscounts.where((d) => d.influencerId == userId && d.isActive);
+      final influencerDiscounts = allDiscounts.where(
+        (discount) => discount.createdBy == userId && discount.isActive,
+      );
       for (var discount in influencerDiscounts) {
         await _repo.updateDiscountCodeStatus(discount.id, false);
       }
     }
   }
 
-  Future<List<Map<String, dynamic>>> fetchPendingReports(String currentUserRole) async {
+  Future<List<Map<String, dynamic>>> fetchPendingReports(
+      String currentUserRole) async {
     if (currentUserRole != 'admin') {
       throw Exception('Unauthorized: Only admins can view reports.');
     }
     return _repo.fetchPendingReports();
   }
 
-  Future<void> resolveReport(String reportId, String action, String currentUserRole, {String? reviewIdToDelete}) async {
+  Future<void> resolveReport(
+      String reportId, String action, String currentUserRole,
+      {String? reviewIdToDelete}) async {
     if (currentUserRole != 'admin') {
       throw Exception('Unauthorized: Only admins can resolve reports.');
     }

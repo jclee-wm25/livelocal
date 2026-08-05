@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import '../models/spot_model.dart';
 import '../repositories/supabase_repository.dart';
 
@@ -24,7 +23,8 @@ class SpotService {
     await _repo.updateSpotStatus(spotId, 'approved');
   }
 
-  Future<void> rejectSpot(String spotId, String reason, String currentUserRole) async {
+  Future<void> rejectSpot(
+      String spotId, String reason, String currentUserRole) async {
     if (currentUserRole != 'admin') {
       throw Exception('Unauthorized: Only admins can reject spots.');
     }

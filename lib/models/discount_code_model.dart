@@ -5,6 +5,7 @@ class DiscountCodeModel {
   final String description;
   final DateTime expiryDate;
   final String createdBy;
+  final bool isActive;
 
   DiscountCodeModel({
     required this.id,
@@ -13,25 +14,32 @@ class DiscountCodeModel {
     required this.description,
     required this.expiryDate,
     required this.createdBy,
+    this.isActive = true,
   });
 
   bool get isExpired => DateTime.now().isAfter(expiryDate);
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'restaurant_id': restaurantId,
-    'code': code,
-    'description': description,
-    'expiry_date': expiryDate.toIso8601String(),
-    'created_by': createdBy,
-  };
+        'id': id,
+        'restaurant_id': restaurantId,
+        'code': code,
+        'description': description,
+        'expiry_date': expiryDate.toIso8601String(),
+        'created_by': createdBy,
+        // Phase 7 replaces this compatibility flag with the approved discount
+        // lifecycle: draft, scheduled, active, paused, expired, or revoked.
+        'is_active': isActive,
+      };
 
-  factory DiscountCodeModel.fromMap(Map<String, dynamic> map) => DiscountCodeModel(
-    id: map['id'] ?? '',
-    restaurantId: map['restaurant_id'] ?? '',
-    code: map['code'] ?? '',
-    description: map['description'] ?? '',
-    expiryDate: DateTime.parse(map['expiry_date'] ?? DateTime.now().toIso8601String()),
-    createdBy: map['created_by'] ?? '',
-  );
+  factory DiscountCodeModel.fromMap(Map<String, dynamic> map) =>
+      DiscountCodeModel(
+        id: map['id'] ?? '',
+        restaurantId: map['restaurant_id'] ?? '',
+        code: map['code'] ?? '',
+        description: map['description'] ?? '',
+        expiryDate: DateTime.parse(
+            map['expiry_date'] ?? DateTime.now().toIso8601String()),
+        createdBy: map['created_by'] ?? '',
+        isActive: map['is_active'] ?? true,
+      );
 }

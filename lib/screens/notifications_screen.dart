@@ -2,7 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/auth_controller.dart';
-import '../services/supabase_service.dart';
+import '../repositories/supabase_repository.dart';
 import '../models/notification_model.dart';
 import '../constants/app_colors.dart';
 
@@ -53,7 +53,22 @@ class _NotificationsScreenState extends State<NotificationsScreen>
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
-    final userId = auth.currentUser?.id ?? 'default_user';
+    final user = auth.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Notifications')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Sign in to view personalized notifications.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.backgroundSoft,
@@ -61,8 +76,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         backgroundColor: AppColors.primaryDark,
         elevation: 0,
         title: const Text('Notifications',
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
         actions: [
           AnimatedBuilder(
             animation: _bellController,
@@ -72,8 +86,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                 angle: angle,
                 child: const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Icon(Icons.notifications_active,
-                      color: AppColors.gold),
+                  child:
+                      Icon(Icons.notifications_active, color: AppColors.gold),
                 ),
               );
             },
@@ -81,12 +95,11 @@ class _NotificationsScreenState extends State<NotificationsScreen>
         ],
       ),
       body: FutureBuilder<List<NotificationModel>>(
-        future: SupabaseService().fetchNotifications(userId),
+        future: SupabaseRepository().fetchNotifications(user.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child:
-                    CircularProgressIndicator(color: AppColors.primary));
+                child: CircularProgressIndicator(color: AppColors.primary));
           }
           if (snapshot.hasError) {
             return Center(
@@ -127,8 +140,8 @@ class _NotificationsScreenState extends State<NotificationsScreen>
               final notif = notifications[index];
               return TweenAnimationBuilder<double>(
                 tween: Tween(begin: 0.0, end: 1.0),
-                duration: Duration(
-                    milliseconds: 400 + (index * 100).clamp(0, 600)),
+                duration:
+                    Duration(milliseconds: 400 + (index * 100).clamp(0, 600)),
                 curve: Curves.easeOutCubic,
                 builder: (context, value, child) {
                   return Transform.translate(
@@ -203,8 +216,7 @@ class _NotificationsScreenState extends State<NotificationsScreen>
                               Text(
                                 notif.message,
                                 style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 13),
+                                    color: Colors.grey.shade700, fontSize: 13),
                               ),
                               const SizedBox(height: 6),
                               Text(

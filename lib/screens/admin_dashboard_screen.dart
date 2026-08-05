@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/spot_controller.dart';
-import '../controllers/review_controller.dart';
 import '../controllers/admin_controller.dart';
 import '../controllers/auth_controller.dart';
 import '../constants/app_colors.dart';
@@ -23,11 +22,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     super.initState();
     _shakeController = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 500));
-        
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authCtrl = context.read<AuthController>();
       final currentUserRole = authCtrl.currentUser?.role ?? 'tourist';
       if (currentUserRole == 'admin') {
+        context.read<AdminController>().loadUsers(currentUserRole);
         context.read<AdminController>().loadPendingReports(currentUserRole);
       }
     });
@@ -43,7 +43,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
+        content:
+            Text(message, style: const TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: success ? AppColors.primary : AppColors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -79,8 +80,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                           borderRadius: BorderRadius.circular(10)),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(
-                            color: AppColors.error, width: 2),
+                        borderSide:
+                            const BorderSide(color: AppColors.error, width: 2),
                       ),
                     ),
                   ),
@@ -96,15 +97,31 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8)),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if (reasonController.text.isEmpty) {
                           _shakeController.forward(from: 0.0);
                         } else {
                           final reason = reasonController.text.trim();
                           Navigator.pop(context);
-                          spotCtrl.rejectSpot(spotId, reason);
-                          _showSnackbar('$spotName rejected',
-                              success: true);
+                          try {
+                            final role = this
+                                    .context
+                                    .read<AuthController>()
+                                    .currentUser
+                                    ?.role ??
+                                'tourist';
+                            await spotCtrl.rejectSpot(spotId, reason, role);
+                            if (mounted) {
+                              _showSnackbar(
+                                '$spotName rejected',
+                                success: true,
+                              );
+                            }
+                          } catch (_) {
+                            if (mounted) {
+                              _showSnackbar('Could not reject $spotName.');
+                            }
+                          }
                         }
                       },
                       child: const Text('Reject',
@@ -128,7 +145,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     final adminCtrl = context.watch<AdminController>();
     final authCtrl = context.watch<AuthController>();
     final currentUserRole = authCtrl.currentUser?.role ?? 'tourist';
-    
+
     final pendingSpots = spotCtrl.pendingSpots;
     final pendingReports = adminCtrl.pendingReports;
 
@@ -180,8 +197,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                     Icons.report_problem, AppColors.error),
                 _buildStatCard('Total Users', '${adminCtrl.totalUsers}',
                     Icons.people, Colors.blue),
-                _buildStatCard('Suspended Users', '${adminCtrl.suspendedUsersCount}',
-                    Icons.block, Colors.deepPurple),
+                _buildStatCard(
+                    'Suspended Users',
+                    '${adminCtrl.suspendedUsersCount}',
+                    Icons.block,
+                    Colors.deepPurple),
               ]),
             ),
           ),
@@ -205,14 +225,30 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             .map((spot) => _buildApprovalTile(
                                   spot.name,
                                   spot.category,
-                                  onApprove: () {
-                                    context
-                                        .read<SpotController>()
-                                        .approveSpot(spot.id);
-                                    _showSnackbar('${spot.name} approved!',
-                                        success: true);
+                                  onApprove: () async {
+                                    try {
+                                      await context
+                                          .read<SpotController>()
+                                          .approveSpot(
+                                            spot.id,
+                                            currentUserRole,
+                                          );
+                                      if (context.mounted) {
+                                        _showSnackbar(
+                                          '${spot.name} approved!',
+                                          success: true,
+                                        );
+                                      }
+                                    } catch (_) {
+                                      if (context.mounted) {
+                                        _showSnackbar(
+                                          'Could not approve ${spot.name}.',
+                                        );
+                                      }
+                                    }
                                   },
-                                  onReject: () => _showRejectDialog(spot.id, spot.name),
+                                  onReject: () =>
+                                      _showRejectDialog(spot.id, spot.name),
                                 ))
                             .toList(),
                   ),
@@ -228,8 +264,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                             )
                           ]
                         : pendingReports
-                            .map((r) => _buildReportTile(
-                                r, adminCtrl, currentUserRole))
+                            .map((r) =>
+                                _buildReportTile(r, adminCtrl, currentUserRole))
                             .toList(),
                   ),
                   const SizedBox(height: 40),
@@ -254,8 +290,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       child: Card(
         elevation: 6,
         shadowColor: color.withValues(alpha: 0.3),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -284,14 +319,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
       String title, IconData icon, List<Widget> children) {
     return Card(
       elevation: 2,
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
         leading: Icon(icon, color: AppColors.error),
         title: Text(title,
-            style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 16)),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         backgroundColor: Colors.white,
         collapsedBackgroundColor: Colors.white,
         childrenPadding: const EdgeInsets.only(bottom: 8),
@@ -301,10 +334,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   }
 
   Widget _buildApprovalTile(String title, String subtitle,
-      {required VoidCallback onApprove, required VoidCallback onReject}) {
+      {required Future<void> Function() onApprove,
+      required VoidCallback onReject}) {
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(subtitle),
       trailing: Row(
@@ -313,17 +346,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           IconButton(
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: const Icon(Icons.check_circle, color: Colors.green, size: 28),
-            onPressed: onApprove,
+            onPressed: () async => onApprove(),
           ),
           IconButton(
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-            icon: const Icon(Icons.cancel,
-                color: AppColors.error, size: 28),
+            icon: const Icon(Icons.cancel, color: AppColors.error, size: 28),
             onPressed: () {
               _confirmAction(
                 title: 'Reject Submission',
                 content: 'Are you sure you want to reject "$title"?',
-                onConfirm: onReject,
+                onConfirm: () async => onReject(),
               );
             },
           ),
@@ -332,14 +364,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _buildReportTile(Map<String, dynamic> report, AdminController adminCtrl, String currentUserRole) {
+  Widget _buildReportTile(Map<String, dynamic> report,
+      AdminController adminCtrl, String currentUserRole) {
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-      title: Text('Target: \${report['target_type']} (\${report['target_id']})',
+      title: Text('Target: ${report['target_type']} (${report['target_id']})',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(fontWeight: FontWeight.w600)),
-      subtitle: Text('Reason: \${report['reason']}'),
+      subtitle: Text('Reason: ${report['reason']}'),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -352,9 +385,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
                 _confirmAction(
                   title: 'Delete Content',
                   content: 'Delete this review and resolve the report?',
-                  onConfirm: () {
-                    adminCtrl.resolveReport(report['id'], 'delete_review', currentUserRole, reviewIdToDelete: report['target_id']);
-                    _showSnackbar('Review deleted and report resolved', success: true);
+                  onConfirm: () async {
+                    try {
+                      await adminCtrl.resolveReport(
+                        report['id'],
+                        'delete_review',
+                        currentUserRole,
+                        reviewIdToDelete: report['target_id'],
+                      );
+                      if (mounted) {
+                        _showSnackbar(
+                          'Review deleted and report resolved',
+                          success: true,
+                        );
+                      }
+                    } catch (_) {
+                      if (mounted) {
+                        _showSnackbar('Could not resolve this report.');
+                      }
+                    }
                   },
                 );
               },
@@ -363,9 +412,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
             constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: const Icon(Icons.check_circle, color: Colors.green),
             tooltip: 'Dismiss Report',
-            onPressed: () {
-              adminCtrl.dismissReport(report['id'], currentUserRole);
-              _showSnackbar('Report dismissed');
+            onPressed: () async {
+              try {
+                await adminCtrl.dismissReport(report['id'], currentUserRole);
+                if (mounted) {
+                  _showSnackbar('Report dismissed', success: true);
+                }
+              } catch (_) {
+                if (mounted) {
+                  _showSnackbar('Could not dismiss this report.');
+                }
+              }
             },
           ),
         ],
@@ -376,7 +433,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
   void _confirmAction({
     required String title,
     required String content,
-    required VoidCallback onConfirm,
+    required Future<void> Function() onConfirm,
   }) {
     showDialog(
       context: context,
@@ -391,9 +448,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen>
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
-              onConfirm();
+              await onConfirm();
             },
             child: const Text('Confirm', style: TextStyle(color: Colors.white)),
           ),

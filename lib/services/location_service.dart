@@ -28,15 +28,25 @@ class NearestNeighborRouting implements RoutingStrategy {
     List<RestaurantModel> restaurants,
   ) {
     final List<Map<String, dynamic>> unvisited = [];
-    
+
     for (var s in spots) {
       if (s.latitude != null && s.longitude != null) {
-        unvisited.add({'type': 'Spot', 'item': s, 'lat': s.latitude!, 'lng': s.longitude!});
+        unvisited.add({
+          'type': 'Spot',
+          'item': s,
+          'lat': s.latitude!,
+          'lng': s.longitude!
+        });
       }
     }
     for (var r in restaurants) {
       if (r.latitude != null && r.longitude != null) {
-        unvisited.add({'type': 'Restaurant', 'item': r, 'lat': r.latitude!, 'lng': r.longitude!});
+        unvisited.add({
+          'type': 'Restaurant',
+          'item': r,
+          'lat': r.latitude!,
+          'lng': r.longitude!
+        });
       }
     }
 
@@ -52,8 +62,7 @@ class NearestNeighborRouting implements RoutingStrategy {
 
       for (int i = 0; i < unvisited.length; i++) {
         final dist = _calculateHaversineDistance(
-          currentLat, currentLng, unvisited[i]['lat'], unvisited[i]['lng']
-        );
+            currentLat, currentLng, unvisited[i]['lat'], unvisited[i]['lng']);
         if (dist < minDistance) {
           minDistance = dist;
           closestIndex = i;
@@ -69,15 +78,18 @@ class NearestNeighborRouting implements RoutingStrategy {
     return route;
   }
 
-  double _calculateHaversineDistance(double lat1, double lon1, double lat2, double lon2) {
+  double _calculateHaversineDistance(
+      double lat1, double lon1, double lat2, double lon2) {
     const double r = 6371; // Earth's radius in km
     final dLat = _toRadians(lat2 - lat1);
     final dLon = _toRadians(lon2 - lon1);
-    
+
     final a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_toRadians(lat1)) * cos(_toRadians(lat2)) *
-        sin(dLon / 2) * sin(dLon / 2);
-        
+        cos(_toRadians(lat1)) *
+            cos(_toRadians(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+
     final c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return r * c;
   }
@@ -92,8 +104,8 @@ class LocationService {
   final RoutingStrategy _routingStrategy;
 
   // Injection allows easy swapping of routing logic in the future
-  LocationService({RoutingStrategy? routingStrategy}) 
-    : _routingStrategy = routingStrategy ?? NearestNeighborRouting();
+  LocationService({RoutingStrategy? routingStrategy})
+      : _routingStrategy = routingStrategy ?? NearestNeighborRouting();
 
   String get _mapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
 
@@ -116,11 +128,12 @@ class LocationService {
         return null;
       }
     }
-    
+
     if (permission == LocationPermission.deniedForever) {
-      debugPrint('LocationService: Location permissions are permanently denied.');
+      debugPrint(
+          'LocationService: Location permissions are permanently denied.');
       return null;
-    } 
+    }
 
     try {
       return await Geolocator.getCurrentPosition(
@@ -135,7 +148,8 @@ class LocationService {
   /// Geocodes an address string into latitude and longitude using Google Maps.
   Future<Map<String, double>?> geocodeAddress(String address) async {
     if (_mapsApiKey.isEmpty) {
-      debugPrint('LocationService: Missing Google Maps API Key in .env. Geocoding aborted.');
+      debugPrint(
+          'LocationService: Missing Google Maps API Key in .env. Geocoding aborted.');
       return null;
     }
 
@@ -163,8 +177,9 @@ class LocationService {
   /// Ensures a Spot has coordinates. If not, attempts to geocode and save it.
   Future<SpotModel> ensureSpotCoordinates(SpotModel spot) async {
     if (spot.latitude != null && spot.longitude != null) return spot;
-    
-    final coords = await geocodeAddress('${spot.address}, ${spot.city}, ${spot.state}');
+
+    final coords =
+        await geocodeAddress('${spot.address}, ${spot.city}, ${spot.state}');
     if (coords != null) {
       final updatedSpot = SpotModel(
         id: spot.id,
@@ -194,10 +209,13 @@ class LocationService {
   }
 
   /// Ensures a Restaurant has coordinates. If not, attempts to geocode and save it.
-  Future<RestaurantModel> ensureRestaurantCoordinates(RestaurantModel restaurant) async {
-    if (restaurant.latitude != null && restaurant.longitude != null) return restaurant;
-    
-    final coords = await geocodeAddress('${restaurant.address}, ${restaurant.city}, ${restaurant.state}');
+  Future<RestaurantModel> ensureRestaurantCoordinates(
+      RestaurantModel restaurant) async {
+    if (restaurant.latitude != null && restaurant.longitude != null)
+      return restaurant;
+
+    final coords = await geocodeAddress(
+        '${restaurant.address}, ${restaurant.city}, ${restaurant.state}');
     if (coords != null) {
       final updatedRestaurant = RestaurantModel(
         id: restaurant.id,
@@ -212,6 +230,8 @@ class LocationService {
         influencerName: restaurant.influencerName,
         socialMediaUrl: restaurant.socialMediaUrl,
         coverPhotoUrl: restaurant.coverPhotoUrl,
+        rating: restaurant.rating,
+        reviewCount: restaurant.reviewCount,
         latitude: coords['latitude'],
         longitude: coords['longitude'],
       );
@@ -229,6 +249,7 @@ class LocationService {
     List<SpotModel> spots,
     List<RestaurantModel> restaurants,
   ) {
-    return _routingStrategy.calculateRoute(startLat, startLng, spots, restaurants);
+    return _routingStrategy.calculateRoute(
+        startLat, startLng, spots, restaurants);
   }
 }

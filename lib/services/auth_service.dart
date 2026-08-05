@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import '../models/profile_model.dart';
 import '../repositories/supabase_repository.dart';
 
@@ -15,7 +14,7 @@ class AuthService {
       if (res == null || res.user == null) {
         throw Exception('Invalid login credentials.');
       }
-      
+
       // Fetch the user's profile associated with this Auth user
       final profiles = await _repo.fetchProfiles();
       final userProfile = profiles.firstWhere(
@@ -33,7 +32,9 @@ class AuthService {
     } else {
       // Local fallback
       final profiles = await _repo.fetchProfiles();
-      final match = profiles.where((p) => p.email.toLowerCase() == email.toLowerCase()).toList();
+      final match = profiles
+          .where((p) => p.email.toLowerCase() == email.toLowerCase())
+          .toList();
 
       if (match.isEmpty) {
         throw Exception('Invalid email or password.');
@@ -46,7 +47,8 @@ class AuthService {
     }
   }
 
-  Future<ProfileModel> register(String email, String password, String fullName, String role) async {
+  Future<ProfileModel> register(
+      String email, String password, String fullName, String role) async {
     if (email.isEmpty || password.isEmpty || fullName.isEmpty) {
       throw Exception('All registration fields are required.');
     }

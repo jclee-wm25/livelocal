@@ -24,7 +24,8 @@ class AdminController with ChangeNotifier {
     }
   }
 
-  Future<void> toggleUserSuspension(String userId, String currentUserRole) async {
+  Future<void> toggleUserSuspension(
+      String userId, String currentUserRole) async {
     try {
       await _service.toggleUserSuspension(userId, currentUserRole);
     } catch (e) {
@@ -37,7 +38,8 @@ class AdminController with ChangeNotifier {
   // Dashboard Stats
   int get totalUsers => _allUsers.length;
   int get totalTourists => _allUsers.where((u) => u.role == 'tourist').length;
-  int get totalInfluencers => _allUsers.where((u) => u.role == 'influencer').length;
+  int get totalInfluencers =>
+      _allUsers.where((u) => u.role == 'influencer').length;
   int get suspendedUsersCount => _allUsers.where((u) => u.isSuspended).length;
 
   List<Map<String, dynamic>> _pendingReports = [];
@@ -48,16 +50,20 @@ class AdminController with ChangeNotifier {
       _pendingReports = await _service.fetchPendingReports(currentUserRole);
       notifyListeners();
     } catch (e) {
-      debugPrint('AdminController: loadPendingReports failed: \$e');
+      debugPrint('AdminController: loadPendingReports failed: $e');
     }
   }
 
-  Future<void> resolveReport(String reportId, String action, String currentUserRole, {String? reviewIdToDelete}) async {
+  Future<void> resolveReport(
+      String reportId, String action, String currentUserRole,
+      {String? reviewIdToDelete}) async {
     try {
-      await _service.resolveReport(reportId, action, currentUserRole, reviewIdToDelete: reviewIdToDelete);
+      await _service.resolveReport(reportId, action, currentUserRole,
+          reviewIdToDelete: reviewIdToDelete);
       await loadPendingReports(currentUserRole);
     } catch (e) {
-      debugPrint('AdminController: resolveReport failed: \$e');
+      debugPrint('AdminController: resolveReport failed: $e');
+      rethrow;
     }
   }
 
@@ -66,7 +72,8 @@ class AdminController with ChangeNotifier {
       await _service.dismissReport(reportId, currentUserRole);
       await loadPendingReports(currentUserRole);
     } catch (e) {
-      debugPrint('AdminController: dismissReport failed: \$e');
+      debugPrint('AdminController: dismissReport failed: $e');
+      rethrow;
     }
   }
 }
