@@ -2,14 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
+
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
+
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
-  String selectedRole = 'tourist';
   bool _obscurePassword = true;
   bool _obscureConfirm = true;
   final _fullNameController = TextEditingController();
@@ -34,53 +35,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
-  Widget _buildRoleCard({
-    required String role,
-    required IconData icon,
-    required String label,
-  }) {
-    final bool isSelected = selectedRole == role;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          setState(() {
-            selectedRole = role;
-          });
-        },
-        child: Container(
-          height: 80,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.selectedBg : Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? AppColors.primary : Colors.grey.shade300,
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                size: 28,
-                color: isSelected ? AppColors.primary : Colors.grey,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: isSelected ? AppColors.primary : Colors.grey.shade700,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+
   @override
   void dispose() {
     _fullNameController.dispose();
@@ -97,7 +52,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       _emailController.text.trim(),
       _passwordController.text,
       _fullNameController.text.trim(),
-      selectedRole,
     );
     if (!mounted) return;
     if (success) {
@@ -109,14 +63,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            authCtrl.errorMessage ?? 'Unable to create account. Please try again.',
+            authCtrl.errorMessage ??
+                'Unable to create account. Please try again.',
           ),
         ),
       );
     }
   }
+
   @override
   Widget build(BuildContext context) {
+    final isSubmitting = context.watch<AuthController>().isLoading;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -160,27 +118,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               const SizedBox(height: 24),
               const Text(
-                'I am a',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  _buildRoleCard(
-                    role: 'tourist',
-                    icon: Icons.backpack,
-                    label: 'Tourist',
-                  ),
-                  const SizedBox(width: 12),
-                  _buildRoleCard(
-                    role: 'influencer',
-                    icon: Icons.star,
-                    label: 'Influencer',
-                  ),
-                ],
+                'All new accounts start as tourists. Influencer applications '
+                'will be introduced in a later approved phase.',
+                style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 24),
               Form(
@@ -278,29 +218,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              if (selectedRole == 'influencer')
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.warnBgLight,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    'Influencer accounts require admin approval before activation',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.orange.shade800,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => _handleRegister(),
+                  onPressed: isSubmitting ? null : _handleRegister,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -308,10 +231,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Create Account',
-                    style: TextStyle(fontSize: 16),
-                  ),
+                  child: isSubmitting
+                      ? const SizedBox.square(
+                          dimension: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Create Account',
+                          style: TextStyle(fontSize: 16)),
                 ),
               ),
               const SizedBox(height: 16),

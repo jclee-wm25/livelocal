@@ -6,8 +6,13 @@ import 'package:live_local/controllers/itinerary_controller.dart';
 import 'package:live_local/controllers/guide_controller.dart';
 import 'package:live_local/controllers/review_controller.dart';
 import 'package:live_local/models/spot_model.dart';
+import 'package:live_local/repositories/supabase_repository.dart';
 
 void main() {
+  setUpAll(() {
+    SupabaseRepository().configureForDemo();
+  });
+
   group('LiveLocal System Integration Tests', () {
     test('Module 1: demo fixture login preserves the stored tourist role',
         () async {

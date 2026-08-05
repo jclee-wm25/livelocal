@@ -14,35 +14,6 @@ class AuthController with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isAuthenticated => _currentUser != null;
 
-  AuthController() {
-    _initDefaultUser();
-  }
-
-  void _initDefaultUser() async {
-    // Note: In a real app, this should securely rehydrate the session from Supabase.
-    // For now, it stays as is to not break local seed mode.
-    try {
-      // Just mock logging in as the first user if we are not connected to live Supabase
-      // In live Supabase, we would check `Supabase.instance.client.auth.currentSession`
-    } catch (e) {
-      debugPrint('AuthController: failed to load default user: $e');
-    }
-  }
-
-  void setRole(String newRole) {
-    if (_currentUser != null) {
-      _currentUser = ProfileModel(
-        id: _currentUser!.id,
-        email: _currentUser!.email,
-        fullName: _currentUser!.fullName,
-        avatarUrl: _currentUser!.avatarUrl,
-        role: newRole,
-        isSuspended: _currentUser!.isSuspended,
-      );
-      notifyListeners();
-    }
-  }
-
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     _errorMessage = null;
@@ -61,13 +32,13 @@ class AuthController with ChangeNotifier {
     }
   }
 
-  Future<bool> register(String email, String password, String fullName, String role) async {
+  Future<bool> register(String email, String password, String fullName) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _currentUser = await _service.register(email, password, fullName, role);
+      _currentUser = await _service.register(email, password, fullName);
       return true;
     } catch (e) {
       debugPrint('AuthController: register failed: $e');
@@ -79,7 +50,8 @@ class AuthController with ChangeNotifier {
     }
   }
 
-  Future<void> updateProfile({required String fullName, String? avatarUrl}) async {
+  Future<void> updateProfile(
+      {required String fullName, String? avatarUrl}) async {
     if (_currentUser == null) return;
     try {
       final updated = ProfileModel(
@@ -100,8 +72,12 @@ class AuthController with ChangeNotifier {
     }
   }
 
-  void logout() {
-    _currentUser = null;
-    notifyListeners();
+  Future<void> logout() async {
+    try {
+      await _service.logout();
+    } finally {
+      _currentUser = null;
+      notifyListeners();
+    }
   }
 }

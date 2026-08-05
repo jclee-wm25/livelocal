@@ -6,7 +6,6 @@ import '../models/profile_model.dart';
 import '../controllers/auth_controller.dart';
 import '../controllers/itinerary_controller.dart';
 import '../controllers/review_controller.dart';
-import '../controllers/moderation_controller.dart';
 import '../constants/app_colors.dart';
 
 class SpotDetailScreen extends StatefulWidget {
@@ -23,13 +22,20 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   double _userRating = 5.0;
 
   @override
+  void dispose() {
+    _commentCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final authCtrl = Provider.of<AuthController>(context);
     final itineraryCtrl = Provider.of<ItineraryController>(context);
     final reviewCtrl = Provider.of<ReviewController>(context);
 
     final user = authCtrl.currentUser;
-    final isSaved = user != null && itineraryCtrl.isSaved(user.id, spotId: widget.spot.id);
+    final isSaved =
+        user != null && itineraryCtrl.isSaved(user.id, spotId: widget.spot.id);
     final spotReviews = reviewCtrl.getReviewsForSpot(widget.spot.id);
 
     return Scaffold(
@@ -49,9 +55,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                    boxShadow: [
+                      BoxShadow(color: Colors.black26, blurRadius: 4)
+                    ],
                   ),
-                  child: const Icon(Icons.arrow_back, color: AppColors.primaryDark, size: 20),
+                  child: const Icon(Icons.arrow_back,
+                      color: AppColors.primaryDark, size: 20),
                 ),
               ),
             ),
@@ -61,11 +70,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                   padding: const EdgeInsets.only(right: 16.0),
                   child: GestureDetector(
                     onTap: () async {
-                      await itineraryCtrl.toggleSave(user.id, spotId: widget.spot.id);
+                      await itineraryCtrl.toggleSave(user.id,
+                          spotId: widget.spot.id);
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(isSaved ? 'Removed from saved places' : 'Saved to your places!'),
+                            content: Text(isSaved
+                                ? 'Removed from saved places'
+                                : 'Saved to your places!'),
                             backgroundColor: AppColors.primary,
                           ),
                         );
@@ -76,7 +88,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                        boxShadow: [
+                          BoxShadow(color: Colors.black26, blurRadius: 4)
+                        ],
                       ),
                       child: Icon(
                         isSaved ? Icons.bookmark : Icons.bookmark_border,
@@ -124,39 +138,51 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
                             color: AppColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             widget.spot.category,
-                            style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
+                            style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12),
                           ),
                         ),
                         const Spacer(),
                         const Icon(Icons.star, color: Colors.amber, size: 18),
                         const SizedBox(width: 4),
                         Text(
-                          reviewCtrl.getAverageRating(widget.spot.id, null).toStringAsFixed(1),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          reviewCtrl
+                              .getAverageRating(widget.spot.id, null)
+                              .toStringAsFixed(1),
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ],
                     ),
                     const SizedBox(height: 12),
                     Text(
                       widget.spot.name,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primaryDark),
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primaryDark),
                     ),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        const Icon(Icons.location_on, size: 18, color: AppColors.primary),
+                        const Icon(Icons.location_on,
+                            size: 18, color: AppColors.primary),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
                             widget.spot.address,
-                            style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
+                            style: TextStyle(
+                                color: Colors.grey.shade700, fontSize: 14),
                           ),
                         ),
                       ],
@@ -164,145 +190,174 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     const SizedBox(height: 16),
                     const Divider(),
                     const SizedBox(height: 12),
-                    const Text('About this Local Spot', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.spot.description,
-                    style: TextStyle(color: Colors.grey.shade800, height: 1.5, fontSize: 14),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: AppColors.accent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.accent),
+                    const Text('About this Local Spot',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.spot.description,
+                      style: TextStyle(
+                          color: Colors.grey.shade800,
+                          height: 1.5,
+                          fontSize: 14),
                     ),
-                    child: Column(
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.accent),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.access_time,
+                                  color: AppColors.primary, size: 18),
+                              const SizedBox(width: 8),
+                              const Text('Best Visiting Time: ',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              Text(widget.spot.bestTime),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              const Icon(Icons.check_circle_outline,
+                                  color: AppColors.primary, size: 18),
+                              const SizedBox(width: 8),
+                              const Text('Things to do / Order: ',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              Expanded(child: Text(widget.spot.thingsToDo)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.access_time, color: AppColors.primary, size: 18),
-                            const SizedBox(width: 8),
-                            const Text('Best Visiting Time: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text(widget.spot.bestTime),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 18),
-                            const SizedBox(width: 8),
-                            const Text('Things to do / Order: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Expanded(child: Text(widget.spot.thingsToDo)),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Community Reviews', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      if (user != null)
-                        OutlinedButton.icon(
-                          onPressed: () => _showWriteReviewSheet(context, user, reviewCtrl),
-                          icon: const Icon(Icons.rate_review_outlined, size: 16),
-                          label: const Text('Write Review'),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size(120, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Reviews List
-                  if (spotReviews.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Text('No reviews yet. Be the first local visitor to share your review!'),
-                    )
-                  else
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: spotReviews.length,
-                      itemBuilder: (context, idx) {
-                        final r = spotReviews[idx];
-                        return Card(
-                          elevation: 0,
-                          color: AppColors.backgroundAlt,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(color: Colors.grey.shade200),
-                          ),
-                          margin: const EdgeInsets.only(bottom: 10),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const CircleAvatar(
-                                      radius: 14,
-                                      backgroundColor: AppColors.primary,
-                                      child: Icon(Icons.person, size: 16, color: Colors.white),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(r.userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                    const Spacer(),
-                                    Row(
-                                      children: List.generate(
-                                        5,
-                                        (i) => Icon(
-                                          i < r.rating ? Icons.star : Icons.star_border,
-                                          color: Colors.amber,
-                                          size: 14,
-                                        ),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                      icon: const Icon(Icons.flag_outlined, size: 16, color: Colors.grey),
-                                      onPressed: () {
-                                        if (user != null) {
-                                          _showFlagContentDialog(context, r.id, 'review', user.id);
-                                        }
-                                      },
-                                    ),
-                                    if (user != null && r.userId != user.id)
-                                      IconButton(
-                                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                                        icon: const Icon(Icons.block, size: 16, color: Colors.grey),
-                                        onPressed: () {
-                                          _showBlockUserDialog(context, r.userId, r.userName, user.id);
-                                        },
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                Text(r.comment, style: const TextStyle(fontSize: 13, height: 1.4)),
-                              ],
+                        const Text('Community Reviews',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        if (user != null)
+                          OutlinedButton.icon(
+                            onPressed: () => _showWriteReviewSheet(
+                                context, user, reviewCtrl),
+                            icon: const Icon(Icons.rate_review_outlined,
+                                size: 16),
+                            label: const Text('Write Review'),
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(120, 36),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
                             ),
                           ),
-                        );
-                      },
+                      ],
                     ),
-                  const SizedBox(height: 32),
-                ],
+                    const SizedBox(height: 12),
+                    // Reviews List
+                    if (spotReviews.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                            'No reviews yet. Be the first local visitor to share your review!'),
+                      )
+                    else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: spotReviews.length,
+                        itemBuilder: (context, idx) {
+                          final r = spotReviews[idx];
+                          return Card(
+                            elevation: 0,
+                            color: AppColors.backgroundAlt,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            margin: const EdgeInsets.only(bottom: 10),
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      const CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: AppColors.primary,
+                                        child: Icon(Icons.person,
+                                            size: 16, color: Colors.white),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(r.userName,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.bold)),
+                                      const Spacer(),
+                                      Row(
+                                        children: List.generate(
+                                          5,
+                                          (i) => Icon(
+                                            i < r.rating
+                                                ? Icons.star
+                                                : Icons.star_border,
+                                            color: Colors.amber,
+                                            size: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      IconButton(
+                                        constraints: const BoxConstraints(
+                                            minWidth: 48, minHeight: 48),
+                                        icon: const Icon(Icons.flag_outlined,
+                                            size: 16, color: Colors.grey),
+                                        onPressed: () {
+                                          if (user != null) {
+                                            _showModerationUnavailable(context);
+                                          }
+                                        },
+                                      ),
+                                      if (user != null && r.userId != user.id)
+                                        IconButton(
+                                          constraints: const BoxConstraints(
+                                              minWidth: 48, minHeight: 48),
+                                          icon: const Icon(Icons.block,
+                                              size: 16, color: Colors.grey),
+                                          onPressed: () {
+                                            _showModerationUnavailable(context);
+                                          },
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(r.comment,
+                                      style: const TextStyle(
+                                          fontSize: 13, height: 1.4)),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
   }
 
-  void _showWriteReviewSheet(BuildContext context, ProfileModel user, ReviewController reviewCtrl) {
+  void _showWriteReviewSheet(
+      BuildContext context, ProfileModel user, ReviewController reviewCtrl) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -323,11 +378,14 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Write a Review', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Write a Review',
+                      style:
+                          TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 16),
                   Row(
                     children: [
-                      const Text('Your Rating: ', style: TextStyle(fontWeight: FontWeight.w600)),
+                      const Text('Your Rating: ',
+                          style: TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(width: 12),
                       Row(
                         children: List.generate(5, (index) {
@@ -339,7 +397,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               });
                             },
                             icon: Icon(
-                              index < _userRating ? Icons.star : Icons.star_border,
+                              index < _userRating
+                                  ? Icons.star
+                                  : Icons.star_border,
                               color: Colors.amber,
                               size: 28,
                             ),
@@ -354,7 +414,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     maxLines: 4,
                     decoration: InputDecoration(
                       hintText: 'Share your experience at this spot...',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -362,7 +423,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                     width: double.infinity,
                     height: 48,
                     child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                      style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary),
                       onPressed: () async {
                         if (_commentCtrl.text.trim().isEmpty) return;
                         try {
@@ -377,7 +439,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                  content: Text('Failed to submit review. Please try again.')),
+                                  content: Text(
+                                      'Failed to submit review. Please try again.')),
                             );
                           }
                           return;
@@ -388,11 +451,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                           Navigator.pop(ctx);
                           setState(() {});
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Review submitted! Thank you.')),
+                            const SnackBar(
+                                content: Text('Review submitted! Thank you.')),
                           );
                         }
                       },
-                      child: const Text('Submit Review', style: TextStyle(color: Colors.white, fontSize: 16)),
+                      child: const Text('Submit Review',
+                          style: TextStyle(color: Colors.white, fontSize: 16)),
                     ),
                   ),
                 ],
@@ -404,71 +469,12 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     );
   }
 
-  void _showFlagContentDialog(BuildContext context, String targetId, String targetType, String reporterId) {
-    final reasonCtrl = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Report Inappropriate \$targetType'),
-        content: TextField(
-          controller: reasonCtrl,
-          decoration: const InputDecoration(hintText: 'Enter reason for reporting...'),
+  void _showModerationUnavailable(BuildContext context) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Reporting and blocking are unavailable until the secure moderation flow is implemented.',
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              if (reasonCtrl.text.trim().isNotEmpty) {
-                final modCtrl = context.read<ModerationController>();
-                await modCtrl.submitReport(
-                  reporterId: reporterId,
-                  targetId: targetId,
-                  targetType: targetType,
-                  reason: reasonCtrl.text.trim(),
-                );
-                if (targetType == 'review') {
-                  await context.read<ReviewController>().flagReview(targetId, reasonCtrl.text.trim());
-                }
-                if (context.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Content reported for moderation.')),
-                  );
-                }
-              }
-            },
-            child: const Text('Report', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showBlockUserDialog(BuildContext context, String blockedId, String blockedName, String blockerId) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Block \$blockedName?'),
-        content: const Text('You will no longer see content or reviews from this user.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              final modCtrl = context.read<ModerationController>();
-              await modCtrl.blockUser(blockerId: blockerId, blockedId: blockedId);
-              if (context.mounted) {
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('\$blockedName has been blocked.')),
-                );
-                // Optionally: refresh reviews to hide blocked user's content
-              }
-            },
-            child: const Text('Block', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }

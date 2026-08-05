@@ -75,10 +75,15 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     _selectedPrice = s?.priceRange ?? '\$';
 
     // Ensure initial values are valid
-    if (!_states.contains(_selectedState)) _selectedState = _states.first;
-    if (!_categories.contains(_selectedCategory))
+    if (!_states.contains(_selectedState)) {
+      _selectedState = _states.first;
+    }
+    if (!_categories.contains(_selectedCategory)) {
       _selectedCategory = _categories.first;
-    if (!_prices.contains(_selectedPrice)) _selectedPrice = _prices.first;
+    }
+    if (!_prices.contains(_selectedPrice)) {
+      _selectedPrice = _prices.first;
+    }
   }
 
   @override

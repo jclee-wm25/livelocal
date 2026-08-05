@@ -13,11 +13,13 @@ class ItineraryController with ChangeNotifier {
   List<Map<String, Object>> _itinerarySteps = [];
   bool _isLoading = false;
   bool _isGeneratingItinerary = false;
+  String? _itineraryError;
 
   List<SavedPlaceModel> get savedPlaces => _savedPlaces;
   List<Map<String, Object>> get itinerarySteps => _itinerarySteps;
   bool get isLoading => _isLoading;
   bool get isGeneratingItinerary => _isGeneratingItinerary;
+  String? get itineraryError => _itineraryError;
 
   Future<void> loadSavedPlaces(String userId) async {
     _isLoading = true;
@@ -33,13 +35,18 @@ class ItineraryController with ChangeNotifier {
   }
 
   bool isSaved(String userId, {String? spotId, String? restaurantId}) {
-    return _savedPlaces.any((p) => p.userId == userId && ((spotId != null && p.spotId == spotId) || (restaurantId != null && p.restaurantId == restaurantId)));
+    return _savedPlaces.any((p) =>
+        p.userId == userId &&
+        ((spotId != null && p.spotId == spotId) ||
+            (restaurantId != null && p.restaurantId == restaurantId)));
   }
 
-  Future<void> toggleSave(String userId, {String? spotId, String? restaurantId}) async {
+  Future<void> toggleSave(String userId,
+      {String? spotId, String? restaurantId}) async {
     try {
       if (isSaved(userId, spotId: spotId, restaurantId: restaurantId)) {
-        await _db.removeSavedPlace(userId, spotId: spotId, restaurantId: restaurantId);
+        await _db.removeSavedPlace(userId,
+            spotId: spotId, restaurantId: restaurantId);
       } else {
         final newItem = SavedPlaceModel(
           id: 'save-${DateTime.now().millisecondsSinceEpoch}',
@@ -61,6 +68,7 @@ class ItineraryController with ChangeNotifier {
   Future<void> generateProximityItinerary(
       List<SpotModel> allSpots, List<RestaurantModel> allRestaurants) async {
     _isGeneratingItinerary = true;
+    _itineraryError = null;
     notifyListeners();
 
     try {
@@ -72,37 +80,50 @@ class ItineraryController with ChangeNotifier {
           final matches = allSpots.where((s) => s.id == saved.spotId).toList();
           if (matches.isNotEmpty) {
             // Geocode and save if missing coordinates
-            final spot = await _locationService.ensureSpotCoordinates(matches.first);
+            final spot =
+                await _locationService.ensureSpotCoordinates(matches.first);
             savedSpots.add(spot);
           }
         } else if (saved.restaurantId != null) {
-          final matches = allRestaurants.where((r) => r.id == saved.restaurantId).toList();
+          final matches =
+              allRestaurants.where((r) => r.id == saved.restaurantId).toList();
           if (matches.isNotEmpty) {
-             // Geocode and save if missing coordinates
-            final rest = await _locationService.ensureRestaurantCoordinates(matches.first);
+            // Geocode and save if missing coordinates
+            final rest = await _locationService
+                .ensureRestaurantCoordinates(matches.first);
             savedRestaurants.add(rest);
           }
         }
       }
 
-      // Attempt to get user's actual GPS location
+      if (savedSpots.isEmpty && savedRestaurants.isEmpty) {
+        _itinerarySteps = [];
+        return;
+      }
+
+      // Manual starting-location selection is an approved later-phase feature.
+      // Until then, do not silently substitute a hard-coded location.
       final userPos = await _locationService.getCurrentLocation();
-      
-      // Fallback to KL Sentral if permissions denied or GPS unavailable
-      final startLat = userPos?.latitude ?? 3.1340;
-      final startLng = userPos?.longitude ?? 101.6861;
+      if (userPos == null) {
+        _itinerarySteps = [];
+        _itineraryError =
+            'Location is unavailable. Manual starting location is not yet implemented.';
+        return;
+      }
+
+      final startLat = userPos.latitude;
+      final startLng = userPos.longitude;
 
       final sortedRoute = _locationService.sortLocationsByProximity(
-        startLat, startLng, savedSpots, savedRestaurants
-      );
+          startLat, startLng, savedSpots, savedRestaurants);
 
       final List<Map<String, Object>> itinerary = [];
       int stepNumber = 1;
-      
+
       for (int i = 0; i < sortedRoute.length; i++) {
         final stop = sortedRoute[i];
         final isSpot = stop['type'] == 'Spot';
-        
+
         String title = '';
         String location = '';
         String bestTime = '';
@@ -142,6 +163,8 @@ class ItineraryController with ChangeNotifier {
       _itinerarySteps = itinerary;
     } catch (e) {
       debugPrint('ItineraryController: generateProximityItinerary failed: $e');
+      _itinerarySteps = [];
+      _itineraryError = 'Could not generate the itinerary. Please try again.';
     } finally {
       _isGeneratingItinerary = false;
       notifyListeners();

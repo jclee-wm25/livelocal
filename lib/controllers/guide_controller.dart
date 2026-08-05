@@ -32,9 +32,13 @@ class GuideController with ChangeNotifier {
 
   List<GuideModel> get approvedGuides {
     return _guides.where((g) {
-      if (g.status != 'approved') return false;
+      if (g.status != 'approved') {
+        return false;
+      }
       if (_selectedState != 'All' &&
-          g.state.toLowerCase() != _selectedState.toLowerCase()) return false;
+          g.state.toLowerCase() != _selectedState.toLowerCase()) {
+        return false;
+      }
       return true;
     }).toList();
   }

@@ -22,7 +22,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = Provider.of<AuthController>(context, listen: false);
       _nameController.text = auth.currentUser?.fullName ?? '';
-      _avatarController.text = auth.currentUser?.avatarUrl ?? '';  // avatarUrl is String?
+      _avatarController.text =
+          auth.currentUser?.avatarUrl ?? ''; // avatarUrl is String?
     });
   }
 
@@ -49,20 +50,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Delete Account',
+        title: const Text('Account deletion unavailable',
             style: TextStyle(fontWeight: FontWeight.bold)),
         content: const Text(
-            'Are you sure you want to permanently delete your account?'),
+          'No account or data has been deleted. The approved 14-day deletion '
+          'and recovery workflow will be implemented in a later phase.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Delete',
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -98,7 +95,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       const SizedBox(height: 20),
                       GestureDetector(
-                        onTap: () {},
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Profile photo upload is unavailable in this baseline.',
+                              ),
+                            ),
+                          );
+                        },
                         child: Stack(
                           alignment: Alignment.bottomRight,
                           children: [
@@ -107,7 +112,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: AppColors.accent.withValues(alpha: 0.5),
+                                    color:
+                                        AppColors.accent.withValues(alpha: 0.5),
                                     blurRadius: 20,
                                     spreadRadius: 5,
                                   )
@@ -120,7 +126,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         user!.avatarUrl!.isNotEmpty)
                                     ? NetworkImage(user.avatarUrl!)
                                     : null,
-                                child: (user?.avatarUrl == null || user!.avatarUrl!.isEmpty)
+                                child: (user?.avatarUrl == null ||
+                                        user!.avatarUrl!.isEmpty)
                                     ? Text(
                                         (user?.fullName.isNotEmpty == true
                                                 ? user!.fullName[0]
@@ -158,7 +165,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       const SizedBox(height: 4),
                       Text(
                         user?.email ?? 'guest@livelocal.com',
-                        style: const TextStyle(color: Colors.white70, fontSize: 16),
+                        style: const TextStyle(
+                            color: Colors.white70, fontSize: 16),
                       ),
                       const SizedBox(height: 12),
                       AnimatedContainer(
@@ -192,8 +200,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildStatItem(Icons.bookmark, '12', 'Saved'),
-                      _buildStatItem(Icons.rate_review, '3', 'Reviews'),
+                      _buildStatItem(Icons.bookmark, '—', 'Saved'),
+                      _buildStatItem(Icons.rate_review, '—', 'Reviews'),
                       _buildStatItem(Icons.card_travel, role, 'Role'),
                     ],
                   ),
@@ -224,7 +232,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   setState(() {
                                     _isEditing = !_isEditing;
                                     if (_isEditing) {
-                                      _nameController.text = user?.fullName ?? '';
+                                      _nameController.text =
+                                          user?.fullName ?? '';
                                       _avatarController.text =
                                           user?.avatarUrl ?? '';
                                     }
@@ -318,22 +327,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                                           'Name cannot be empty.')));
                                               return;
                                             }
-                                            final authCtrl = context
-                                                .read<AuthController>();
+                                            final authCtrl =
+                                                context.read<AuthController>();
                                             try {
                                               await authCtrl.updateProfile(
-                                                fullName: _nameController.text
-                                                    .trim(),
+                                                fullName:
+                                                    _nameController.text.trim(),
                                                 avatarUrl: _avatarController
-                                                    .text
-                                                    .trim()
-                                                    .isEmpty
+                                                        .text
+                                                        .trim()
+                                                        .isEmpty
                                                     ? null
                                                     : _avatarController.text
                                                         .trim(),
                                               );
                                               if (!context.mounted) return;
-                                              setState(() => _isEditing = false);
+                                              setState(
+                                                  () => _isEditing = false);
                                               ScaffoldMessenger.of(context)
                                                   .showSnackBar(const SnackBar(
                                                       content: Text(
@@ -374,8 +384,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     label: const Text('Logout',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
-                    onPressed: () {
-                      auth.logout();
+                    onPressed: () async {
+                      await auth.logout();
+                      if (!context.mounted) return;
                       Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(
@@ -418,9 +429,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 color: AppColors.primaryDark)),
         Text(label,
             style: const TextStyle(
-                color: Colors.grey,
-                fontSize: 13,
-                fontWeight: FontWeight.w500)),
+                color: Colors.grey, fontSize: 13, fontWeight: FontWeight.w500)),
       ],
     );
   }

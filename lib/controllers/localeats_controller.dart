@@ -41,12 +41,18 @@ class LocalEatsController with ChangeNotifier {
   List<RestaurantModel> get filteredRestaurants {
     return _restaurants.where((r) {
       if (_selectedState != 'All' &&
-          r.state.toLowerCase() != _selectedState.toLowerCase()) return false;
+          r.state.toLowerCase() != _selectedState.toLowerCase()) {
+        return false;
+      }
       if (_selectedCuisine != 'All' &&
-          !r.cuisineType.toLowerCase().contains(_selectedCuisine.toLowerCase()))
+          !r.cuisineType
+              .toLowerCase()
+              .contains(_selectedCuisine.toLowerCase())) {
         return false;
-      if (_selectedBudget != 'All' && r.priceRange != _selectedBudget)
+      }
+      if (_selectedBudget != 'All' && r.priceRange != _selectedBudget) {
         return false;
+      }
       return true;
     }).toList();
   }

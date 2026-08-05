@@ -1,5 +1,6 @@
 import '../models/profile_model.dart';
 import '../repositories/supabase_repository.dart';
+import 'seed_data_service.dart';
 
 class AuthService {
   final SupabaseRepository _repo = SupabaseRepository();
@@ -17,20 +18,28 @@ class AuthService {
 
       // Fetch the user's profile associated with this Auth user
       final profiles = await _repo.fetchProfiles();
-      final userProfile = profiles.firstWhere(
-        (p) => p.email.toLowerCase() == email.toLowerCase(),
-        orElse: () => throw Exception('Profile not found for this user.'),
-      );
+      final matches = profiles
+          .where(
+              (profile) => profile.email.toLowerCase() == email.toLowerCase())
+          .toList();
+      if (matches.isEmpty) {
+        await _repo.signOut();
+        throw Exception('Profile not found for this user.');
+      }
+      final userProfile = matches.first;
 
       if (userProfile.isSuspended) {
-        // Technically we should sign out immediately if suspended, but
-        // for simplicity we just throw.
+        await _repo.signOut();
         throw Exception('Your account has been suspended by an administrator.');
       }
 
       return userProfile;
     } else {
-      // Local fallback
+      // Explicit non-release demo authentication. It never accepts arbitrary
+      // passwords and cannot be selected by the release bootstrap.
+      if (password != SeedDataService.demoPassword) {
+        throw Exception('Invalid email or password.');
+      }
       final profiles = await _repo.fetchProfiles();
       final match = profiles
           .where((p) => p.email.toLowerCase() == email.toLowerCase())
@@ -42,13 +51,12 @@ class AuthService {
       if (match.first.isSuspended) {
         throw Exception('Your account has been suspended by an administrator.');
       }
-      // Simulate successful local login
       return match.first;
     }
   }
 
   Future<ProfileModel> register(
-      String email, String password, String fullName, String role) async {
+      String email, String password, String fullName) async {
     if (email.isEmpty || password.isEmpty || fullName.isEmpty) {
       throw Exception('All registration fields are required.');
     }
@@ -63,13 +71,13 @@ class AuthService {
         id: res.user!.id,
         email: email,
         fullName: fullName,
-        role: role,
+        role: 'tourist',
       );
 
       await _repo.saveProfile(newProfile);
       return newProfile;
     } else {
-      // Local fallback
+      // Explicit, nonpersistent demo registration.
       final profiles = await _repo.fetchProfiles();
       if (profiles.any((p) => p.email.toLowerCase() == email.toLowerCase())) {
         throw Exception('An account with this email already exists.');
@@ -79,7 +87,7 @@ class AuthService {
         id: 'usr-${DateTime.now().millisecondsSinceEpoch}',
         email: email,
         fullName: fullName,
-        role: role,
+        role: 'tourist',
       );
 
       await _repo.saveProfile(newProfile);
@@ -90,4 +98,6 @@ class AuthService {
   Future<void> updateProfile(ProfileModel updatedProfile) async {
     await _repo.saveProfile(updatedProfile);
   }
+
+  Future<void> logout() => _repo.signOut();
 }

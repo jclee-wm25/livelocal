@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../models/guide_model.dart';
 import '../constants/app_colors.dart';
 
@@ -24,9 +23,9 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
     _animCtrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 900));
     _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-            begin: const Offset(0, 0.3), end: Offset.zero)
-        .animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
+    _slideAnim = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero)
+        .animate(
+            CurvedAnimation(parent: _animCtrl, curve: Curves.easeOutCubic));
     _animCtrl.forward();
     // Stagger reveal of stops
     _startStaggerReveal();
@@ -76,15 +75,14 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                 ),
                 child: Row(
                   children: [
-                    _buildInfoChip(Icons.place, guide.locationName,
-                        AppColors.primary),
+                    _buildInfoChip(
+                        Icons.place, guide.locationName, AppColors.primary),
                     const SizedBox(width: 16),
                     _buildInfoChip(Icons.access_time, guide.estimatedDuration,
                         Colors.amber.shade700),
                     const SizedBox(width: 16),
                     _buildInfoChip(Icons.directions_walk,
-                        '${guide.stops.length} stops',
-                        Colors.blue.shade700),
+                        '${guide.stops.length} stops', Colors.blue.shade700),
                   ],
                 ),
               ),
@@ -123,10 +121,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(
-                      children: guide.stops
-                          .asMap()
-                          .entries
-                          .map((entry) {
+                      children: guide.stops.asMap().entries.map((entry) {
                         final idx = entry.key;
                         final stop = entry.value;
                         final isRevealed = idx < _revealedStops;
@@ -142,7 +137,10 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
-                                colors: [AppColors.primary, AppColors.primaryDark],
+                                colors: [
+                                  AppColors.primary,
+                                  AppColors.primaryDark
+                                ],
                               ),
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
@@ -190,49 +188,25 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                     const SizedBox(height: 24),
                   ],
 
-                  // Start guide CTA
-                  GestureDetector(
-                    onTap: () {
-                      HapticFeedback.mediumImpact();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              'Starting guide: ${guide.title}'),
-                          backgroundColor: AppColors.primary,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                        ),
-                      );
-                    },
-                    child: Container(
-                      height: 56,
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [AppColors.primary, AppColors.primaryDark],
-                        ),
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.4),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.grey),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Guide navigation is unavailable in this baseline.',
+                            style: TextStyle(color: Colors.black54),
                           ),
-                        ],
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.explore, color: Colors.white),
-                          SizedBox(width: 10),
-                          Text('Start This Guide',
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 24),
@@ -302,8 +276,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                         color: Colors.white.withValues(alpha: 0.2),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.arrow_back,
-                          color: Colors.white),
+                      child: const Icon(Icons.arrow_back, color: Colors.white),
                     ),
                   ),
                   const Spacer(),
@@ -362,8 +335,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
             return Opacity(
               opacity: val,
               child: Transform.translate(
-                  offset: Offset(30 * (1 - val), 0),
-                  child: child),
+                  offset: Offset(30 * (1 - val), 0), child: child),
             );
           },
           child: IntrinsicHeight(
@@ -378,9 +350,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                       decoration: BoxDecoration(
                         color: AppColors.mintBg,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                            color: AppColors.accent,
-                            width: 2),
+                        border: Border.all(color: AppColors.accent, width: 2),
                       ),
                       child: Center(
                         child: Text(
@@ -397,8 +367,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                         child: Container(
                           width: 2,
                           color: AppColors.accentLight,
-                          margin: const EdgeInsets.symmetric(
-                              vertical: 4),
+                          margin: const EdgeInsets.symmetric(vertical: 4),
                         ),
                       ),
                     if (isLast) const SizedBox(height: 16),
@@ -416,8 +385,7 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                              color:
-                                  Colors.black.withValues(alpha: 0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 8,
                               offset: const Offset(0, 2))
                         ],
@@ -456,16 +424,14 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
       decoration: BoxDecoration(
         color: AppColors.tipBg,
         borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: Colors.amber.shade200),
+        border: Border.all(color: Colors.amber.shade200),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.lightbulb,
-                  color: Colors.amber.shade700),
+              Icon(Icons.lightbulb, color: Colors.amber.shade700),
               const SizedBox(width: 8),
               Text(
                 'Local Tips',
@@ -479,24 +445,19 @@ class _GuideDetailScreenState extends State<GuideDetailScreen>
           ),
           const SizedBox(height: 12),
           ...widget.guide.walkingSequence.map((tip) => Padding(
-                padding:
-                    const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: Row(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('• ',
                         style: TextStyle(
-                            color:
-                                Colors.amber.shade800,
-                            fontWeight:
-                                FontWeight.bold)),
+                            color: Colors.amber.shade800,
+                            fontWeight: FontWeight.bold)),
                     Expanded(
                       child: Text(
                         tip,
                         style: TextStyle(
-                            color:
-                                Colors.amber.shade900,
+                            color: Colors.amber.shade900,
                             height: 1.4,
                             fontSize: 13),
                       ),

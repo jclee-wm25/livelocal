@@ -49,74 +49,102 @@ class _ItineraryScreenState extends State<ItineraryScreen> {
       body: itineraryCtrl.isGeneratingItinerary
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.primary))
-          : itinerarySteps.isEmpty
-              ? _buildEmptyState()
-              : SingleChildScrollView(
-                  padding: AppStyles.defaultScreenPadding,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      RouteSummaryCard(stepCount: itinerarySteps.length),
-                      const SizedBox(height: AppStyles.padXl),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: itinerarySteps.length,
-                        itemBuilder: (context, idx) {
-                          final step = itinerarySteps[idx];
-                          final isLast = idx == itinerarySteps.length - 1;
-                          final dayLabel = step['day_label'] as String?;
+          : itineraryCtrl.itineraryError != null
+              ? _buildErrorState(itineraryCtrl.itineraryError!)
+              : itinerarySteps.isEmpty
+                  ? _buildEmptyState()
+                  : SingleChildScrollView(
+                      padding: AppStyles.defaultScreenPadding,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          RouteSummaryCard(stepCount: itinerarySteps.length),
+                          const SizedBox(height: AppStyles.padXl),
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: itinerarySteps.length,
+                            itemBuilder: (context, idx) {
+                              final step = itinerarySteps[idx];
+                              final isLast = idx == itinerarySteps.length - 1;
+                              final dayLabel = step['day_label'] as String?;
 
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (dayLabel != null) ...[
-                                const SizedBox(height: AppStyles.padSm),
-                                Text(
-                                  dayLabel,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primaryDark,
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  if (dayLabel != null) ...[
+                                    const SizedBox(height: AppStyles.padSm),
+                                    Text(
+                                      dayLabel,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.primaryDark,
+                                      ),
+                                    ),
+                                    const SizedBox(height: AppStyles.padMd),
+                                  ],
+                                  TimelineStepCard(
+                                    step: step,
+                                    index: idx,
+                                    isLast: isLast,
                                   ),
-                                ),
-                                const SizedBox(height: AppStyles.padMd),
-                              ],
-                              TimelineStepCard(
-                                step: step,
-                                index: idx,
-                                isLast: isLast,
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                      Container(
-                        padding: AppStyles.defaultPadding,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: AppStyles.defaultRadius,
-                          border: Border.all(color: AppColors.accentLight),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.directions_walk,
-                                color: AppColors.primary),
-                            SizedBox(width: AppStyles.padSm),
-                            Text(
-                              'Optimized by Nearest Neighbor Routing',
-                              style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primaryDark),
+                                ],
+                              );
+                            },
+                          ),
+                          Container(
+                            padding: AppStyles.defaultPadding,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: AppStyles.defaultRadius,
+                              border: Border.all(color: AppColors.accentLight),
                             ),
-                          ],
-                        ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.directions_walk,
+                                    color: AppColors.primary),
+                                SizedBox(width: AppStyles.padSm),
+                                Text(
+                                  'Optimized by Nearest Neighbor Routing',
+                                  style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primaryDark),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 110),
+                        ],
                       ),
-                      const SizedBox(height: 110),
-                    ],
-                  ),
-                ),
+                    ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.location_off_outlined,
+                size: 56, color: AppColors.primary),
+            const SizedBox(height: AppStyles.padMd),
+            const Text(
+              'Itinerary unavailable',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.primaryDark,
+              ),
+            ),
+            const SizedBox(height: AppStyles.padSm),
+            Text(message, textAlign: TextAlign.center),
+          ],
+        ),
+      ),
     );
   }
 

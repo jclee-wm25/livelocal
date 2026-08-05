@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'core/config/app_environment.dart';
 import 'controllers/auth_controller.dart';
 import 'controllers/spot_controller.dart';
 import 'controllers/localeats_controller.dart';
@@ -16,35 +16,51 @@ import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'screens/main_navigation_screen.dart';
 import 'constants/app_colors.dart';
+import 'repositories/supabase_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Global Error Handling (Phase 7 preparation for Crashlytics)
+
+  // Phase 11 will replace these development handlers with a reviewed,
+  // privacy-aware production telemetry implementation.
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
     debugPrint('FlutterError caught: ${details.exception}');
-    // TODO: Send to Firebase Crashlytics
-    // FirebaseCrashlytics.instance.recordFlutterFatalError(details);
   };
 
   PlatformDispatcher.instance.onError = (Object error, StackTrace stack) {
     debugPrint('PlatformDispatcher Error caught: $error');
-    // TODO: Send to Firebase Crashlytics
-    // FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
+    return false;
   };
 
+  late final AppConfiguration configuration;
   try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint("Could not load .env file: $e");
+    configuration = AppConfiguration.fromCompileTime();
+  } on AppConfigurationException catch (error) {
+    runApp(ConfigurationFailureApp(message: error.message));
+    return;
   }
-  runApp(const LiveLocalApp());
+
+  if (!configuration.isDemo) {
+    // Phase 2 is intentionally not authorized yet. Do not partially activate a
+    // production/staging backend with the prototype's incomplete RLS contract.
+    runApp(
+      const ConfigurationFailureApp(
+        message:
+            'Staging and production activation require the approved Supabase foundation phase.',
+      ),
+    );
+    return;
+  }
+
+  SupabaseRepository().configureForDemo();
+  runApp(LiveLocalApp(configuration: configuration));
 }
 
 class LiveLocalApp extends StatelessWidget {
-  const LiveLocalApp({super.key});
+  const LiveLocalApp({super.key, required this.configuration});
+
+  final AppConfiguration configuration;
 
   @override
   Widget build(BuildContext context) {
@@ -94,12 +110,62 @@ class LiveLocalApp extends StatelessWidget {
           ),
         ),
         initialRoute: '/home',
+        builder: (context, child) {
+          final content = child ?? const SizedBox.shrink();
+          if (!configuration.isDemo) return content;
+          return Banner(
+            message: 'DEMO',
+            location: BannerLocation.topEnd,
+            color: AppColors.error,
+            child: content,
+          );
+        },
         routes: {
           '/welcome': (context) => const WelcomeScreen(),
           '/login': (context) => const LoginScreen(),
           '/register': (context) => const RegisterScreen(),
           '/home': (context) => const MainNavigationScreen(),
         },
+      ),
+    );
+  }
+}
+
+class ConfigurationFailureApp extends StatelessWidget {
+  const ConfigurationFailureApp({super.key, required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: AppColors.error,
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'LiveLocal is not configured',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(message, textAlign: TextAlign.center),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

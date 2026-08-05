@@ -1,0 +1,6 @@
+{
+  "APP_ENV": "staging",
+  "SUPABASE_URL": "https://YOUR_PROJECT_ID.supabase.co",
+  "SUPABASE_PUBLISHABLE_KEY": "YOUR_SUPABASE_PUBLISHABLE_KEY",
+  "GOOGLE_MAPS_API_KEY": ""
+}

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/spot_model.dart';
 import '../models/restaurant_model.dart';
@@ -107,7 +106,7 @@ class LocationService {
   LocationService({RoutingStrategy? routingStrategy})
       : _routingStrategy = routingStrategy ?? NearestNeighborRouting();
 
-  String get _mapsApiKey => dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '';
+  static const _mapsApiKey = String.fromEnvironment('GOOGLE_MAPS_API_KEY');
 
   /// Fetches the user's current GPS location, handling permissions gracefully.
   Future<Position?> getCurrentLocation() async {
@@ -151,7 +150,7 @@ class LocationService {
   Future<Map<String, double>?> geocodeAddress(String address) async {
     if (_mapsApiKey.isEmpty) {
       debugPrint(
-          'LocationService: Missing Google Maps API Key in .env. Geocoding aborted.');
+          'LocationService: Missing Google Maps API key. Geocoding aborted.');
       return null;
     }
 
@@ -213,8 +212,9 @@ class LocationService {
   /// Ensures a Restaurant has coordinates. If not, attempts to geocode and save it.
   Future<RestaurantModel> ensureRestaurantCoordinates(
       RestaurantModel restaurant) async {
-    if (restaurant.latitude != null && restaurant.longitude != null)
+    if (restaurant.latitude != null && restaurant.longitude != null) {
       return restaurant;
+    }
 
     final coords = await geocodeAddress(
         '${restaurant.address}, ${restaurant.city}, ${restaurant.state}');

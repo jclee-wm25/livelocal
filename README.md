@@ -61,8 +61,8 @@
 | **State Management** | **Provider (`MultiProvider`)** | Reactive state propagation across 7 dedicated controllers |
 | **Backend & Cloud DB** | **Supabase (`supabase_flutter`)** | Cloud PostgreSQL database for auth, spots, reviews, and vouchers |
 | **Demo Fixtures** | **`SeedDataService`** | In-memory prototype/demo records; not persistent offline storage |
-| **Local Storage** | **`shared_preferences`** | Dependency present; production persistence behaviour is not yet implemented |
-| **Utilities** | **`url_launcher`**, **`flutter_rating_bar`** | External links, directions, and star rating UI components |
+| **Local Storage** | **Not implemented** | Production persistence and read caching belong to later approved phases |
+| **Utilities** | **`url_launcher`**, **`geolocator`** | External links and optional location access |
 
 ---
 
@@ -162,34 +162,27 @@ Ensure you have the following installed on your development machine:
    flutter pub get
    ```
 
-3. **Run the app locally:**
+3. **Run the explicit non-release demo:**
    ```bash
-   flutter run
+   flutter run --dart-define=APP_ENV=demo
    ```
+
+   Demo data is synthetic and in-memory. It is visibly labelled, is not
+   persistent offline storage, and uses the shared fixture password
+   `DemoOnly123!`. Demo mode is rejected by release builds.
 
 ---
 
-## ⚡ Connecting to Supabase Cloud
+## ⚡ Supabase environments
 
-By default, LiveLocal runs in **Local Seed Mode** using pre-configured mock data. To connect the app to your live Supabase cloud database:
+Staging and production activation is intentionally unavailable in the Phase 1
+baseline because the approved schema/RLS foundation has not been implemented.
+The app fails closed instead of falling back to fixtures.
 
-1. Create a project at [supabase.com](https://supabase.com).
-2. Copy your **Project URL** and **Anon Key** from `Project Settings -> API`.
-3. Open `lib/main.dart` and add the initialization call in `main()`:
-
-```dart
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Supabase Cloud Backend
-  await SupabaseService().initialize(
-    url: 'https://YOUR_PROJECT_ID.supabase.co',
-    anonKey: 'YOUR_SUPABASE_ANON_KEY',
-  );
-
-  runApp(const LiveLocalApp());
-}
-```
+Future staging configuration will use compile-time defines rather than a
+private `.env` asset. A non-secret shape is documented in
+[`config/dart_defines.example.json`](config/dart_defines.example.json). Do not
+use a service-role key in a mobile build.
 
 ---
 
