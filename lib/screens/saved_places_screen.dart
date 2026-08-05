@@ -22,6 +22,8 @@ class SavedPlacesScreen extends StatefulWidget {
 }
 
 class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
+  _SavedPlaceFilter _filter = _SavedPlaceFilter.all;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +58,13 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
     final spots = context.watch<SpotController>().spots;
     final restaurants = context.watch<LocalEatsController>().restaurants;
     final resolved = _resolve(controller.savedPlaces, spots, restaurants);
+    final visiblePlaces = resolved.where((place) {
+      return switch (_filter) {
+        _SavedPlaceFilter.all => true,
+        _SavedPlaceFilter.spots => place.spot != null,
+        _SavedPlaceFilter.restaurants => place.restaurant != null,
+      };
+    }).toList();
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
       appBar: AppBar(
@@ -83,35 +92,15 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
                             'Save approved spots and restaurants to plan a day out.',
                         scrollable: true,
                       )
-                    : ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
-                        itemCount: resolved.length,
-                        separatorBuilder: (_, __) => const SizedBox(height: 8),
-                        itemBuilder: (context, index) {
-                          final place = resolved[index];
-                          return Card(
-                            margin: EdgeInsets.zero,
-                            elevation: 0,
-                            child: ListTile(
-                              minTileHeight: 72,
-                              leading: Icon(
-                                place.spot == null
-                                    ? Icons.restaurant_outlined
-                                    : Icons.place_outlined,
-                              ),
-                              title: Text(place.name),
-                              subtitle: Text(place.description),
-                              onTap: () => _open(place),
-                              trailing: IconButton(
-                                tooltip: 'Remove ${place.name} from saved',
-                                onPressed: () => _confirmRemove(place),
-                                icon:
-                                    const Icon(Icons.bookmark_remove_outlined),
-                              ),
-                            ),
-                          );
+                    : _SavedPlacesList(
+                        places: visiblePlaces,
+                        totalCount: resolved.length,
+                        selectedFilter: _filter,
+                        onFilterChanged: (filter) {
+                          setState(() => _filter = filter);
                         },
+                        onOpen: _open,
+                        onRemove: _confirmRemove,
                       ),
       ),
       floatingActionButton: resolved.isEmpty
@@ -196,6 +185,123 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen> {
           controller.errorMessage ?? 'The place could not be removed.',
         ),
       ),
+    );
+  }
+}
+
+enum _SavedPlaceFilter { all, spots, restaurants }
+
+class _SavedPlacesList extends StatelessWidget {
+  const _SavedPlacesList({
+    required this.places,
+    required this.totalCount,
+    required this.selectedFilter,
+    required this.onFilterChanged,
+    required this.onOpen,
+    required this.onRemove,
+  });
+
+  final List<_ResolvedPlace> places;
+  final int totalCount;
+  final _SavedPlaceFilter selectedFilter;
+  final ValueChanged<_SavedPlaceFilter> onFilterChanged;
+  final ValueChanged<_ResolvedPlace> onOpen;
+  final ValueChanged<_ResolvedPlace> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 112),
+      children: [
+        Semantics(
+          header: true,
+          child: Text(
+            '$totalCount saved ${totalCount == 1 ? 'place' : 'places'}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: SegmentedButton<_SavedPlaceFilter>(
+            showSelectedIcon: false,
+            segments: const [
+              ButtonSegment(
+                value: _SavedPlaceFilter.all,
+                icon: Icon(Icons.bookmarks_outlined),
+                label: Text('All'),
+              ),
+              ButtonSegment(
+                value: _SavedPlaceFilter.spots,
+                icon: Icon(Icons.place_outlined),
+                label: Text('Spots'),
+              ),
+              ButtonSegment(
+                value: _SavedPlaceFilter.restaurants,
+                icon: Icon(Icons.restaurant_outlined),
+                label: Text('Restaurants'),
+              ),
+            ],
+            selected: {selectedFilter},
+            onSelectionChanged: (selection) {
+              onFilterChanged(selection.single);
+            },
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (places.isEmpty)
+          Card(
+            elevation: 0,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Icon(
+                    selectedFilter == _SavedPlaceFilter.spots
+                        ? Icons.place_outlined
+                        : Icons.restaurant_outlined,
+                    size: 40,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    selectedFilter == _SavedPlaceFilter.spots
+                        ? 'No saved spots yet'
+                        : 'No saved restaurants yet',
+                    style: Theme.of(context).textTheme.titleMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...places.map(
+            (place) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Card(
+                margin: EdgeInsets.zero,
+                elevation: 0,
+                child: ListTile(
+                  minTileHeight: 72,
+                  leading: Icon(
+                    place.spot == null
+                        ? Icons.restaurant_outlined
+                        : Icons.place_outlined,
+                  ),
+                  title: Text(place.name),
+                  subtitle: Text(place.description),
+                  onTap: () => onOpen(place),
+                  trailing: IconButton(
+                    tooltip: 'Remove ${place.name} from saved',
+                    onPressed: () => onRemove(place),
+                    icon: const Icon(Icons.bookmark_remove_outlined),
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 }
