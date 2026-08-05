@@ -24,28 +24,28 @@ class GuideModel {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'title': title,
-    'location_name': locationName,
-    'state': state,
-    'route_overview': routeOverview,
-    'stops': stops,
-    'walking_sequence': walkingSequence,
-    'estimated_duration': estimatedDuration,
-    'status': status,
-    'rejection_reason': rejectionReason,
-  };
+        'id': id,
+        'title': title,
+        'location_name': locationName,
+        'state': state,
+        'route_overview': routeOverview,
+        'stops': stops,
+        'walking_sequence': walkingSequence,
+        'estimated_duration': estimatedDuration,
+        'status': status,
+        'rejection_reason': rejectionReason,
+      };
 
   factory GuideModel.fromMap(Map<String, dynamic> map) => GuideModel(
-    id: map['id'] ?? '',
-    title: map['title'] ?? '',
-    locationName: map['location_name'] ?? '',
-    state: map['state'] ?? '',
-    routeOverview: map['route_overview'] ?? '',
-    stops: List<String>.from(map['stops'] ?? []),
-    walkingSequence: List<String>.from(map['walking_sequence'] ?? []),
-    estimatedDuration: map['estimated_duration'] ?? '',
-    status: map['status'] ?? 'approved',
-    rejectionReason: map['rejection_reason'],
-  );
+        id: map['id'] ?? '',
+        title: map['title'] ?? '',
+        locationName: map['location_name'] ?? '',
+        state: map['state'] ?? '',
+        routeOverview: map['route_overview'] ?? '',
+        stops: List<String>.from(map['stops'] ?? []),
+        walkingSequence: List<String>.from(map['walking_sequence'] ?? []),
+        estimatedDuration: map['estimated_duration'] ?? '',
+        status: map['status'] ?? 'approved',
+        rejectionReason: map['rejection_reason'],
+      );
 }

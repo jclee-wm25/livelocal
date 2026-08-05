@@ -16,20 +16,20 @@ class ProfileModel {
   });
 
   Map<String, dynamic> toMap() => {
-    'id': id,
-    'email': email,
-    'full_name': fullName,
-    'avatar_url': avatarUrl,
-    'role': role,
-    'is_suspended': isSuspended,
-  };
+        'id': id,
+        'email': email,
+        'full_name': fullName,
+        'avatar_url': avatarUrl,
+        'role': role,
+        'is_suspended': isSuspended,
+      };
 
   factory ProfileModel.fromMap(Map<String, dynamic> map) => ProfileModel(
-    id: map['id'] ?? '',
-    email: map['email'] ?? '',
-    fullName: map['full_name'] ?? '',
-    avatarUrl: map['avatar_url'],
-    role: map['role'] ?? 'tourist',
-    isSuspended: map['is_suspended'] ?? false,
-  );
+        id: map['id'] ?? '',
+        email: map['email'] ?? '',
+        fullName: map['full_name'] ?? '',
+        avatarUrl: map['avatar_url'],
+        role: map['role'] ?? 'tourist',
+        isSuspended: map['is_suspended'] ?? false,
+      );
 }

@@ -4,11 +4,13 @@ class AdminRepository {
   final SupabaseClient _client = Supabase.instance.client;
 
   Future<List<Map<String, dynamic>>> getPendingSpots() async {
-    final response = await _client.from('spots').select().eq('status', 'pending');
+    final response =
+        await _client.from('spots').select().eq('status', 'pending');
     return List<Map<String, dynamic>>.from(response);
   }
 
-  Future<void> updateSpotStatus(String spotId, String status, {String? rejectionReason}) async {
+  Future<void> updateSpotStatus(String spotId, String status,
+      {String? rejectionReason}) async {
     await _client.from('spots').update({
       'status': status,
       if (rejectionReason != null) 'rejection_reason': rejectionReason,
@@ -16,7 +18,8 @@ class AdminRepository {
   }
 
   Future<List<Map<String, dynamic>>> getReports() async {
-    final response = await _client.from('reports').select().eq('status', 'pending');
+    final response =
+        await _client.from('reports').select().eq('status', 'pending');
     return List<Map<String, dynamic>>.from(response);
   }
 
@@ -24,7 +27,8 @@ class AdminRepository {
     await _client.from('reports').update({'status': status}).eq('id', reportId);
   }
 
-  Future<void> submitReport(String reporterId, String targetId, String targetType, String reason) async {
+  Future<void> submitReport(String reporterId, String targetId,
+      String targetType, String reason) async {
     await _client.from('reports').insert({
       'reporter_id': reporterId,
       'target_id': targetId,

@@ -34,8 +34,10 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     final reviewCtrl = context.watch<ReviewController>();
 
     final userId = auth.currentUser?.id ?? 'guest';
-    final isSaved = itinerary.isSaved(userId, restaurantId: widget.restaurant.id);
-    final discounts = localEats.getActiveDiscountsForRestaurant(widget.restaurant.id);
+    final isSaved =
+        itinerary.isSaved(userId, restaurantId: widget.restaurant.id);
+    final discounts =
+        localEats.getActiveDiscountsForRestaurant(widget.restaurant.id);
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -54,9 +56,12 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                    boxShadow: [
+                      BoxShadow(color: Colors.black26, blurRadius: 4)
+                    ],
                   ),
-                  child: const Icon(Icons.arrow_back, color: AppColors.primaryDark, size: 20),
+                  child: const Icon(Icons.arrow_back,
+                      color: AppColors.primaryDark, size: 20),
                 ),
               ),
             ),
@@ -65,7 +70,8 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                 padding: const EdgeInsets.only(right: 16.0),
                 child: _AnimatedBookmarkButton(
                   isSaved: isSaved,
-                  onTap: () => itinerary.toggleSave(userId, restaurantId: widget.restaurant.id),
+                  onTap: () => itinerary.toggleSave(userId,
+                      restaurantId: widget.restaurant.id),
                 ),
               ),
             ],
@@ -83,7 +89,8 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                    child: const Center(child: CircularProgressIndicator(color: Colors.white)),
+                    child: const Center(
+                        child: CircularProgressIndicator(color: Colors.white)),
                   ),
                   errorWidget: (context, url, error) => Container(
                     decoration: const BoxDecoration(
@@ -93,7 +100,8 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                    child: const Icon(Icons.restaurant, size: 80, color: Colors.white54),
+                    child: const Icon(Icons.restaurant,
+                        size: 80, color: Colors.white54),
                   ),
                 ),
               ),
@@ -131,10 +139,13 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                       spacing: 8,
                       runSpacing: 8,
                       children: [
-                        _buildBadge(widget.restaurant.cuisineType, AppColors.accent),
-                        _buildBadge(widget.restaurant.priceRange, AppColors.accentLight,
+                        _buildBadge(
+                            widget.restaurant.cuisineType, AppColors.accent),
+                        _buildBadge(
+                            widget.restaurant.priceRange, AppColors.accentLight,
                             textColor: AppColors.primaryDark),
-                        _buildBadge(widget.restaurant.city, Colors.grey.shade200,
+                        _buildBadge(
+                            widget.restaurant.city, Colors.grey.shade200,
                             textColor: Colors.grey.shade800),
                       ],
                     ),
@@ -190,8 +201,10 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                         ),
                         elevation: 0,
                       ),
-                      onPressed: () => _launchUrl(widget.restaurant.socialMediaUrl),
-                      icon: const Icon(Icons.play_circle_fill, color: Colors.white),
+                      onPressed: () =>
+                          _launchUrl(widget.restaurant.socialMediaUrl),
+                      icon: const Icon(Icons.play_circle_fill,
+                          color: Colors.white),
                       label: const Text(
                         'Watch Review Video',
                         style: TextStyle(
@@ -299,8 +312,8 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                     ),
                     const SizedBox(height: 12),
                     Builder(builder: (ctx) {
-                      final reviews =
-                          reviewCtrl.getReviewsForRestaurant(widget.restaurant.id);
+                      final reviews = reviewCtrl
+                          .getReviewsForRestaurant(widget.restaurant.id);
                       if (reviews.isEmpty) {
                         return Text(
                           'No reviews yet. Be the first!',
@@ -315,13 +328,16 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
                                   decoration: BoxDecoration(
                                     color: Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(color: Colors.grey.shade200),
+                                    border:
+                                        Border.all(color: Colors.grey.shade200),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
                                             r.userName,
@@ -367,13 +383,15 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     );
   }
 
-  Widget _buildBadge(String text, Color color, {Color textColor = Colors.white}) {
+  Widget _buildBadge(String text, Color color,
+      {Color textColor = Colors.white}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+      decoration:
+          BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
       child: Text(text,
-          style:
-              TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 12)),
+          style: TextStyle(
+              color: textColor, fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }
@@ -384,7 +402,8 @@ class _AnimatedBookmarkButton extends StatefulWidget {
   const _AnimatedBookmarkButton({required this.isSaved, required this.onTap});
 
   @override
-  State<_AnimatedBookmarkButton> createState() => _AnimatedBookmarkButtonState();
+  State<_AnimatedBookmarkButton> createState() =>
+      _AnimatedBookmarkButtonState();
 }
 
 class _AnimatedBookmarkButtonState extends State<_AnimatedBookmarkButton>
@@ -395,8 +414,8 @@ class _AnimatedBookmarkButtonState extends State<_AnimatedBookmarkButton>
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 200));
     _scale = Tween<double>(begin: 1.0, end: 1.3)
         .animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }

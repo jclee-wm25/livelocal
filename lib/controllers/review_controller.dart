@@ -33,15 +33,20 @@ class ReviewController with ChangeNotifier {
   }
 
   List<ReviewModel> getReviewsForRestaurant(String restaurantId) {
-    return _reviews.where((r) => r.restaurantId == restaurantId && !r.isFlagged).toList();
+    return _reviews
+        .where((r) => r.restaurantId == restaurantId && !r.isFlagged)
+        .toList();
   }
 
-  List<ReviewModel> get flaggedReviews => _reviews.where((r) => r.isFlagged).toList();
+  List<ReviewModel> get flaggedReviews =>
+      _reviews.where((r) => r.isFlagged).toList();
 
   double getAverageRating(String? spotId, String? restaurantId) {
     final list = spotId != null
         ? getReviewsForSpot(spotId)
-        : (restaurantId != null ? getReviewsForRestaurant(restaurantId) : <ReviewModel>[]);
+        : (restaurantId != null
+            ? getReviewsForRestaurant(restaurantId)
+            : <ReviewModel>[]);
     if (list.isEmpty) return 0.0;
     final sum = list.fold<double>(0.0, (prev, r) => prev + r.rating);
     return sum / list.length;

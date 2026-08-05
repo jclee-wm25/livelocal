@@ -18,7 +18,8 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> with TickerProviderStateMixin {
+class _MainNavigationScreenState extends State<MainNavigationScreen>
+    with TickerProviderStateMixin {
   int _currentIndex = 0;
   late AnimationController _bellController;
 
@@ -83,7 +84,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
                       color: Colors.white.withValues(alpha: 0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.location_on, color: AppColors.accent, size: 20),
+                    child: const Icon(Icons.location_on,
+                        color: AppColors.accent, size: 20),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -96,14 +98,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
                     ),
                   ),
                   const Spacer(),
-                  
+
                   // Clean Notification Action Button
                   InkWell(
                     onTap: () {
-                      _bellController.forward().then((_) => _bellController.reverse());
+                      _bellController
+                          .forward()
+                          .then((_) => _bellController.reverse());
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                        MaterialPageRoute(
+                            builder: (_) => const NotificationsScreen()),
                       );
                     },
                     borderRadius: BorderRadius.circular(24),
@@ -115,7 +120,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
                         turns: Tween(begin: 0.0, end: 0.08)
                             .chain(CurveTween(curve: Curves.elasticIn))
                             .animate(_bellController),
-                        child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
+                        child: const Icon(Icons.notifications_outlined,
+                            color: Colors.white, size: 24),
                       ),
                     ),
                   ),
@@ -149,15 +155,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(0, Icons.explore_outlined, Icons.explore, 'Spots'),
-              _buildNavItem(1, Icons.restaurant_outlined, Icons.restaurant, 'Eats'),
+              _buildNavItem(
+                  1, Icons.restaurant_outlined, Icons.restaurant, 'Eats'),
               _buildNavItem(2, Icons.bookmark_outline, Icons.bookmark, 'Saved'),
               _buildNavItem(3, Icons.map_outlined, Icons.map, 'Explorer'),
               _buildNavItem(
-                4, 
-                isAdmin ? Icons.admin_panel_settings_outlined : Icons.person_outline, 
-                isAdmin ? Icons.admin_panel_settings : Icons.person, 
-                isAdmin ? 'Admin' : 'Profile'
-              ),
+                  4,
+                  isAdmin
+                      ? Icons.admin_panel_settings_outlined
+                      : Icons.person_outline,
+                  isAdmin ? Icons.admin_panel_settings : Icons.person,
+                  isAdmin ? 'Admin' : 'Profile'),
             ],
           ),
         ),
@@ -165,7 +173,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
+  Widget _buildNavItem(
+      int index, IconData icon, IconData activeIcon, String label) {
     final isSelected = _currentIndex == index;
     return InkWell(
       onTap: () => _onTabTapped(index),
@@ -186,7 +195,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? AppColors.primaryDark : Colors.grey.shade600,
+                color:
+                    isSelected ? AppColors.primaryDark : Colors.grey.shade600,
                 fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 fontSize: 11,
               ),
@@ -197,5 +207,3 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> with Ticker
     );
   }
 }
-
-

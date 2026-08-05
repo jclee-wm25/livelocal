@@ -16,11 +16,30 @@ class SpotsDiscoveryScreen extends StatefulWidget {
   State<SpotsDiscoveryScreen> createState() => _SpotsDiscoveryScreenState();
 }
 
-class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with TickerProviderStateMixin {
+class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _searchCtrl = TextEditingController();
 
-  final List<String> _states = ['All', 'Penang', 'Kuala Lumpur', 'Perak', 'Johor', 'Selangor', 'Melaka', 'Sabah', 'Sarawak'];
-  final List<String> _categories = ['All', 'Kopitiam', 'Pasar Malam', 'Indie Cafe', 'Park / Walkway', 'Hawker Food', 'Heritage Spot'];
+  final List<String> _states = [
+    'All',
+    'Penang',
+    'Kuala Lumpur',
+    'Perak',
+    'Johor',
+    'Selangor',
+    'Melaka',
+    'Sabah',
+    'Sarawak'
+  ];
+  final List<String> _categories = [
+    'All',
+    'Kopitiam',
+    'Pasar Malam',
+    'Indie Cafe',
+    'Park / Walkway',
+    'Hawker Food',
+    'Heritage Spot'
+  ];
 
   late AnimationController _heroTextController;
   late Animation<double> _heroTextOpacity;
@@ -34,10 +53,15 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
       duration: const Duration(milliseconds: 800),
     );
     _heroTextOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _heroTextController, curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
+      CurvedAnimation(
+          parent: _heroTextController,
+          curve: const Interval(0.2, 1.0, curve: Curves.easeOut)),
     );
-    _heroTextSlide = Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _heroTextController, curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic)),
+    _heroTextSlide =
+        Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
+      CurvedAnimation(
+          parent: _heroTextController,
+          curve: const Interval(0.2, 1.0, curve: Curves.easeOutCubic)),
     );
     _heroTextController.forward();
   }
@@ -64,11 +88,13 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
         onRefresh: _onRefresh,
         color: AppColors.primary,
         child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
           slivers: [
             SliverToBoxAdapter(
               child: Container(
-                padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 12),
+                padding: const EdgeInsets.only(
+                    left: 16, right: 16, top: 16, bottom: 12),
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     colors: [AppColors.primaryDark, AppColors.primary],
@@ -117,10 +143,12 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                             child: TextField(
                               controller: _searchCtrl,
                               onChanged: (val) => spotCtrl.filter(query: val),
-                              onEditingComplete: () => FocusScope.of(context).unfocus(),
+                              onEditingComplete: () =>
+                                  FocusScope.of(context).unfocus(),
                               decoration: InputDecoration(
                                 hintText: 'Search kopitiam, cafes, spots...',
-                                hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+                                hintStyle: TextStyle(
+                                    color: Colors.grey.shade400, fontSize: 14),
                                 border: InputBorder.none,
                                 isDense: true,
                               ),
@@ -128,7 +156,8 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                           ),
                           if (_searchCtrl.text.isNotEmpty)
                             IconButton(
-                              icon: const Icon(Icons.clear, color: Colors.grey, size: 20),
+                              icon: const Icon(Icons.clear,
+                                  color: Colors.grey, size: 20),
                               onPressed: () {
                                 setState(() => _searchCtrl.clear());
                                 spotCtrl.filter(query: '');
@@ -144,58 +173,75 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
             ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
                 child: Column(
                   children: [
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 40,
-                        child: ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          physics: const BouncingScrollPhysics(),
-                          itemCount: _categories.length,
-                          itemBuilder: (context, index) {
-                            final cat = _categories[index];
-                            final isSelected = spotCtrl.selectedCategory == cat;
-                            return Padding(
-                              padding: const EdgeInsets.only(right: 10),
-                              child: GestureDetector(
-                                onTap: () => spotCtrl.filter(category: cat),
-                                child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 200),
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.primary : Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: isSelected ? AppColors.primary : Colors.grey.shade300,
-                                    ),
-                                    boxShadow: isSelected
-                                        ? [BoxShadow(color: AppColors.primary.withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))]
-                                        : [],
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 40,
+                      child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: _categories.length,
+                        itemBuilder: (context, index) {
+                          final cat = _categories[index];
+                          final isSelected = spotCtrl.selectedCategory == cat;
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 10),
+                            child: GestureDetector(
+                              onTap: () => spotCtrl.filter(category: cat),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primary
+                                      : Colors.white,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : Colors.grey.shade300,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      cat,
-                                      style: TextStyle(
-                                        color: isSelected ? Colors.white : Colors.black87,
-                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                      ),
+                                  boxShadow: isSelected
+                                      ? [
+                                          BoxShadow(
+                                              color: AppColors.primary
+                                                  .withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4))
+                                        ]
+                                      : [],
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    cat,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.black87,
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
                                     ),
                                   ),
                                 ),
                               ),
-                            );
-                          },
-                        ),
+                            ),
+                          );
+                        },
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
+            ),
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -210,9 +256,16 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                     DropdownButton<String>(
                       value: spotCtrl.selectedState,
                       underline: const SizedBox(),
-                      icon: const Icon(Icons.location_on, color: AppColors.primary, size: 18),
-                      style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 14),
-                      items: _states.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                      icon: const Icon(Icons.location_on,
+                          color: AppColors.primary, size: 18),
+                      style: const TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14),
+                      items: _states
+                          .map(
+                              (s) => DropdownMenuItem(value: s, child: Text(s)))
+                          .toList(),
                       onChanged: (val) {
                         if (val != null) spotCtrl.filter(state: val);
                       },
@@ -223,7 +276,9 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
             ),
             spotCtrl.isLoading
                 ? const SliverFillRemaining(
-                    child: Center(child: CircularProgressIndicator(color: AppColors.primary)),
+                    child: Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.primary)),
                   )
                 : approvedSpots.isEmpty
                     ? SliverFillRemaining(
@@ -231,21 +286,28 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.location_off, size: 64, color: Colors.grey.shade300),
+                              Icon(Icons.location_off,
+                                  size: 64, color: Colors.grey.shade300),
                               const SizedBox(height: 16),
-                              Text('No spots found.', style: TextStyle(fontSize: 16, color: Colors.grey.shade500)),
+                              Text('No spots found.',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      color: Colors.grey.shade500)),
                             ],
                           ),
                         ),
                       )
                     : SliverPadding(
-                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 110),
+                        padding: const EdgeInsets.only(
+                            left: 16, right: 16, bottom: 110),
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
                               final spot = approvedSpots[index];
                               return TweenAnimationBuilder<double>(
-                                duration: Duration(milliseconds: 400 + (index * 100).clamp(0, 600)),
+                                duration: Duration(
+                                    milliseconds:
+                                        400 + (index * 100).clamp(0, 600)),
                                 tween: Tween(begin: 0.0, end: 1.0),
                                 curve: Curves.easeOutQuint,
                                 builder: (context, value, child) {
@@ -278,7 +340,8 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
           );
         },
         icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Submit Spot', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        label: const Text('Submit Spot',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -292,7 +355,8 @@ class SpotCard extends StatefulWidget {
   State<SpotCard> createState() => _SpotCardState();
 }
 
-class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin {
+class _SpotCardState extends State<SpotCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _scaleCtrl;
 
   @override
@@ -320,7 +384,8 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
         _scaleCtrl.reverse();
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (_) => SpotDetailScreen(spot: widget.spot)),
+          MaterialPageRoute(
+              builder: (_) => SpotDetailScreen(spot: widget.spot)),
         );
       },
       onTapCancel: () => _scaleCtrl.reverse(),
@@ -359,7 +424,8 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                     ),
                     errorWidget: (context, url, error) => Container(
                       color: Colors.grey.shade300,
-                      child: const Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                      child: const Icon(Icons.image_not_supported,
+                          size: 50, color: Colors.grey),
                     ),
                   ),
                 ),
@@ -387,11 +453,13 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.2)),
                         ),
                         child: Text(
                           widget.spot.category,
@@ -414,16 +482,19 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                     child: BackdropFilter(
                       filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.5),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.1)),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.star_rounded, color: AppColors.gold, size: 16),
+                            const Icon(Icons.star_rounded,
+                                color: AppColors.gold, size: 16),
                             const SizedBox(width: 4),
                             Text(
                               widget.spot.rating.toStringAsFixed(1),
@@ -460,7 +531,8 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.location_on, color: AppColors.accentLight, size: 16),
+                          const Icon(Icons.location_on,
+                              color: AppColors.accentLight, size: 16),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -475,7 +547,8 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(8),
@@ -494,7 +567,8 @@ class _SpotCardState extends State<SpotCard> with SingleTickerProviderStateMixin
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          Icon(Icons.access_time_filled, color: Colors.grey.shade400, size: 14),
+                          Icon(Icons.access_time_filled,
+                              color: Colors.grey.shade400, size: 14),
                           const SizedBox(width: 6),
                           Text(
                             'Best time: ${widget.spot.bestTime}',

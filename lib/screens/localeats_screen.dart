@@ -14,7 +14,8 @@ class LocalEatsScreen extends StatefulWidget {
   State<LocalEatsScreen> createState() => _LocalEatsScreenState();
 }
 
-class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProviderStateMixin {
+class _LocalEatsScreenState extends State<LocalEatsScreen>
+    with SingleTickerProviderStateMixin {
   final PageController _pageController = PageController(viewportFraction: 0.9);
   int _currentPage = 0;
   Timer? _timer;
@@ -67,7 +68,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
               title: const Text('LocalEats 🍜',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, color: Colors.white)),
               background: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
@@ -81,7 +83,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
           ),
           if (localEats.isLoading)
             const SliverFillRemaining(
-                child: Center(child: CircularProgressIndicator(color: AppColors.primary)))
+                child: Center(
+                    child: CircularProgressIndicator(color: AppColors.primary)))
           else
             SliverToBoxAdapter(
               child: Column(
@@ -102,7 +105,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                       height: 200,
                       child: PageView.builder(
                         controller: _pageController,
-                        onPageChanged: (idx) => setState(() => _currentPage = idx),
+                        onPageChanged: (idx) =>
+                            setState(() => _currentPage = idx),
                         itemCount: trending.length,
                         itemBuilder: (context, index) {
                           final restaurant = trending[index];
@@ -112,7 +116,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                               double value = 1.0;
                               if (_pageController.position.haveDimensions) {
                                 value = _pageController.page! - index;
-                                value = (1 - (value.abs() * 0.2)).clamp(0.8, 1.0);
+                                value =
+                                    (1 - (value.abs() * 0.2)).clamp(0.8, 1.0);
                               }
                               return Center(
                                 child: SizedBox(
@@ -128,11 +133,12 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                 Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) =>
-                                            RestaurantDetailScreen(restaurant: restaurant)));
+                                        builder: (_) => RestaurantDetailScreen(
+                                            restaurant: restaurant)));
                               },
                               child: Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 8),
+                                margin:
+                                    const EdgeInsets.symmetric(horizontal: 8),
                                 decoration: BoxDecoration(
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: const [
@@ -142,7 +148,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                         offset: Offset(0, 5))
                                   ],
                                   image: DecorationImage(
-                                    image: CachedNetworkImageProvider(restaurant.coverPhotoUrl),
+                                    image: CachedNetworkImageProvider(
+                                        restaurant.coverPhotoUrl),
                                     fit: BoxFit.cover,
                                   ),
                                 ),
@@ -197,14 +204,16 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                   _buildFilters(localEats),
                   const SizedBox(height: 16),
                   ListView.builder(
-                    padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 110),
+                    padding: const EdgeInsets.only(
+                        left: 16, right: 16, top: 8, bottom: 110),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final restaurant = filtered[index];
-                      final hasDiscount =
-                          localEats.getActiveDiscountsForRestaurant(restaurant.id).isNotEmpty;
+                      final hasDiscount = localEats
+                          .getActiveDiscountsForRestaurant(restaurant.id)
+                          .isNotEmpty;
                       return _FadeInUpItem(
                         delay: index * 100,
                         child: GestureDetector(
@@ -212,8 +221,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                             Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                    builder: (_) =>
-                                        RestaurantDetailScreen(restaurant: restaurant)));
+                                    builder: (_) => RestaurantDetailScreen(
+                                        restaurant: restaurant)));
                           },
                           child: Container(
                             margin: const EdgeInsets.only(bottom: 12),
@@ -242,19 +251,24 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                           width: 70,
                                           height: 70,
                                           color: Colors.grey.shade200,
-                                          child: const Center(child: CircularProgressIndicator())),
-                                      errorWidget: (context, url, error) => Container(
-                                          width: 70,
-                                          height: 70,
-                                          color: Colors.grey.shade200,
-                                          child: const Icon(Icons.restaurant,
-                                              color: AppColors.primary)),
+                                          child: const Center(
+                                              child:
+                                                  CircularProgressIndicator())),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                              width: 70,
+                                              height: 70,
+                                              color: Colors.grey.shade200,
+                                              child: const Icon(
+                                                  Icons.restaurant,
+                                                  color: AppColors.primary)),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(restaurant.name,
                                             style: const TextStyle(
@@ -265,7 +279,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                         Text(
                                             '${restaurant.cuisineType} • ${restaurant.city}',
                                             style: TextStyle(
-                                                color: Colors.grey.shade600, fontSize: 13)),
+                                                color: Colors.grey.shade600,
+                                                fontSize: 13)),
                                         const SizedBox(height: 4),
                                         Row(
                                           children: [
@@ -275,19 +290,23 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
                                                     fontWeight: FontWeight.w600,
                                                     fontSize: 13)),
                                             const SizedBox(width: 8),
-                                            Text('by ${restaurant.influencerName}',
+                                            Text(
+                                                'by ${restaurant.influencerName}',
                                                 style: TextStyle(
                                                     color: Colors.grey.shade500,
                                                     fontSize: 12,
-                                                    fontStyle: FontStyle.italic)),
+                                                    fontStyle:
+                                                        FontStyle.italic)),
                                           ],
                                         ),
                                       ],
                                     ),
                                   ),
-                                  if (hasDiscount) const _PulsingDiscountBadge(),
+                                  if (hasDiscount)
+                                    const _PulsingDiscountBadge(),
                                   const SizedBox(width: 8),
-                                  Icon(Icons.chevron_right, color: Colors.grey.shade400),
+                                  Icon(Icons.chevron_right,
+                                      color: Colors.grey.shade400),
                                 ],
                               ),
                             ),
@@ -322,7 +341,15 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
           _buildDropdownFilter(
             icon: Icons.restaurant,
             value: localEats.selectedCuisine,
-            items: ['All', 'Malay', 'Chinese', 'Indian', 'Western', 'Fusion', 'Kopitiam'],
+            items: [
+              'All',
+              'Malay',
+              'Chinese',
+              'Indian',
+              'Western',
+              'Fusion',
+              'Kopitiam'
+            ],
             onChanged: (val) => localEats.setFilter(cuisine: val),
           ),
           const SizedBox(width: 8),
@@ -366,7 +393,8 @@ class _LocalEatsScreenState extends State<LocalEatsScreen> with SingleTickerProv
               value: value,
               isDense: true,
               icon: const Icon(Icons.arrow_drop_down, color: AppColors.primary),
-              style: const TextStyle(color: AppColors.primaryDark, fontWeight: FontWeight.w600),
+              style: const TextStyle(
+                  color: AppColors.primaryDark, fontWeight: FontWeight.w600),
               items: items
                   .map((i) => DropdownMenuItem(value: i, child: Text(i)))
                   .toList(),
@@ -457,8 +485,8 @@ class _ExpandableFabState extends State<_ExpandableFab>
   @override
   void initState() {
     super.initState();
-    _controller =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _controller = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 250));
   }
 
   @override
@@ -488,8 +516,10 @@ class _ExpandableFabState extends State<_ExpandableFab>
                     _expanded = false;
                     _controller.reverse();
                   });
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const AddRestaurantScreen()));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => const AddRestaurantScreen()));
                 },
               ),
             ),
@@ -508,7 +538,8 @@ class _ExpandableFabState extends State<_ExpandableFab>
               }
             });
           },
-          child: AnimatedIcon(icon: AnimatedIcons.menu_close, progress: _controller),
+          child: AnimatedIcon(
+              icon: AnimatedIcons.menu_close, progress: _controller),
         ),
       ],
     );

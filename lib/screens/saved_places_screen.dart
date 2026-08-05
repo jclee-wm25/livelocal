@@ -95,8 +95,7 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                             color: AppColors.gold.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
-                                color:
-                                    AppColors.gold.withValues(alpha: 0.5)),
+                                color: AppColors.gold.withValues(alpha: 0.5)),
                           ),
                           child: Text(
                             '${savedItems.length} items saved',
@@ -328,8 +327,8 @@ class _SavedPlacesScreenState extends State<SavedPlacesScreen>
                       Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) =>
-                                  RestaurantDetailScreen(restaurant: restaurant!)));
+                              builder: (_) => RestaurantDetailScreen(
+                                  restaurant: restaurant!)));
                     }
                   },
                   child: Padding(

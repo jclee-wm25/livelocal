@@ -37,8 +37,11 @@ class SpotController with ChangeNotifier {
   List<SpotModel> get approvedSpots {
     return _spots.where((s) {
       if (s.status != 'approved') return false;
-      if (_selectedState != 'All' && s.state.toLowerCase() != _selectedState.toLowerCase()) return false;
-      if (_selectedCategory != 'All' && s.category.toLowerCase() != _selectedCategory.toLowerCase()) return false;
+      if (_selectedState != 'All' &&
+          s.state.toLowerCase() != _selectedState.toLowerCase()) return false;
+      if (_selectedCategory != 'All' &&
+          s.category.toLowerCase() != _selectedCategory.toLowerCase())
+        return false;
       if (_searchQuery.isNotEmpty) {
         final q = _searchQuery.toLowerCase();
         final matchName = s.name.toLowerCase().contains(q);
@@ -50,7 +53,8 @@ class SpotController with ChangeNotifier {
     }).toList();
   }
 
-  List<SpotModel> get pendingSpots => _spots.where((s) => s.status == 'pending').toList();
+  List<SpotModel> get pendingSpots =>
+      _spots.where((s) => s.status == 'pending').toList();
 
   void filter({String? state, String? category, String? query}) {
     if (state != null) _selectedState = state;
@@ -96,7 +100,8 @@ class SpotController with ChangeNotifier {
     await loadSpots();
   }
 
-  Future<void> rejectSpot(String spotId, String reason, String currentUserRole) async {
+  Future<void> rejectSpot(
+      String spotId, String reason, String currentUserRole) async {
     try {
       await _service.rejectSpot(spotId, reason, currentUserRole);
     } catch (e) {
