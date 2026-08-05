@@ -91,9 +91,8 @@ void main() {
         reason: 'The repository, not the client, assigns persisted IDs.',
       );
 
-      // Admin authorization is deliberately not characterized here. The
-      // current client-role contract is not production authorization and will
-      // be replaced by a server-side RPC/RLS flow in Phase 5.
+      // Admin authorization is characterized separately through the feature
+      // repository and pgTAP RLS suites; this test remains a demo user flow.
     });
 
     test('Module 3: LocalEats & Discount Codes', () async {

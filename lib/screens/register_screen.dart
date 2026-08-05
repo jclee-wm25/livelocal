@@ -138,7 +138,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 24),
               const Text(
                 'All new accounts start as tourists. Influencer applications '
-                'will be introduced in a later approved phase.',
+                'are available from your profile after verification.',
                 style: TextStyle(fontSize: 13, color: Colors.grey),
               ),
               const SizedBox(height: 24),

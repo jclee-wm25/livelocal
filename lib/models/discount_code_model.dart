@@ -40,8 +40,8 @@ class DiscountCodeModel {
         'description': description,
         'expiry_date': expiryDate.toIso8601String(),
         'created_by': createdBy,
-        // Phase 7 replaces this compatibility flag with the approved discount
-        // lifecycle: draft, scheduled, active, paused, expired, or revoked.
+        // Legacy fixtures may expose only this flag; production uses the
+        // server-owned lifecycle status and server-time public projection.
         'is_active': isActive,
         'starts_at': startDate?.toIso8601String(),
         'redemption_terms': redemptionTerms,
