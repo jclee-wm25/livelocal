@@ -13,8 +13,9 @@ Status: **APPROVED DEFERRAL — NOT IMPLEMENTED IN FIRST MVP**
 | Verified visits | Requires a trustworthy evidence mechanism |
 | Automated global moderation | Requires a separately approved high-confidence safety policy |
 | Full offline writes/sync | Conflict/security model is outside first MVP |
+| Read-only discovery cache | Safe stale-data storage, invalidation, privacy and visible freshness state remain to be designed |
 | Advanced routing/live navigation | Requires a map/routing provider and no false optimality claims |
-| Full bilingual UI | UI is localization-ready first; full English/Bahasa Malaysia QA is later |
+| Full bilingual UI | English resource extraction and expansion-safe layouts must be completed before full Bahasa Malaysia translation/QA |
 | Public/influencer guide submissions | MVP guides are admin-curated |
 | Separate moderator/super-admin UIs | Permission boundaries are prepared, role split is later |
 | Web/desktop release | Android and iOS are the production platforms |

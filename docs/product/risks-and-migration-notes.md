@@ -1,56 +1,69 @@
 # Known Risks and Migration Notes
 
-Status: **PLANNING RECORD — NO MIGRATIONS HAVE BEEN CREATED OR APPLIED**
+Status: **versioned implementation; no remote migration applied**
 
-## Release-blocking current risks
+## Current release-blocking risks
 
-1. The prototype does not begin from an authenticated/session-resolved route.
-2. Demo login historically accepts a known email with any non-empty password.
-3. Client role mutation and profile policies can enable privilege escalation.
-4. Suspended Supabase sessions are not reliably revoked or denied by RLS.
-5. Supabase initialization and documentation disagree; production/demo modes
-   are not safely separated.
-6. The repository centralizes unrelated domains and contains model/schema drift.
-7. The SQL policy file is not a reproducible schema and omits protected data.
-8. Ratings and multi-record moderation operations are not transactional.
-9. Account deletion/reset/reporting contain prototype-only or unsafe behaviour.
-10. Android/iOS/CI/test baselines are not release ready.
+1. Migrations and pgTAP tests are versioned but unexecuted on this host.
+2. No approved staging or production Supabase project has been configured.
+3. Store identifiers, signing, publisher accounts, and branded assets are
+   placeholders or absent.
+4. Terms, Community Rules, Privacy Policy, consent versioning, and external
+   account deletion URL require owner/legal input.
+5. Account-associated public-content anonymization after deletion requires
+   store/legal review, especially for Apple UGC deletion guidance.
+6. Reports, personal hide, user blocking, and moderation exist, but an approved
+   pre-publication objectionable-content filter does not.
+7. Scheduled deletion and evidence-retention functions have no external runner,
+   monitoring, or alert destination.
+8. Production email verification/reset depends on SMTP/templates and redirect
+   configuration that cannot be validated without an approved project.
+9. iOS has not compiled on this Linux environment; macOS CI/on-device QA is
+   required.
+10. No production crash telemetry choice or operational incident plan exists.
+11. Exact location can be stored privately with a saved itinerary after
+   contextual permission; legal/store disclosures must match deployed use.
+12. Read-only offline discovery cache is absent; network failures remain
+   visible and recoverable rather than silently using fixtures.
+13. English UI strings are not fully extracted into localization resources;
+   expansion and locale QA remain before release.
+14. Automated duplicate merging is intentionally absent because review/save/
+   itinerary conflict and rollback semantics need a separately tested policy.
 
-## Planned migration principles
+## Deployment and data migration principles
 
-- No destructive database migration is authorized in Phase 0 or Phase 1.
-- Phase 2 must start from a staging project and reproducible versioned schema.
-- Prefer additive tables/columns, backfill, verified parallel reads, then a
-  controlled cutover; do not drop legacy data in the same step.
-- Parent records and immutable content revisions replace in-place moderation
-  overwrites.
-- Role and enforcement data must be separated from user-editable profile data.
-- Public views/projections must exclude email, private profiles, drafts,
-  evidence, and internal moderation reasons.
-- Multi-record privileged operations must use transactional server functions.
-- Old timestamp/string IDs require validation and mapping to server UUIDs.
-- Existing rating/count values must be reconciled from eligible reviews before
-  constraints become authoritative.
-- Discount table/model naming and ownership must be normalized before import.
-- Upload metadata and object ownership must be inventoried to prevent orphans.
+- Start with a new staging project and replay all migrations from empty state.
+- Run every pgTAP suite before loading representative data.
+- Do not point legacy prototype data directly at the new schema. Inventory,
+  normalize, validate, and import through reviewed scripts with reconciliation.
+- Prefer additive import, verified parallel comparison, controlled cutover,
+  and rollback. Do not drop source data during first production cutover.
+- Recompute ratings/counts from eligible reviews; never trust imported
+  aggregate values.
+- Map old roles through a private reviewed grant process. Public metadata must
+  never grant influencer/admin.
+- Validate ownership, content state, timestamps/time zones, duplicate listings,
+  storage MIME/size, and object paths before import.
+- Preserve immutable moderation history and expected-version counters.
+- Test account deletion/anonymization on representative owned content before
+  scheduling it against real users.
 
-## Deletion and retention migration risks
+## Deletion and retention risks
 
 - Approved reviews/spots/guides may remain only after irreversible identity
-  removal and anonymization verification.
-- A retained restaurant becomes unclaimed/platform-maintained only while its
-  business information remains valid.
-- Draft/pending/rejected/withdrawn content is removed after the grace period
-  unless subject to evidence/legal hold.
-- Evidence retention defaults to a configurable 180 days after case closure;
-  legal/active-investigation holds need explicit metadata and release rules.
-- Purge jobs must be idempotent, observable, and recoverable after partial
-  failure.
+  removal under the approved policy and successful reconstruction testing.
+- Retained restaurants become unclaimed/platform-maintained only while public
+  business details are still valid.
+- Draft/pending/rejected/withdrawn content is removed unless held as restricted
+  evidence.
+- Evidence retention defaults to configurable 180 days; legal holds require
+  documented actor, reason, lifecycle, and release.
+- Finalizer/purge jobs must be repeat-safe, observable, bounded, and recoverable
+  from partial infrastructure failure.
 
-## Phase 0/1 compatibility rule
+## Compatibility removal
 
-Temporary compatibility code may exist only to reach a compiling baseline. It
-must be marked with a future-phase removal note, must not create a role/auth
-bypass, and must have a focused test where meaningful. A green Phase 1 build is
-not evidence that Supabase, authentication, RLS, deletion, or moderation is
-production-ready.
+The old direct client services, legacy admin repository, and
+`SupabaseRepository` god repository were deleted after reference checks and
+replacement test success. The broad system characterization test now composes
+the same narrow explicit demo adapters used by demo bootstrap.

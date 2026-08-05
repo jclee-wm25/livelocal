@@ -2,63 +2,101 @@
 
 Status date: 2026-08-05
 
-This file deliberately separates the prototype from approved future behaviour.
+This is an implementation record, not a claim that versioned SQL has been
+deployed or that store/legal obligations are complete.
 
 ## CURRENT IMPLEMENTATION
 
-- Flutter/Provider prototype with discovery, detail, saved, itinerary, guide,
-  profile, review, restaurant, and admin screen concepts.
-- A centralized repository attempts Supabase access and otherwise uses
-  process-memory seed lists.
-- Application startup currently enters the home route rather than using a
-  complete session gate.
-- Authentication, roles, suspension, deletion, notifications, moderation,
-  restaurant/discount contracts, and RLS are incomplete or unsafe.
-- The database policy SQL is not a complete deployable schema/migration set.
-- The pre-Phase-1 baseline did not compile or test successfully from a clean
-  checkout. The authorized Phase 1 baseline now formats, analyzes, tests, and
-  builds an explicit-demo Android debug APK successfully.
-- There is no iOS project. Android release configuration is not production
-  ready.
+### Verified locally
+
+- Flutter 3.44.8 / Dart 3.12.2 dependency baseline.
+- Explicit demo, staging, and production configuration. Demo is impossible in
+  release; staging/production fail closed without HTTPS backend values.
+- Session gate, authentication lifecycle, account state screens, profile,
+  avatar, deletion request/recovery, and appeals.
+- Feature repository/controller/UI loops for spots, reviews, reports,
+  influencer applications, restaurants, discounts, saves, itineraries,
+  guides, notifications, and admin operations.
+- Trustworthy Local Guide theme and shared loading/empty/error/retry states.
+- Android debug build, 48x48 interaction theme test, and text-scaling test.
+- iOS source project, deep-link scheme, foreground location/photo purpose
+  strings, and privacy manifest.
+- 50 passing Flutter unit/widget/characterization tests and zero analyzer
+  issues at the latest checkpoint.
+
+### Versioned, not executed in this environment
+
+- Eleven ordered Supabase migrations covering identity, roles, account access,
+  deletion/appeal policy, spots, reviews, moderation, creators, restaurants,
+  discounts, saves, itineraries, guides, notifications, audit, operations, and
+  private user blocking, plus owner content revisions and withdrawal.
+- Every exposed application table enables RLS. Sensitive multi-record changes
+  use identity-derived RPCs and expected-state/version checks.
+- Nine pgTAP suites cover RLS permission matrices, role escalation denial,
+  object ownership, moderation concurrency, account lifecycle, aggregate
+  behavior, operational closures, private user blocking, and owner revision
+  continuity.
+
+The current machine has no Supabase CLI or Docker runtime, so migration replay
+and pgTAP execution are pending CI or an approved local/staging environment.
+
+### Deliberate compatibility
+
+- Provider remains; no state-management migration was performed.
+- Some presentation files remain in `screens/` and model compatibility files
+  remain in `models/`. Active business/data contracts are feature-owned.
+- The former `SupabaseRepository` god repository and unreferenced legacy
+  services were removed after active runtime dependencies moved to narrow
+  feature adapters. The broad system characterization test now composes those
+  explicit demo adapters directly.
 
 ## APPROVED TARGET BEHAVIOUR
 
-- Supabase-only production backend with explicit demo/staging/production.
-- Public approved browsing and protected-action authentication return flow.
-- Tourist-only public signup; approved influencer applications; privately
-  provisioned admins.
-- Server-enforced account status, RLS, ownership, concurrency, and audit.
-- Revision-based content moderation and transactional review aggregates.
-- Fourteen-day deletion grace period with content-type-specific anonymization.
-- Temporary suspension, permanent ban, and auditable appeal/support cases.
-- Android and iOS production release after security and feature phases.
+The normative target remains
+[product-behaviour-spec.md](product-behaviour-spec.md). The feature code and
+migrations implement the approved first-MVP loops, subject to database replay,
+staging integration, operational configuration, and the release blockers
+below.
 
-See [product-behaviour-spec.md](product-behaviour-spec.md).
+## NOT YET IMPLEMENTED OR EXTERNALLY BLOCKED
 
-## NOT YET IMPLEMENTED
+- No migration or storage policy has been applied to any remote Supabase
+  project by this work.
+- No production domain, Supabase project, SMTP sender, Apple/Google developer
+  account, app identifier, signing key, or branded store asset is configured.
+- Automated deletion and 180-day evidence purge functions exist, but no
+  external scheduler/monitor is configured.
+- Legal Terms, Community Rules, Privacy Policy, consent/version records, and a
+  Google-compatible web deletion request page are not supplied.
+- Pre-publication objectionable-content filtering is not implemented. Reports,
+  personal hide, user blocking, and admin moderation are implemented.
+- Production crash/error telemetry is intentionally not selected. Release
+  builds do not print raw caught exceptions.
+- iOS compilation is delegated to macOS CI and has not been run on this Linux
+  host. Signing/on-device tests remain external.
+- Read-only offline discovery cache is not implemented. Network mutations fail
+  honestly; full offline writes remain deferred.
+- English UI copy has not yet been extracted fully into Flutter localization
+  resources. Full Bahasa Malaysia support remains deferred, but resource
+  extraction and expansion testing are still required before release.
+- Duplicate detection supports selecting the existing listing or a justified
+  override. A destructive admin merge tool is not implemented and requires
+  explicit review-conflict, save, itinerary, audit, and rollback rules.
+- Store privacy questionnaires and the iOS privacy manifest require a final
+  audit against the deployed backend and exact dependency archive.
 
-The approved target items above remain planned until their corresponding phase
-is implemented and verified. In particular, Phase 0/1 do not make the
-following production-ready:
+## Delivery checkpoints
 
-- Supabase schema, migrations, RLS, storage policies, or RPCs;
-- authentication/session/account lifecycle;
-- influencer applications;
-- content revisions or safe admin moderation;
-- deletion jobs, evidence retention jobs, or session revocation;
-- transactional ratings;
-- appeal/support case handling;
-- production offline cache;
-- iOS or store release configuration.
-
-## Phase status
-
-| Phase | Status | Meaning |
+| Area | Repository state | Remaining gate |
 |---|---|---|
-| 0: specification records | Complete | Approved target/current/deferred records and ADRs versioned |
-| 1: compiling baseline | Complete | Build/config/contracts/tests only; verified 2026-08-05 |
-| 2: Supabase foundation | Not authorized | No migrations or live project changes |
-| 3 and later | Not authorized | No feature/security architecture implementation |
+| Flutter baseline | Verified | keep CI green |
+| Auth/account UI | Implemented | staging email/deep-link integration |
+| Database/RLS | Versioned | local replay, pgTAP, staging review |
+| Product loops | Implemented | end-to-end staging/device QA |
+| Android | Debug verified, API 36 via Flutter | identifier, icon, signing, release QA |
+| iOS | Project and CI job added | macOS result, identifier, icon, signing |
+| Store/legal | Documented only | owner/legal/external inputs required |
 
-Phase 1 verification and exclusions are recorded in
-[phase0-phase1-baseline.md](phase0-phase1-baseline.md).
+Historical Phase 0/1 evidence remains in
+[phase0-phase1-baseline.md](phase0-phase1-baseline.md) and should be read as a
+dated baseline, not current product status.

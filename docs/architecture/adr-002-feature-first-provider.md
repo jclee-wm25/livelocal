@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-05
-- Implementation status: Not yet implemented
+- Implementation status: Implemented incrementally; compatibility remains
 
 ## Context
 
@@ -50,8 +50,10 @@ errors. Supabase and demo implementations are distinct adapters.
 
 ## Consequences
 
-- The current god repository is replaced gradually rather than rewritten in
-  one change.
+- Narrow feature contracts now own production data access. The old god
+  repository was removed after runtime and characterization consumers moved to
+  explicit feature adapters.
 - State management can be reconsidered only if concrete testability or scaling
   evidence later justifies it.
-- Phase 0/1 may repair contracts but does not begin the feature migration.
+- Presentation compatibility exports and legacy model locations may remain
+  until moving them produces a concrete testing or ownership benefit.

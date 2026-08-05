@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-05
-- Implementation status: Not yet implemented
+- Implementation status: Versioned locally; remote deployment pending
 
 ## Context
 
@@ -25,13 +25,16 @@ a specific future service is separately approved.
 
 ## Consequences
 
-- Phase 2 must build a reproducible Supabase staging schema before live data.
+- Eleven reproducible migrations and direct RLS tests now define the backend;
+  they must be replayed on an approved local/staging project before live data.
 - Backend authorization derives actor and role from the authenticated context.
 - Complex moderation/account/content operations use transactional RPCs.
 - RLS and storage authorization receive direct tests in CI.
 - Push is deferred and does not justify retaining FCM now.
 
-## Not authorized by this ADR
+## Historical authorization boundary
 
-This ADR does not authorize creating/applying migrations or modifying a live
-Supabase project during Phase 0 or Phase 1.
+This ADR did not authorize creating/applying migrations during Phase 0 or
+Phase 1. Later implementation authorization allowed versioned migrations but
+did not authorize modifying a live Supabase project. No remote project was
+changed.

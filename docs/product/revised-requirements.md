@@ -1,6 +1,6 @@
 # Revised Requirements and FR01-FR64 Mapping
 
-Status: **APPROVED TARGET BEHAVIOUR — NOT YET IMPLEMENTED**
+Status: **APPROVED REQUIREMENTS — implementation varies by release gate**
 
 The original requirements remain historical source material in
 [`LiveLocal.md`](../../LiveLocal.md). This document supersedes their product
@@ -23,6 +23,7 @@ interpretation without claiming implementation completion.
 | Reviews | `REV-01` public eligible reviews; `REV-02` one editable text review per user/target; `REV-03` transactional aggregates; `REV-04` restricted edit history; `REV-05` review photos deferred |
 | Moderation | `MOD-01` pending case, no one-report global hide; `MOD-02` personal hide/block; `MOD-03` duplicate/rate limits; `MOD-04` audited decisions/evidence; `MOD-05` 180-day configurable retention; `MOD-06` transactional content action |
 | Notifications/admin | `NOT-01` private in-app history/read state; `NOT-02` typed/idempotent events; `ADM-01` backend authorization; `ADM-02` reason/version/audit; `ADM-03` self/last-admin safeguards; `ADM-04` future permission separation |
+| Store compliance | `CMP-01` functional Terms/Community Rules/Privacy/support URLs; `CMP-02` versioned UGC-rules acceptance and objectionable-content filtering; `CMP-03` in-app and web account-deletion request paths; `CMP-04` accurate privacy/data-safety disclosures |
 
 ## Original FR mapping
 
@@ -30,14 +31,14 @@ interpretation without claiming implementation completion.
 |---|---|---|
 | FR01 | AUT-01 | Rewritten: every public signup is tourist |
 | FR02 | AUT-03 | Retained and secured |
-| FR03 | AUT-01 | Expanded validation/consent |
+| FR03 | AUT-01, CMP-02 | Expanded validation and UGC-rules consent |
 | FR04 | AUT-03 | Retained; passwordless demo matching prohibited in release |
 | FR05 | AUT-02, AUT-04 | Expanded lifecycle |
 | FR06 | AUT-03, SYS-04 | Rewritten error behaviour |
 | FR07 | ACC-01 | Retained |
 | FR08 | ACC-01 | Allowlisted own fields only |
 | FR09 | ACC-02 | Retained with storage validation |
-| FR10 | ACC-03, ACC-04 | Expanded deletion policy |
+| FR10 | ACC-03, ACC-04, CMP-03 | Expanded deletion policy and store web path |
 | FR11 | ACC-05, ADM-01 | Expanded server enforcement |
 | FR12 | INF-01–INF-04 | Replaced role picker with application workflow |
 | FR13 | SPT-01, SPT-02 | "Authentic" rewritten as approved/provenanced |
@@ -84,7 +85,7 @@ interpretation without claiming implementation completion.
 | FR54 | REV-03 | Transactional server aggregate |
 | FR55 | REV-01 | Retained |
 | FR56 | REV-02 | One editable review per target |
-| FR57 | MOD-01–MOD-04 | Rewritten pending-case flow |
+| FR57 | MOD-01–MOD-04, CMP-02 | Rewritten pending-case and user-safety flow |
 | FR58 | ADM-01, ADM-02 | Authoritative statistics/administration target |
 | FR59 | MOD-04 | Audited moderation queue |
 | FR60 | MOD-06 | Transactional removal/aggregate update |
@@ -101,3 +102,11 @@ interpretation without claiming implementation completion.
 - Public role selection/client role mutation.
 - "Trending" based only on reversed insertion order.
 - Discount codes as guaranteed vouchers/payment instruments.
+
+## New implicit store requirements
+
+`CMP-01`–`CMP-04` do not map cleanly to a single original FR. They are required
+because LiveLocal creates accounts, collects personal data, and hosts public
+UGC. Their technical foundations are partly implemented, but legal documents,
+consent versioning, pre-publication filtering, a deletion website, and final
+store disclosures remain release blockers.

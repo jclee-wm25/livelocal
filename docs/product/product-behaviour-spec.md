@@ -1,11 +1,11 @@
 # LiveLocal Product Behaviour Specification
 
-Status: **APPROVED TARGET BEHAVIOUR — NOT YET IMPLEMENTED**
+Status: **APPROVED NORMATIVE BEHAVIOUR — implementation tracked separately**
 
 Approved: 2026-08-05
 
 This document records the approved product direction. It does not assert that
-the current prototype implements these behaviours. Current implementation
+versioned code is deployed or store-approved. Current implementation
 status is tracked in [implementation-status.md](implementation-status.md).
 
 Normative terms `MUST`, `SHOULD`, and `MAY` describe target requirements.
@@ -207,6 +207,19 @@ content. Duplicate active reports from the same reporter/target are prevented,
 reporting is rate limited, and moderators may uphold, dismiss, or escalate.
 Actions and evidence are auditable. Removing/restoring a review updates rating
 aggregates in the same transaction and notifies the author.
+
+Users may block an account from its published review, spot, or restaurant
+content. The backend derives the author from the public target; the client does
+not supply an arbitrary account ID. A block is private, does not notify the
+blocked account, hides that account's current and future public content for the
+blocker, and can be reviewed or undone in account settings.
+
+Before production UGC submission is enabled, approved Terms and Community
+Rules MUST define objectionable content and users MUST accept the current
+version. A reasonable pre-publication filtering strategy, report path, user
+blocking, published support contact, and timely moderation operation are store
+release requirements. Legal text and response promises are not invented by the
+application.
 
 ## Notifications and administration
 
