@@ -2,18 +2,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:live_local/core/config/app_environment.dart';
 import 'package:live_local/controllers/auth_controller.dart';
 import 'package:live_local/features/auth/data/demo_auth_repository.dart';
-import 'package:live_local/repositories/supabase_repository.dart';
 import 'package:live_local/services/seed_data_service.dart';
 
 void main() {
   group('AppConfiguration', () {
-    test('unconfigured repository does not fall back to fixtures', () async {
-      await expectLater(
-        SupabaseRepository().fetchSpots(),
-        throwsA(isA<StateError>()),
-      );
-    });
-
     test('requires an explicit environment', () {
       expect(
         () => AppConfiguration.fromValues(
@@ -125,10 +117,6 @@ void main() {
   });
 
   group('explicit demo authentication', () {
-    setUpAll(() {
-      SupabaseRepository().configureForDemo();
-    });
-
     test('rejects an arbitrary password for a fixture email', () async {
       final controller = AuthController(repository: DemoAuthRepository());
 

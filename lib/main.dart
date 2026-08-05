@@ -16,7 +16,6 @@ import 'welcome_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/register_screen.dart';
 import 'constants/app_colors.dart';
-import 'repositories/supabase_repository.dart';
 import 'features/auth/data/demo_auth_repository.dart';
 import 'features/auth/data/supabase_auth_repository.dart';
 import 'features/auth/domain/auth_repository.dart';
@@ -106,7 +105,6 @@ Future<void> main() async {
   late final ModerationRepository moderationRepository;
   try {
     if (configuration.isDemo) {
-      SupabaseRepository().configureForDemo();
       final demoAuthRepository = DemoAuthRepository();
       authRepository = demoAuthRepository;
       final demoAccountRepository = DemoAccountRepository(demoAuthRepository);
@@ -128,7 +126,6 @@ Future<void> main() async {
         url: configuration.supabaseUrl!,
         publishableKey: configuration.supabasePublishableKey!,
       );
-      SupabaseRepository().attachToInitializedSupabase();
       final supabaseAuthRepository = SupabaseAuthRepository(
         client: Supabase.instance.client,
         redirectUrl: configuration.authRedirectUrl,
