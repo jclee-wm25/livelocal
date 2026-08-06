@@ -29,13 +29,13 @@ void main() {
     addTearDown(auth.dispose);
 
     final fields = find.byType(TextFormField);
-    await tester.enterText(fields.first, 'tourist@livelocal.my');
+    await tester.enterText(fields.first, 'tourist@livelocal.com');
     await tester.enterText(fields.last, 'wrong-password');
     await tester.tap(find.widgetWithText(ElevatedButton, 'Log In'));
     await tester.pumpAndSettle();
     expect(find.text('Invalid email or password.'), findsOneWidget);
 
-    await tester.enterText(fields.first, 'tourist2@livelocal.my');
+    await tester.enterText(fields.first, 'tourist2@livelocal.com');
     await tester.pump();
     expect(find.text('Invalid email or password.'), findsNothing);
   });

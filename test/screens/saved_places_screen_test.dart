@@ -18,7 +18,7 @@ void main() {
       (tester) async {
     final authRepository = DemoAuthRepository();
     await authRepository.signIn(
-      email: 'tourist@livelocal.my',
+      email: 'tourist@livelocal.com',
       password: SeedDataService.demoPassword,
     );
     final authController = AuthController(repository: authRepository);
