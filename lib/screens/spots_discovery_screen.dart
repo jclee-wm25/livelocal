@@ -28,6 +28,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> {
     'Sarawak',
     'Selangor',
   ];
+
   static const _categories = [
     'All',
     'Kopitiam',
@@ -50,6 +51,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> {
   Widget build(BuildContext context) {
     final controller = context.watch<SpotController>();
     final spots = controller.approvedSpots;
+
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: controller.loadSpots,

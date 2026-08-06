@@ -733,7 +733,6 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     String reviewId,
   ) async {
     var reason = 'spam';
-    var hideForMe = true;
     final explanation = TextEditingController();
     final submitted = await showDialog<bool>(
       context: context,
@@ -745,7 +744,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  initialValue: reason,
+                  value: reason,
                   decoration: const InputDecoration(
                     labelText: 'Reason',
                     border: OutlineInputBorder(),
@@ -775,20 +774,9 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                   minLines: 2,
                   maxLines: 5,
                   decoration: const InputDecoration(
-                    labelText: 'Optional details',
+                    labelText: 'Explanation (optional)',
                     border: OutlineInputBorder(),
                   ),
-                ),
-                CheckboxListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: hideForMe,
-                  title: const Text('Hide this review for me'),
-                  subtitle: const Text(
-                    'One report does not hide it from everyone.',
-                  ),
-                  onChanged: (value) {
-                    setDialogState(() => hideForMe = value ?? true);
-                  },
                 ),
               ],
             ),
@@ -800,28 +788,29 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Submit report'),
+              child: const Text('Submit Report'),
             ),
           ],
         ),
       ),
     );
-    final details = explanation.text.trim();
-    explanation.dispose();
+
     if (submitted != true) return;
-    final success = await controller.reportReview(
+
+    final reported = await controller.reportReview(
       reviewId: reviewId,
       reason: reason,
-      explanation: details.isEmpty ? null : details,
-      hideForReporter: hideForMe,
+      explanation: explanation.text.trim(),
     );
+
     if (!context.mounted) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          success
-              ? 'Report submitted for moderation.'
-              : controller.errorMessage ?? 'The report could not be submitted.',
+          reported
+              ? 'Thank you for keeping our community safe.'
+              : controller.errorMessage ?? 'Failed to submit report.',
         ),
       ),
     );
