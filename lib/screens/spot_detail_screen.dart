@@ -193,7 +193,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                           children: [
                             const Icon(Icons.check_circle_outline, color: AppColors.primary, size: 18),
                             const SizedBox(width: 8),
-                            const Text('Things to do / Order: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const Text('Things to do / See: ', style: TextStyle(fontWeight: FontWeight.bold)),
                             Expanded(child: Text(widget.spot.thingsToDo)),
                           ],
                         ),

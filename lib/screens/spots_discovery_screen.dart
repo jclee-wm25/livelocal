@@ -20,7 +20,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
   final TextEditingController _searchCtrl = TextEditingController();
 
   final List<String> _states = ['All', 'Penang', 'Kuala Lumpur', 'Perak', 'Johor', 'Selangor', 'Melaka', 'Sabah', 'Sarawak'];
-  final List<String> _categories = ['All', 'Kopitiam', 'Pasar Malam', 'Indie Cafe', 'Park / Walkway', 'Hawker Food', 'Heritage Spot'];
+  final List<String> _categories = ['All', 'Heritage Site', 'Nature & Parks', 'Museum & Gallery', 'Street Art', 'Viewpoint', 'Cultural Landmark'];
 
   late AnimationController _heroTextController;
   late Animation<double> _heroTextOpacity;
@@ -119,7 +119,7 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> with Ticker
                               onChanged: (val) => spotCtrl.filter(query: val),
                               onEditingComplete: () => FocusScope.of(context).unfocus(),
                               decoration: InputDecoration(
-                                hintText: 'Search kopitiam, cafes, spots...',
+                                hintText: 'Search temples, parks, museums...',
                                 hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
                                 border: InputBorder.none,
                                 isDense: true,

@@ -38,7 +38,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
   late String _selectedPrice;
 
   final List<String> _states = ['Penang', 'Kuala Lumpur', 'Perak', 'Johor', 'Selangor', 'Melaka', 'Sabah', 'Sarawak'];
-  final List<String> _categories = ['Kopitiam', 'Pasar Malam', 'Indie Cafe', 'Park / Walkway', 'Hawker Food', 'Heritage Spot'];
+  final List<String> _categories = ['Heritage Site', 'Nature & Parks', 'Museum & Gallery', 'Street Art', 'Viewpoint', 'Cultural Landmark'];
   final List<String> _prices = ['\$', '\$\$', '\$\$\$'];
 
   @override
@@ -55,7 +55,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     _existingImageUrl = s?.imageUrl;
     
     _selectedState = s?.state ?? 'Penang';
-    _selectedCategory = s?.category ?? 'Kopitiam';
+    _selectedCategory = s?.category ?? 'Heritage Site';
     _selectedPrice = s?.priceRange ?? '\$';
 
     // Ensure initial values are valid
@@ -160,7 +160,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
                 ],
               ),
               const SizedBox(height: AppStyles.padMd),
-              _buildTextField(_activitiesCtrl, 'Recommended Activities / Food *'),
+              _buildTextField(_activitiesCtrl, 'Recommended Activities / Things to See *'),
               const SizedBox(height: AppStyles.padMd),
               _buildImagePicker(),
               const SizedBox(height: AppStyles.padXl),
