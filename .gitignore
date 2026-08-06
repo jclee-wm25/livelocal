@@ -46,3 +46,7 @@ app.*.map.json
 .env
 
 supabase/.temp/
+
+module3_for_friend/
+module3_for_friend.zip
+
