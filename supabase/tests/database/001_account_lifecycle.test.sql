@@ -141,11 +141,21 @@ select lives_ok(
   )$$,
   'admin can permanently ban with the current expected version'
 );
+
+reset role;
 select ok(
   (select banned_until > clock_timestamp() from auth.users
     where id = '20000000-0000-0000-0000-000000000002'),
   'permanent platform ban blocks fresh Auth sessions'
 );
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"20000000-0000-0000-0000-000000000001","role":"authenticated"}',
+  true
+);
+set local role authenticated;
+
 select lives_ok(
   $$select public.admin_set_account_access(
     '20000000-0000-0000-0000-000000000002', 'active',
@@ -153,6 +163,8 @@ select lives_ok(
   )$$,
   'admin can restore a banned account with the current expected version'
 );
+
+reset role;
 select is(
   (select banned_until from auth.users
     where id = '20000000-0000-0000-0000-000000000002'),
