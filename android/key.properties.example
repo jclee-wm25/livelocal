@@ -1,0 +1,6 @@
+# Copy this file to android/key.properties. Never commit the populated file or
+# its keystore. Values are supplied by the approved Android release owner.
+storePassword=REPLACE_ME
+keyPassword=REPLACE_ME
+keyAlias=REPLACE_ME
+storeFile=/absolute/path/to/private-release-key.jks

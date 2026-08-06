@@ -29,7 +29,11 @@ class HeroGuideSliver extends StatelessWidget {
         background: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [AppColors.primaryDark, AppColors.primary, AppColors.accentMid],
+              colors: [
+                AppColors.primaryDark,
+                AppColors.primary,
+                AppColors.accentMid
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -43,7 +47,8 @@ class HeroGuideSliver extends StatelessWidget {
                 children: [
                   FadeTransition(
                     opacity: opacityAnim,
-                    child: const Text('🗺️ Explore Like a Local', style: AppStyles.headerWhite),
+                    child: const Text('🗺️ Explore Like a Local',
+                        style: AppStyles.headerWhite),
                   ),
                   const SizedBox(height: AppStyles.padSm),
                   SlideTransition(
@@ -67,7 +72,8 @@ class HeroGuideSliver extends StatelessWidget {
             height: 56,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: AppStyles.padMd, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: AppStyles.padMd, vertical: 10),
               itemCount: states.length,
               itemBuilder: (context, i) {
                 final s = states[i];
@@ -80,17 +86,25 @@ class HeroGuideSliver extends StatelessWidget {
                     child: GestureDetector(
                       onTap: () => onStateSelected(s),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: AppStyles.padMd, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: AppStyles.padMd, vertical: 6),
                         decoration: BoxDecoration(
-                          color: isSelected ? AppColors.gold : Colors.white.withValues(alpha: 0.15),
+                          color: isSelected
+                              ? AppColors.gold
+                              : Colors.white.withValues(alpha: 0.15),
                           borderRadius: AppStyles.pillRadius,
-                          border: Border.all(color: isSelected ? AppColors.gold : Colors.white38),
+                          border: Border.all(
+                              color:
+                                  isSelected ? AppColors.gold : Colors.white38),
                         ),
                         child: Text(
                           s,
                           style: TextStyle(
-                            color: isSelected ? AppColors.primaryDark : Colors.white,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            color: isSelected
+                                ? AppColors.primaryDark
+                                : Colors.white,
+                            fontWeight:
+                                isSelected ? FontWeight.bold : FontWeight.w500,
                             fontSize: 13,
                           ),
                         ),

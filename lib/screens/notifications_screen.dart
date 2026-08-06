@@ -1,10 +1,11 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../controllers/auth_controller.dart';
-import '../repositories/supabase_repository.dart';
+import '../core/routing/protected_navigation.dart';
+import '../features/notifications/presentation/notification_controller.dart';
 import '../models/notification_model.dart';
-import '../constants/app_colors.dart';
+import '../shared/presentation/app_state_view.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -13,236 +14,181 @@ class NotificationsScreen extends StatefulWidget {
   State<NotificationsScreen> createState() => _NotificationsScreenState();
 }
 
-class _NotificationsScreenState extends State<NotificationsScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _bellController;
-
+class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   void initState() {
     super.initState();
-    _bellController = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 600));
-    _bellController.repeat(reverse: true);
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) _bellController.stop();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !context.read<AuthController>().canWrite) return;
+      context.read<NotificationController>().load();
     });
   }
 
   @override
-  void dispose() {
-    _bellController.dispose();
-    super.dispose();
-  }
+  Widget build(BuildContext context) {
+    if (!context.watch<AuthController>().canWrite) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F5F0),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFF7F5F0),
+          title: const Text('Notifications'),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.notifications_none, size: 56),
+                const SizedBox(height: 16),
+                Text(
+                  'Your account updates in one place',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Sign in to view moderation decisions, creator application updates, and other personal notices.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => context.read<ProtectedNavigation>().open(
+                        context,
+                        '/notifications',
+                      ),
+                  child: const Text('Sign in'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
-  Color _getTypeColor(String type) {
-    final t = type.toLowerCase();
-    if (t.contains('approved')) return Colors.green;
-    if (t.contains('discount')) return Colors.amber;
-    if (t.contains('flag')) return Colors.red;
-    return AppColors.primary;
+    final controller = context.watch<NotificationController>();
+    return Scaffold(
+      backgroundColor: const Color(0xFFF7F5F0),
+      appBar: AppBar(
+        backgroundColor: const Color(0xFFF7F5F0),
+        title: const Text('Notifications'),
+        actions: [
+          if (controller.unreadCount > 0)
+            TextButton(
+              onPressed: controller.isLoading ? null : controller.markAllRead,
+              child: const Text('Mark all read'),
+            ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: controller.load,
+        child: controller.isLoading && controller.notifications.isEmpty
+            ? const AppLoadingList()
+            : controller.errorMessage != null &&
+                    controller.notifications.isEmpty
+                ? AppStateView(
+                    icon: Icons.wifi_off_outlined,
+                    title: 'Notifications could not be loaded',
+                    message: controller.errorMessage!,
+                    actionLabel: 'Try again',
+                    onAction: controller.load,
+                    scrollable: true,
+                  )
+                : controller.notifications.isEmpty
+                    ? const AppStateView(
+                        icon: Icons.notifications_none,
+                        title: 'No notifications yet',
+                        message:
+                            'Account and moderation updates will appear here.',
+                        scrollable: true,
+                      )
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+                        itemCount: controller.notifications.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, index) {
+                          final notification = controller.notifications[index];
+                          return _NotificationCard(
+                            notification: notification,
+                            onTap: notification.isRead
+                                ? null
+                                : () => controller.markRead(notification.id),
+                          );
+                        },
+                      ),
+      ),
+    );
   }
+}
 
-  IconData _getTypeIcon(String type) {
-    final t = type.toLowerCase();
-    if (t.contains('approved')) return Icons.check_circle;
-    if (t.contains('discount')) return Icons.local_offer;
-    if (t.contains('flag')) return Icons.flag;
-    return Icons.notifications;
-  }
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.notification, this.onTap});
+
+  final NotificationModel notification;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthController>();
-    final userId = auth.currentUser?.id ?? 'default_user';
-
-    return Scaffold(
-      backgroundColor: AppColors.backgroundSoft,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryDark,
-        elevation: 0,
-        title: const Text('Notifications',
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        actions: [
-          AnimatedBuilder(
-            animation: _bellController,
-            builder: (context, child) {
-              final angle = sin(_bellController.value * pi * 6) * 0.15;
-              return Transform.rotate(
-                angle: angle,
-                child: const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Icon(Icons.notifications_active,
-                      color: AppColors.gold),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: FutureBuilder<List<NotificationModel>>(
-        future: SupabaseRepository().fetchNotifications(userId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-                child:
-                    CircularProgressIndicator(color: AppColors.primary));
-          }
-          if (snapshot.hasError) {
-            return Center(
-                child: Text('Error loading notifications',
-                    style: TextStyle(color: Colors.red.shade400)));
-          }
-
-          final notifications = snapshot.data ?? [];
-          if (notifications.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: AppColors.accentLight.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(Icons.notifications_off,
-                        size: 64, color: Colors.grey.shade400),
-                  ),
-                  const SizedBox(height: 16),
-                  Text('No notifications yet',
-                      style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w500)),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            itemCount: notifications.length,
-            itemBuilder: (context, index) {
-              final notif = notifications[index];
-              return TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0.0, end: 1.0),
-                duration: Duration(
-                    milliseconds: 400 + (index * 100).clamp(0, 600)),
-                curve: Curves.easeOutCubic,
-                builder: (context, value, child) {
-                  return Transform.translate(
-                    offset: Offset(0, 50 * (1 - value)),
-                    child: Opacity(opacity: value, child: child),
-                  );
-                },
-                child: _buildNotificationCard(notif),
-              );
-            },
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildNotificationCard(NotificationModel notif) {
-    final Color color = _getTypeColor(notif.type);
-    final bool isRead = notif.isRead;
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(width: 6, color: color),
-            Expanded(
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () {},
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.1),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(_getTypeIcon(notif.type),
-                              color: color, size: 22),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                notif.title,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 15,
-                                    color: AppColors.primaryDark),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                notif.message,
-                                style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontSize: 13),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                _timeAgo(notif.createdAt),
-                                style: TextStyle(
-                                    color: Colors.grey.shade500,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
-                        ),
-                        if (!isRead)
-                          Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: AppColors.accent,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
+    final color = _color(notification.type);
+    return Card(
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      color: notification.isRead
+          ? Theme.of(context).colorScheme.surface
+          : Theme.of(context).colorScheme.primaryContainer,
+      child: ListTile(
+        minTileHeight: 88,
+        leading: CircleAvatar(
+          backgroundColor: color.withValues(alpha: 0.12),
+          foregroundColor: color,
+          child: Icon(_icon(notification.type)),
         ),
+        title: Text(notification.title),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 4),
+          child: Text(
+            '${notification.message}\n${_timeAgo(notification.createdAt)}',
+            maxLines: 4,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        isThreeLine: true,
+        trailing: notification.isRead
+            ? null
+            : const Tooltip(
+                message: 'Unread',
+                child: Icon(Icons.circle, size: 10),
+              ),
+        onTap: onTap,
       ),
     );
   }
 
-  String _timeAgo(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inDays > 0) return '${diff.inDays}d ago';
-    if (diff.inHours > 0) return '${diff.inHours}h ago';
-    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+  static Color _color(String type) {
+    if (type.contains('approved')) return Colors.green.shade700;
+    if (type.contains('rejected') || type.contains('moderated')) {
+      return Colors.red.shade700;
+    }
+    if (type.contains('information')) return Colors.orange.shade800;
+    return Colors.blueGrey.shade700;
+  }
+
+  static IconData _icon(String type) {
+    if (type.contains('approved')) return Icons.check_circle_outline;
+    if (type.contains('creator')) return Icons.verified_user_outlined;
+    if (type.contains('report') || type.contains('moderated')) {
+      return Icons.gavel_outlined;
+    }
+    return Icons.notifications_outlined;
+  }
+
+  static String _timeAgo(DateTime dateTime) {
+    final difference = DateTime.now().difference(dateTime.toLocal());
+    if (difference.inDays > 0) return '${difference.inDays}d ago';
+    if (difference.inHours > 0) return '${difference.inHours}h ago';
+    if (difference.inMinutes > 0) return '${difference.inMinutes}m ago';
     return 'Just now';
   }
 }

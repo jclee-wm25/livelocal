@@ -5,9 +5,11 @@ class DiscountCodeModel {
   final String description;
   final DateTime expiryDate;
   final String createdBy;
-
-  final double discountPercentage;
   final bool isActive;
+  final DateTime? startDate;
+  final String redemptionTerms;
+  final String status;
+  final int version;
 
   DiscountCodeModel({
     required this.id,
@@ -16,13 +18,20 @@ class DiscountCodeModel {
     required this.description,
     required this.expiryDate,
     required this.createdBy,
-    this.discountPercentage = 0.0,
     this.isActive = true,
+    this.startDate,
+    this.redemptionTerms = '',
+    this.status = 'active',
+    this.version = 1,
   });
 
-  bool get isExpired => DateTime.now().isAfter(expiryDate);
-
-  bool get isUsable => isActive && !isExpired;
+  bool get isExpired =>
+      status == 'expired' || DateTime.now().isAfter(expiryDate);
+  bool get isCurrentlyActive =>
+      isActive &&
+      status == 'active' &&
+      (startDate == null || !DateTime.now().isBefore(startDate!)) &&
+      !isExpired;
 
   Map<String, dynamic> toMap() => {
         'id': id,
@@ -31,24 +40,30 @@ class DiscountCodeModel {
         'description': description,
         'expiry_date': expiryDate.toIso8601String(),
         'created_by': createdBy,
-        'discount_percentage': discountPercentage,
+        // Legacy fixtures may expose only this flag; production uses the
+        // server-owned lifecycle status and server-time public projection.
         'is_active': isActive,
+        'starts_at': startDate?.toIso8601String(),
+        'redemption_terms': redemptionTerms,
+        'status': status,
+        'version': version,
       };
 
-  factory DiscountCodeModel.fromMap(Map<String, dynamic> map) {
-    return DiscountCodeModel(
-      id: map['id'] ?? '',
-      restaurantId: map['restaurant_id'] ?? '',
-      code: map['code'] ?? '',
-      description: map['description'] ?? '',
-      expiryDate: DateTime.tryParse(
-            map['expiry_date']?.toString() ?? '',
-          ) ??
-          DateTime.now(),
-      createdBy: map['created_by'] ?? '',
-      discountPercentage:
-          (map['discount_percentage'] as num?)?.toDouble() ?? 0.0,
-      isActive: map['is_active'] as bool? ?? true,
-    );
-  }
+  factory DiscountCodeModel.fromMap(Map<String, dynamic> map) =>
+      DiscountCodeModel(
+        id: map['id'] ?? '',
+        restaurantId: map['restaurant_id'] ?? '',
+        code: map['code'] ?? '',
+        description: map['description'] ?? '',
+        expiryDate: DateTime.parse(
+            map['expiry_date'] ?? DateTime.now().toIso8601String()),
+        createdBy: map['created_by'] ?? '',
+        isActive: map['is_active'] ?? true,
+        startDate: map['starts_at'] == null
+            ? null
+            : DateTime.parse(map['starts_at'] as String),
+        redemptionTerms: map['redemption_terms'] ?? '',
+        status: map['status'] ?? map['effective_status'] ?? 'active',
+        version: (map['version'] as num?)?.toInt() ?? 1,
+      );
 }
