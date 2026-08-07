@@ -300,7 +300,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               const SizedBox(width: 8),
                               const Text('Best Visiting Time: ',
                                   style:
-                                  TextStyle(fontWeight: FontWeight.bold)),
+                                      TextStyle(fontWeight: FontWeight.bold)),
                               Text(widget.spot.bestTime),
                             ],
                           ),
@@ -312,7 +312,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                               const SizedBox(width: 8),
                               const Text('Things to do / Order: ',
                                   style:
-                                  TextStyle(fontWeight: FontWeight.bold)),
+                                      TextStyle(fontWeight: FontWeight.bold)),
                               Expanded(child: Text(widget.spot.thingsToDo)),
                             ],
                           ),
@@ -329,7 +329,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         OutlinedButton.icon(
                           onPressed: _requestWriteReview,
                           icon:
-                          const Icon(Icons.rate_review_outlined, size: 16),
+                              const Icon(Icons.rate_review_outlined, size: 16),
                           label: const Text('Write Review'),
                           style: OutlinedButton.styleFrom(
                             minimumSize: const Size(120, 36),
@@ -383,7 +383,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                                       Row(
                                         children: List.generate(
                                           5,
-                                              (i) => Icon(
+                                          (i) => Icon(
                                             i < r.rating
                                                 ? Icons.star
                                                 : Icons.star_border,
@@ -462,13 +462,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     final auth = context.read<AuthController>();
     if (!auth.canWrite) {
       context.read<ProtectedNavigation>().open(
-        context,
-        '/spot-detail',
-        arguments: SpotDetailArguments(
-          spot: widget.spot,
-          pendingAction: const SpotPendingAction.reportSpot(),
-        ),
-      );
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: const SpotPendingAction.reportSpot(),
+            ),
+          );
       return;
     }
     await showContentReportDialog(
@@ -479,21 +479,21 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   }
 
   Future<void> _requestBlockAuthor(
-      String targetType,
-      String targetId,
-      ) async {
+    String targetType,
+    String targetId,
+  ) async {
     final auth = context.read<AuthController>();
     if (!auth.canWrite) {
       context.read<ProtectedNavigation>().open(
-        context,
-        '/spot-detail',
-        arguments: SpotDetailArguments(
-          spot: widget.spot,
-          pendingAction: targetType == 'review'
-              ? SpotPendingAction.blockReview(targetId)
-              : const SpotPendingAction.blockSpotAuthor(),
-        ),
-      );
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: targetType == 'review'
+                  ? SpotPendingAction.blockReview(targetId)
+                  : const SpotPendingAction.blockSpotAuthor(),
+            ),
+          );
       return;
     }
     final blocked = await showBlockContentAuthorDialog(
@@ -504,8 +504,8 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     if (!mounted || !blocked) return;
     if (targetType == 'review') {
       await context.read<ReviewController>().loadReviews(
-        spotId: widget.spot.id,
-      );
+            spotId: widget.spot.id,
+          );
     } else {
       await context.read<SpotController>().loadSpots();
       if (!mounted) return;
@@ -517,13 +517,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
     final auth = context.read<AuthController>();
     if (!auth.canWrite) {
       context.read<ProtectedNavigation>().open(
-        context,
-        '/spot-detail',
-        arguments: SpotDetailArguments(
-          spot: widget.spot,
-          pendingAction: const SpotPendingAction.save(),
-        ),
-      );
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: const SpotPendingAction.save(),
+            ),
+          );
       return;
     }
     final controller = context.read<ItineraryController>();
@@ -544,13 +544,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   void _requestWriteReview() {
     if (!context.read<AuthController>().canWrite) {
       context.read<ProtectedNavigation>().open(
-        context,
-        '/spot-detail',
-        arguments: SpotDetailArguments(
-          spot: widget.spot,
-          pendingAction: const SpotPendingAction.review(),
-        ),
-      );
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: const SpotPendingAction.review(),
+            ),
+          );
       return;
     }
     _showWriteReviewSheet(context, context.read<ReviewController>());
@@ -559,13 +559,13 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   void _requestReport(String reviewId) {
     if (!context.read<AuthController>().canWrite) {
       context.read<ProtectedNavigation>().open(
-        context,
-        '/spot-detail',
-        arguments: SpotDetailArguments(
-          spot: widget.spot,
-          pendingAction: SpotPendingAction.report(reviewId),
-        ),
-      );
+            context,
+            '/spot-detail',
+            arguments: SpotDetailArguments(
+              spot: widget.spot,
+              pendingAction: SpotPendingAction.report(reviewId),
+            ),
+          );
       return;
     }
     _showReportDialog(context, context.read<ReviewController>(), reviewId);
@@ -690,10 +690,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   }
 
   Future<void> _confirmDeleteReview(
-      BuildContext context,
-      ReviewController controller,
-      String reviewId,
-      ) async {
+    BuildContext context,
+    ReviewController controller,
+    String reviewId,
+  ) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -728,10 +728,10 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
   }
 
   Future<void> _showReportDialog(
-      BuildContext context,
-      ReviewController controller,
-      String reviewId,
-      ) async {
+    BuildContext context,
+    ReviewController controller,
+    String reviewId,
+  ) async {
     var reason = 'spam';
     final explanation = TextEditingController();
     final submitted = await showDialog<bool>(
@@ -744,7 +744,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: reason,
+                  initialValue: reason,
                   decoration: const InputDecoration(
                     labelText: 'Reason',
                     border: OutlineInputBorder(),
