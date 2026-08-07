@@ -210,35 +210,35 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
                 ),
                 child: _imageBytes != null
                     ? ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.memory(
-                    _imageBytes!,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
-                )
+                        borderRadius: BorderRadius.circular(16),
+                        child: Image.memory(
+                          _imageBytes!,
+                          fit: BoxFit.cover,
+                          width: double.infinity,
+                        ),
+                      )
                     : widget.source?.imageUrl.isNotEmpty == true
-                    ? ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: CachedNetworkImage(
-                    imageUrl: widget.source!.imageUrl,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorWidget: (_, __, ___) => const Center(
-                      child: Text('Choose a replacement photo'),
-                    ),
-                  ),
-                )
-                    : const Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.add_photo_alternate_outlined,
-                        size: 40),
-                    SizedBox(height: 8),
-                    Text(
-                        'Choose a JPEG, PNG or WebP photo (max 8 MB)'),
-                  ],
-                ),
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: CachedNetworkImage(
+                              imageUrl: widget.source!.imageUrl,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              errorWidget: (_, __, ___) => const Center(
+                                child: Text('Choose a replacement photo'),
+                              ),
+                            ),
+                          )
+                        : const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.add_photo_alternate_outlined,
+                                  size: 40),
+                              SizedBox(height: 8),
+                              Text(
+                                  'Choose a JPEG, PNG or WebP photo (max 8 MB)'),
+                            ],
+                          ),
               ),
             ),
             CheckboxListTile(
@@ -251,8 +251,8 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
               onChanged: _submitting
                   ? null
                   : (value) => setState(
-                    () => _imageRightsConfirmed = value ?? false,
-              ),
+                        () => _imageRightsConfirmed = value ?? false,
+                      ),
             ),
             if (spotController.errorMessage != null) ...[
               const SizedBox(height: 12),
@@ -266,14 +266,14 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
               onPressed: _submitting ? null : _submit,
               child: _submitting
                   ? const SizedBox.square(
-                dimension: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   : Text(
-                _createdDraft == null
-                    ? 'Check and submit'
-                    : 'Resolve probable duplicate',
-              ),
+                      _createdDraft == null
+                          ? 'Check and submit'
+                          : 'Resolve probable duplicate',
+                    ),
             ),
           ],
         ),
@@ -282,18 +282,18 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
   }
 
   Widget _field(
-      TextEditingController controller,
-      String label, {
-        required int minLength,
-        required int maxLength,
-        int maxLines = 1,
-      }) {
+    TextEditingController controller,
+    String label, {
+    required int minLength,
+    required int maxLength,
+    int maxLines = 1,
+  }) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
       maxLength: maxLength,
       decoration:
-      InputDecoration(labelText: label, border: const OutlineInputBorder()),
+          InputDecoration(labelText: label, border: const OutlineInputBorder()),
       validator: (value) {
         final length = value?.trim().length ?? 0;
         if (length < minLength) return 'Enter at least $minLength characters.';
@@ -311,7 +311,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     return DropdownButtonFormField<String>(
       initialValue: value,
       decoration:
-      InputDecoration(labelText: label, border: const OutlineInputBorder()),
+          InputDecoration(labelText: label, border: const OutlineInputBorder()),
       items: values
           .map((item) => DropdownMenuItem(value: item, child: Text(item)))
           .toList(),
@@ -378,18 +378,18 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     final controller = context.read<SpotController>();
     final result = _isRevision
         ? await controller.reviseAndSubmit(
-      source: widget.source!,
-      input: input,
-      imageBytes: _imageBytes,
-      imageMimeType: _imageMimeType,
-      imageRightsConfirmed: _imageRightsConfirmed,
-    )
+            source: widget.source!,
+            input: input,
+            imageBytes: _imageBytes,
+            imageMimeType: _imageMimeType,
+            imageRightsConfirmed: _imageRightsConfirmed,
+          )
         : await controller.submitDraft(
-      input: input,
-      imageBytes: _imageBytes,
-      imageMimeType: _imageMimeType,
-      imageRightsConfirmed: _imageRightsConfirmed,
-    );
+            input: input,
+            imageBytes: _imageBytes,
+            imageMimeType: _imageMimeType,
+            imageRightsConfirmed: _imageRightsConfirmed,
+          );
     if (!mounted) return;
     setState(() => _submitting = false);
     if (result == null) return;
@@ -416,7 +416,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
                   'Review these probable matches before creating another listing:'),
               const SizedBox(height: 12),
               ...draft.probableDuplicates.map(
-                    (duplicate) => ListTile(
+                (duplicate) => ListTile(
                   contentPadding: EdgeInsets.zero,
                   title: Text(duplicate.name),
                   subtitle: Text(
@@ -459,7 +459,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     if (action == 'existing') {
       setState(() => _submitting = true);
       final discarded =
-      await context.read<SpotController>().discardDraft(draft);
+          await context.read<SpotController>().discardDraft(draft);
       if (!mounted) return;
       setState(() => _submitting = false);
       if (!discarded) return;
@@ -469,9 +469,9 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     }
     setState(() => _submitting = true);
     final submitted = await context.read<SpotController>().submitExistingDraft(
-      draft.revisionId,
-      reason,
-    );
+          draft.revisionId,
+          reason,
+        );
     if (!mounted) return;
     setState(() => _submitting = false);
     if (submitted) _finish();

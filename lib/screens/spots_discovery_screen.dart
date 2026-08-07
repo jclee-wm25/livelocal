@@ -109,10 +109,10 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> {
                       items: _states
                           .map(
                             (state) => DropdownMenuItem(
-                          value: state,
-                          child: Text(state),
-                        ),
-                      )
+                              value: state,
+                              child: Text(state),
+                            ),
+                          )
                           .toList(),
                       onChanged: (value) {
                         if (value != null) controller.filter(state: value);
@@ -127,17 +127,17 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> {
                           children: _categories
                               .map(
                                 (category) => Padding(
-                              padding: const EdgeInsets.only(
-                                  right: AppSpacing.x1),
-                              child: FilterChip(
-                                label: Text(category),
-                                selected:
-                                controller.selectedCategory == category,
-                                onSelected: (_) =>
-                                    controller.filter(category: category),
-                              ),
-                            ),
-                          )
+                                  padding: const EdgeInsets.only(
+                                      right: AppSpacing.x1),
+                                  child: FilterChip(
+                                    label: Text(category),
+                                    selected:
+                                        controller.selectedCategory == category,
+                                    onSelected: (_) =>
+                                        controller.filter(category: category),
+                                  ),
+                                ),
+                              )
                               .toList(),
                         ),
                       ),
@@ -178,55 +178,55 @@ class _SpotsDiscoveryScreenState extends State<SpotsDiscoveryScreen> {
                 ),
               )
             else if (spots.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: AppStateView(
-                    icon: Icons.travel_explore_outlined,
-                    title: 'No matching places',
-                    message: 'Try another search, category, or state.',
-                    actionLabel: 'Clear filters',
-                    onAction: () {
-                      _search.clear();
-                      controller.resetFilters();
-                    },
-                  ),
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.x2,
-                    AppSpacing.x1,
-                    AppSpacing.x2,
-                    112,
-                  ),
-                  sliver: SliverList.separated(
-                    itemCount: spots.length + 1,
-                    separatorBuilder: (_, __) =>
-                    const SizedBox(height: AppSpacing.x2),
-                    itemBuilder: (context, index) {
-                      if (index == spots.length) {
-                        return Center(
-                          child: controller.isLoadingMore
-                              ? const Padding(
-                            padding: EdgeInsets.all(AppSpacing.x2),
-                            child: CircularProgressIndicator(),
-                          )
-                              : OutlinedButton(
-                            onPressed: controller.hasMore
-                                ? controller.loadMore
-                                : null,
-                            child: Text(
-                              controller.hasMore
-                                  ? 'Load more places'
-                                  : 'All places loaded',
-                            ),
-                          ),
-                        );
-                      }
-                      return _SpotCard(spot: spots[index]);
-                    },
-                  ),
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: AppStateView(
+                  icon: Icons.travel_explore_outlined,
+                  title: 'No matching places',
+                  message: 'Try another search, category, or state.',
+                  actionLabel: 'Clear filters',
+                  onAction: () {
+                    _search.clear();
+                    controller.resetFilters();
+                  },
                 ),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.x2,
+                  AppSpacing.x1,
+                  AppSpacing.x2,
+                  112,
+                ),
+                sliver: SliverList.separated(
+                  itemCount: spots.length + 1,
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.x2),
+                  itemBuilder: (context, index) {
+                    if (index == spots.length) {
+                      return Center(
+                        child: controller.isLoadingMore
+                            ? const Padding(
+                                padding: EdgeInsets.all(AppSpacing.x2),
+                                child: CircularProgressIndicator(),
+                              )
+                            : OutlinedButton(
+                                onPressed: controller.hasMore
+                                    ? controller.loadMore
+                                    : null,
+                                child: Text(
+                                  controller.hasMore
+                                      ? 'Load more places'
+                                      : 'All places loaded',
+                                ),
+                              ),
+                      );
+                    }
+                    return _SpotCard(spot: spots[index]);
+                  },
+                ),
+              ),
           ],
         ),
       ),
