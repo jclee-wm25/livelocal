@@ -744,7 +744,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 DropdownButtonFormField<String>(
-                  value: reason,
+                  initialValue: reason,
                   decoration: const InputDecoration(
                     labelText: 'Reason',
                     border: OutlineInputBorder(),
