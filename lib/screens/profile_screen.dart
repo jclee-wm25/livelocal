@@ -6,9 +6,11 @@ import '../constants/app_colors.dart';
 import '../controllers/auth_controller.dart';
 import '../features/profile/presentation/account_controller.dart';
 import '../features/moderation/presentation/moderation_controller.dart';
+import '../core/config/legal_urls.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.launcher});
+  final AppLauncher? launcher;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -30,7 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final account = context.watch<AccountController>();
     final moderation = context.watch<ModerationController>();
     final user = auth.currentUser;
-    if (user == null) return const _GuestAccountPrompt();
+    if (user == null) return _GuestAccountPrompt(launcher: widget.launcher);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF7F5F0),
@@ -242,6 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 minimumSize: const Size.fromHeight(48),
               ),
             ),
+            _LegalFooter(launcher: widget.launcher),
           ],
         ),
       ),
@@ -380,7 +383,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 }
 
 class _GuestAccountPrompt extends StatelessWidget {
-  const _GuestAccountPrompt();
+  const _GuestAccountPrompt({this.launcher});
+  final AppLauncher? launcher;
 
   @override
   Widget build(BuildContext context) {
@@ -390,42 +394,53 @@ class _GuestAccountPrompt extends StatelessWidget {
         title: const Text('Your account'),
         backgroundColor: const Color(0xFFF7F5F0),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  Icons.person_outline,
-                  size: 56,
-                  color: AppColors.primary,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.person_outline,
+                          size: 56,
+                          color: AppColors.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Sign in for personal features',
+                          style: Theme.of(context).textTheme.headlineSmall,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Browsing stays public. Sign in to save places, create itineraries, review, submit and manage your account.',
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        FilledButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/login'),
+                          child: const Text('Sign in'),
+                        ),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/register'),
+                          child: const Text('Create account'),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                Text(
-                  'Sign in for personal features',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Browsing stays public. Sign in to save places, create itineraries, review, submit and manage your account.',
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                FilledButton(
-                  onPressed: () => Navigator.pushNamed(context, '/login'),
-                  child: const Text('Sign in'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.pushNamed(context, '/register'),
-                  child: const Text('Create account'),
-                ),
-              ],
+              ),
             ),
-          ),
+            _LegalFooter(launcher: launcher),
+          ],
         ),
       ),
     );
@@ -454,6 +469,91 @@ class _InlineError extends StatelessWidget {
             Expanded(child: Text(message)),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _LegalFooter extends StatelessWidget {
+  const _LegalFooter({this.launcher});
+  final AppLauncher? launcher;
+
+  Future<void> _launchUrl(BuildContext context, Uri url) async {
+    final activeLauncher = launcher ?? const DefaultAppLauncher();
+    try {
+      final success = await activeLauncher.launch(url);
+      if (!success && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Could not open the link. Please visit livelocal.app/support'),
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'An error occurred while opening the link. Please visit livelocal.app/support'),
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final urls = LegalUrls.fromCompileTime();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                key: const Key('legal_terms'),
+                onPressed: () => _launchUrl(context, urls.terms),
+                child: Semantics(
+                  label: 'Terms of Service',
+                  child: const Text('Terms'),
+                ),
+              ),
+              const Text('·'),
+              TextButton(
+                key: const Key('legal_privacy'),
+                onPressed: () => _launchUrl(context, urls.privacy),
+                child: Semantics(
+                  label: 'Privacy Policy',
+                  child: const Text('Privacy'),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextButton(
+                key: const Key('legal_rules'),
+                onPressed: () => _launchUrl(context, urls.communityRules),
+                child: Semantics(
+                  label: 'Community Rules',
+                  child: const Text('Community Rules'),
+                ),
+              ),
+              const Text('·'),
+              TextButton(
+                key: const Key('legal_support'),
+                onPressed: () => _launchUrl(context, urls.support),
+                child: Semantics(
+                  label: 'Support',
+                  child: const Text('Support'),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
