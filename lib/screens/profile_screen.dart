@@ -300,11 +300,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Your account will be disabled now and permanently deleted after 14 days. You can recover it during the grace period by signing in and confirming recovery.',
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Private saves, preferences, drafts, notifications and your avatar will be deleted. Approved public content may be retained only after full anonymization.',
+                  'Your account will be disabled now and scheduled for permanent deletion after 14 days. You can recover your account during this grace period by signing in and confirming recovery.\n\n'
+                  'If the deletion is completed:\n\n'
+                  'Deleted:\n'
+                  'Your profile information, saved places, itineraries, and unapproved submissions will be permanently removed.\n\n'
+                  'Anonymized:\n'
+                  'To preserve community history, your published reviews and approved submissions may remain visible but will be anonymized and unlinked from you.\n\n'
+                  'Retained:\n'
+                  'Moderation cases, safety reports, and audit logs related to your account may be retained for trust and safety purposes.\n\n'
+                  'For full details, please review our Privacy Policy.',
                 ),
                 const SizedBox(height: 16),
                 TextField(
