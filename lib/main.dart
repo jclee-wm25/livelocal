@@ -14,6 +14,7 @@ import 'controllers/moderation_controller.dart';
 
 import 'welcome_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/profile_screen.dart';
 import 'screens/register_screen.dart';
 import 'constants/app_colors.dart';
 import 'features/auth/data/demo_auth_repository.dart';
@@ -285,6 +286,7 @@ class LiveLocalApp extends StatelessWidget {
           '/my-submissions': (context) => const MySubmissionsScreen(),
           '/submit-spot': (context) => const SubmitSpotScreen(),
           '/creator-application': (context) => const CreatorApplicationScreen(),
+          '/account-deletion': (context) => const ProfileScreen(),
           '/restaurant-detail': (context) {
             final arguments = ModalRoute.of(context)?.settings.arguments;
             if (arguments is! RestaurantDetailArguments) {
