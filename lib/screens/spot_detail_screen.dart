@@ -650,6 +650,7 @@ class _SpotDetailScreenState extends State<SpotDetailScreen> {
                         if (_commentCtrl.text.trim().isEmpty) return;
                         try {
                           final saved = await reviewCtrl.addReview(
+                            context,
                             spotId: widget.spot.id,
                             rating: _userRating,
                             comment: _commentCtrl.text.trim(),

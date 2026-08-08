@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../models/spot_model.dart';
+import '../../moderation/presentation/ugc_consent_dialog.dart';
 import '../domain/spot_repository.dart';
 
 class SpotController with ChangeNotifier {
@@ -124,7 +126,8 @@ class SpotController with ChangeNotifier {
     unawaited(loadSpots());
   }
 
-  Future<SpotDraftResult?> submitDraft({
+  Future<SpotDraftResult?> submitDraft(
+    BuildContext context, {
     required SpotDraftInput input,
     Uint8List? imageBytes,
     String? imageMimeType,
@@ -146,11 +149,12 @@ class SpotController with ChangeNotifier {
       );
       await _repository.confirmImageRights(draft.revisionId);
       if (draft.probableDuplicates.isEmpty || duplicateOverrideReason != null) {
-        await _repository.submitRevision(
-          revisionId: draft.revisionId,
-          duplicateOverrideReason: duplicateOverrideReason,
-        );
-        await loadPendingSpots();
+        if (!context.mounted) return draft;
+        final submitted = await _trySubmitRevision(
+            context, draft.revisionId, duplicateOverrideReason);
+        if (submitted) {
+          await loadPendingSpots();
+        }
       }
       return draft;
     } catch (error) {
@@ -160,7 +164,35 @@ class SpotController with ChangeNotifier {
     }
   }
 
-  Future<SpotDraftResult?> reviseAndSubmit({
+  Future<bool> _trySubmitRevision(
+      BuildContext context, String revisionId, String? overrideReason) async {
+    try {
+      await _repository.submitRevision(
+        revisionId: revisionId,
+        duplicateOverrideReason: overrideReason,
+      );
+      return true;
+    } catch (e) {
+      if (e is AppException &&
+          e.userMessage == 'UGC_RULES_ACCEPTANCE_REQUIRED') {
+        if (context.mounted) {
+          final accepted = await showUgcConsentDialog(context);
+          if (accepted) {
+            await _repository.submitRevision(
+              revisionId: revisionId,
+              duplicateOverrideReason: overrideReason,
+            );
+            return true;
+          }
+          return false;
+        }
+      }
+      rethrow;
+    }
+  }
+
+  Future<SpotDraftResult?> reviseAndSubmit(
+    BuildContext context, {
     required SpotModel source,
     required SpotDraftInput input,
     Uint8List? imageBytes,
@@ -186,10 +218,9 @@ class SpotController with ChangeNotifier {
       );
       await _repository.confirmImageRights(draft.revisionId);
       if (draft.probableDuplicates.isEmpty || duplicateOverrideReason != null) {
-        await _repository.submitRevision(
-          revisionId: draft.revisionId,
-          duplicateOverrideReason: duplicateOverrideReason,
-        );
+        if (!context.mounted) return draft;
+        await _trySubmitRevision(
+            context, draft.revisionId, duplicateOverrideReason);
       }
       await loadOwnedSubmissions();
       return draft;
@@ -215,16 +246,18 @@ class SpotController with ChangeNotifier {
   }
 
   Future<bool> submitExistingDraft(
+    BuildContext context,
     String revisionId,
     String duplicateOverrideReason,
   ) async {
     try {
-      await _repository.submitRevision(
-        revisionId: revisionId,
-        duplicateOverrideReason: duplicateOverrideReason,
-      );
-      await loadPendingSpots();
-      return true;
+      final submitted = await _trySubmitRevision(
+          context, revisionId, duplicateOverrideReason);
+      if (submitted) {
+        await loadPendingSpots();
+        return true;
+      }
+      return false;
     } catch (error) {
       _errorMessage = _message(error, 'The spot could not be submitted.');
       notifyListeners();

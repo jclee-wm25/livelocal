@@ -1,9 +1,10 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../core/errors/app_exception.dart';
 import '../../../models/review_model.dart';
+import '../../moderation/presentation/ugc_consent_dialog.dart';
 import '../domain/review_repository.dart';
 
 class ReviewController with ChangeNotifier {
@@ -61,11 +62,30 @@ class ReviewController with ChangeNotifier {
         list.length;
   }
 
-  Future<bool> addReview({
+  Future<bool> addReview(
+    BuildContext context, {
     String? spotId,
     String? restaurantId,
     required double rating,
     required String comment,
+  }) async {
+    return _doAddReview(
+      context,
+      spotId: spotId,
+      restaurantId: restaurantId,
+      rating: rating,
+      comment: comment,
+      isRetry: false,
+    );
+  }
+
+  Future<bool> _doAddReview(
+    BuildContext context, {
+    String? spotId,
+    String? restaurantId,
+    required double rating,
+    required String comment,
+    required bool isRetry,
   }) async {
     if (rating < 1 || rating > 5 || comment.trim().length < 3) {
       _errorMessage = 'Choose a rating and write at least 3 characters.';
@@ -89,6 +109,25 @@ class ReviewController with ChangeNotifier {
       await loadReviews(spotId: spotId, restaurantId: restaurantId);
       return true;
     } catch (error) {
+      if (error is AppException &&
+          error.userMessage == 'UGC_RULES_ACCEPTANCE_REQUIRED' &&
+          !isRetry) {
+        if (!context.mounted) return false;
+        // Import must be added for showUgcConsentDialog
+        final accepted = await showUgcConsentDialog(context);
+        if (accepted) {
+          if (!context.mounted) return false;
+          return _doAddReview(
+            context,
+            spotId: spotId,
+            restaurantId: restaurantId,
+            rating: rating,
+            comment: comment,
+            isRetry: true,
+          );
+        }
+        return false;
+      }
       _errorMessage = _message(error, 'Your review could not be saved.');
       notifyListeners();
       return false;

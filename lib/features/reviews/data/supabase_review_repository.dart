@@ -150,6 +150,23 @@ class SupabaseReviewRepository implements ReviewRepository {
   }
 
   AppException _error(PostgrestException error, String message) {
+    if (error.message == 'UGC_RULES_ACCEPTANCE_REQUIRED') {
+      return AppException(
+        code: AppErrorCode.forbidden,
+        userMessage: 'UGC_RULES_ACCEPTANCE_REQUIRED',
+        technicalMessage: error.message,
+        cause: error,
+      );
+    }
+    if (error.code == '22023' && error.message == 'UGC_CONTENT_RESTRICTED') {
+      return AppException(
+        code: AppErrorCode.validation,
+        userMessage:
+            'Your content contains restricted words. Please revise it and try again.',
+        technicalMessage: error.message,
+        cause: error,
+      );
+    }
     return AppException(
       code: switch (error.code) {
         '23505' => AppErrorCode.conflict,
