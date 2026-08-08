@@ -495,6 +495,7 @@ class _RestaurantDetailScreenState extends State<RestaurantDetailScreen> {
     body.dispose();
     if (save != true || !mounted) return;
     final saved = await controller.addReview(
+      context,
       restaurantId: widget.restaurant.id,
       rating: rating,
       comment: comment,

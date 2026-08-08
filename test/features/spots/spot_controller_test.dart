@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_local/features/auth/data/demo_auth_repository.dart';
 import 'package:live_local/features/spots/data/demo_spot_repository.dart';
@@ -23,8 +24,16 @@ void main() {
     await controller.loadSpots();
   });
 
-  test('probable duplicate remains a draft until resolved', () async {
+  testWidgets('probable duplicate remains a draft until resolved',
+      (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(Builder(builder: (c) {
+      ctx = c;
+      return const SizedBox();
+    }));
+
     final result = await controller.submitDraft(
+      ctx,
       input: const SpotDraftInput(
         name: 'Chop Seng Hin Kopitiam',
         category: 'Kopitiam',
@@ -48,8 +57,16 @@ void main() {
     expect(await controller.discardDraft(result), isTrue);
   });
 
-  test('photo rights are required before a draft is created', () async {
+  testWidgets('photo rights are required before a draft is created',
+      (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(Builder(builder: (c) {
+      ctx = c;
+      return const SizedBox();
+    }));
+
     final result = await controller.submitDraft(
+      ctx,
       input: const SpotDraftInput(
         name: 'Consent Test Garden',
         category: 'Park / Walkway',
@@ -71,8 +88,16 @@ void main() {
     expect(controller.pendingSpots, isEmpty);
   });
 
-  test('new spot is submitted without trusting a client actor id', () async {
+  testWidgets('new spot is submitted without trusting a client actor id',
+      (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(Builder(builder: (c) {
+      ctx = c;
+      return const SizedBox();
+    }));
+
     final result = await controller.submitDraft(
+      ctx,
       input: const SpotDraftInput(
         name: 'Community Test Garden',
         category: 'Park / Walkway',
@@ -94,9 +119,16 @@ void main() {
     expect(controller.pendingSpots.single.submittedBy, 'usr-tourist-1');
   });
 
-  test('approved spot stays public while its owner revision is reviewed',
-      () async {
+  testWidgets('approved spot stays public while its owner revision is reviewed',
+      (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(Builder(builder: (c) {
+      ctx = c;
+      return const SizedBox();
+    }));
+
     final original = await controller.submitDraft(
+      ctx,
       input: const SpotDraftInput(
         name: 'Owner Revision Garden',
         category: 'Park / Walkway',
@@ -139,6 +171,7 @@ void main() {
       (spot) => spot.id == originalDraft.spotId,
     );
     final revision = await controller.reviseAndSubmit(
+      ctx,
       source: source,
       input: SpotDraftInput(
         name: 'Revised Owner Garden',
@@ -190,9 +223,16 @@ void main() {
     );
   });
 
-  test('owner can withdraw a pending spot without deleting its history',
-      () async {
+  testWidgets('owner can withdraw a pending spot without deleting its history',
+      (tester) async {
+    late BuildContext ctx;
+    await tester.pumpWidget(Builder(builder: (c) {
+      ctx = c;
+      return const SizedBox();
+    }));
+
     final draft = await controller.submitDraft(
+      ctx,
       input: const SpotDraftInput(
         name: 'Withdrawal Test Garden',
         category: 'Park / Walkway',

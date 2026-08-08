@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+import 'package:flutter/widgets.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:live_local/controllers/auth_controller.dart';
@@ -26,7 +27,14 @@ void main() {
       expect(authCtrl.currentUser?.role, 'tourist');
     });
 
-    test('Module 2: Local Spots Filtering & Submission Flow', () async {
+    testWidgets('Module 2: Local Spots Filtering & Submission Flow',
+        (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(Builder(builder: (c) {
+        ctx = c;
+        return const SizedBox();
+      }));
+
       final authRepository = DemoAuthRepository();
       await authRepository.signIn(
         email: 'tourist@livelocal.com',
@@ -41,9 +49,11 @@ void main() {
       expect(initialApprovedCount, greaterThan(0));
 
       spotCtrl.filter(state: 'Penang');
+      await tester.pump(const Duration(milliseconds: 350));
       expect(spotCtrl.approvedSpots.every((s) => s.state == 'Penang'), isTrue);
 
       spotCtrl.resetFilters();
+      await tester.pump(const Duration(milliseconds: 350));
 
       // Submit new spot
       final newSpot = SpotModel(
@@ -54,7 +64,7 @@ void main() {
         state: 'Penang',
         city: 'George Town',
         address: '123 Test St',
-        priceRange: '\$',
+        priceRange: r'$',
         bestTime: '8:00 AM',
         thingsToDo: 'Drink kopi',
         imageUrl: 'https://example.com/test.jpg',
@@ -63,6 +73,7 @@ void main() {
       );
 
       final submitted = await spotCtrl.submitDraft(
+        ctx,
         input: SpotDraftInput(
           name: newSpot.name,
           category: newSpot.category,
@@ -80,6 +91,8 @@ void main() {
         imageMimeType: 'image/jpeg',
         imageRightsConfirmed: true,
       );
+
+      await tester.pumpAndSettle();
       expect(submitted, isNotNull);
       expect(
         spotCtrl.pendingSpots.any((s) => s.name == 'Test Kopitiam'),
@@ -150,7 +163,14 @@ void main() {
       expect(guide.walkingSequence.isNotEmpty, isTrue);
     });
 
-    test('Module 6: Community review validation and storage', () async {
+    testWidgets('Module 6: Community review validation and storage',
+        (tester) async {
+      late BuildContext ctx;
+      await tester.pumpWidget(Builder(builder: (c) {
+        ctx = c;
+        return const SizedBox();
+      }));
+
       final authRepository = DemoAuthRepository();
       await authRepository.signIn(
         email: 'tourist@livelocal.com',
@@ -164,6 +184,7 @@ void main() {
 
       // Add review
       await reviewCtrl.addReview(
+        ctx,
         spotId: 'spot-001',
         rating: 5.0,
         comment: 'Awesome place!',

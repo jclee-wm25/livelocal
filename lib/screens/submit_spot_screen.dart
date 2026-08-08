@@ -378,6 +378,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     final controller = context.read<SpotController>();
     final result = _isRevision
         ? await controller.reviseAndSubmit(
+            context,
             source: widget.source!,
             input: input,
             imageBytes: _imageBytes,
@@ -385,6 +386,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
             imageRightsConfirmed: _imageRightsConfirmed,
           )
         : await controller.submitDraft(
+            context,
             input: input,
             imageBytes: _imageBytes,
             imageMimeType: _imageMimeType,
@@ -469,6 +471,7 @@ class _SubmitSpotScreenState extends State<SubmitSpotScreen> {
     }
     setState(() => _submitting = true);
     final submitted = await context.read<SpotController>().submitExistingDraft(
+          context,
           draft.revisionId,
           reason,
         );
