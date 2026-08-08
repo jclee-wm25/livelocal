@@ -137,6 +137,7 @@ select lives_ok(
   )$$,
   'content owner confirms image rights before submission'
 );
+select public.accept_current_ugc_rules();
 select lives_ok(
   $$select public.submit_spot_revision(
     (select current_revision_id from public.spots where owner_id = auth.uid()),
